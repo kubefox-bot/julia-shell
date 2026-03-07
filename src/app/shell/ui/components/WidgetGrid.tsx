@@ -59,6 +59,18 @@ export function WidgetGrid() {
     >
       <SortableContext items={visibleLayout.map((item) => item.widgetId)} strategy={rectSortingStrategy}>
         <section className={styles.grid} style={columnsStyle}>
+          {/*
+            {previewLayout.length === 0 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyStateBadge}>♡</div>
+                <h2>{t('dashboardEmptyTitle')}</h2>
+                <p>{t('dashboardEmptyBody')}</p>
+                <Button type="button" onClick={openSettings}>
+                  {t('dashboardEmptyAction')}
+                </Button>
+              </div>
+            ) : null}
+          */}
           {previewLayout.map((entry) => {
             if (entry.kind === 'placeholder') {
               const moduleInfo = moduleMap.get(entry.item.widgetId);

@@ -7,7 +7,7 @@ export type ShellDataSlice = Pick<
   ShellStoreState,
   'loading' | 'error' | 'isSaving' | 'browserLocale' | 'nowIso' | 'platform' | 'layout' | 'draftLayout' | 'modules' | 'layoutSettings'
 > &
-  Pick<ShellStoreActions, 'setBrowserLocale' | 'tickNow' | 'clearError' | 'loadShell' | 'toggleModule'>;
+  Pick<ShellStoreActions, 'hydrateShell' | 'setBrowserLocale' | 'tickNow' | 'clearError' | 'loadShell' | 'toggleModule'>;
 
 export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSlice> = (set, get) => ({
   loading: true,
@@ -24,6 +24,9 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
     mobileColumns: 1,
     locale: 'system',
     theme: 'auto'
+  },
+  hydrateShell: (response) => {
+    set((state) => buildShellStatePatch(state, response));
   },
   setBrowserLocale: (locale) => {
     set({ browserLocale: locale });

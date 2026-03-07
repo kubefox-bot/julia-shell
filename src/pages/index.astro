@@ -1,12 +1,93 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { ShellApp } from '../app/shell/ui/ShellApp';
+import { ShellSilhouetteGrid } from '../app/shell/ui/components/ShellSilhouetteGrid';
+import { buildShellSkeletonLayout } from '../app/shell/model/skeleton';
+import { getShellSettings } from '../core/services/shell-service';
+import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from '../app/shell/model/constants';
+import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
-
-const title  = "Julia Shell";
+const title = 'Julia Shell';
+const initialShellSettings = await getShellSettings();
+const initialNowIso = new Date().toISOString();
+const initialSilhouetteLayout = buildShellSkeletonLayout(initialShellSettings.layout, initialShellSettings.modules, []);
+const currentHour = new Date().getHours();
+const resolvedShellTheme: ResolvedShellTheme =
+  initialShellSettings.layoutSettings.theme === 'day'
+    ? 'day'
+    : initialShellSettings.layoutSettings.theme === 'night'
+      ? 'night'
+      : currentHour >= AUTO_THEME_DAY_START_HOUR && currentHour < AUTO_THEME_NIGHT_START_HOUR
+        ? 'day'
+        : 'night';
 
 ---
 
-<Layout title={title}>
-  <ShellApp client:load />
+<Layout title={title} shellTheme={resolvedShellTheme}>
+  <div class="shellBootStage">
+    <div id="shell-boot-overlay" class="shellBootOverlay" aria-hidden="true">
+      <div class="shellBootOverlayInner">
+        <div class="shellBootHeaderSpacer"></div>
+        <ShellSilhouetteGrid
+          items={initialSilhouetteLayout}
+          layoutSettings={initialShellSettings.layoutSettings}
+          animate={true}
+        />
+      </div>
+    </div>
+    <ShellApp client:load initialShellSettings={initialShellSettings} initialNowIso={initialNowIso} />
+  </div>
 </Layout>
+
+<script is:inline>
+  (() => {
+    const overlay = document.getElementById('shell-boot-overlay');
+    if (!overlay) return;
+
+    window.addEventListener(
+      'yulia-shell-hydrated',
+      () => {
+        overlay.classList.add('shellBootOverlayHidden');
+        window.setTimeout(() => {
+          overlay.remove();
+        }, 260);
+      },
+      { once: true }
+    );
+  })();
+</script>
+
+<style>
+  .shellBootStage {
+    position: relative;
+  }
+
+  .shellBootOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 220ms ease;
+  }
+
+  .shellBootOverlayInner {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .shellBootHeaderSpacer {
+    min-height: 7.5rem;
+  }
+
+  .shellBootOverlayHidden {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  @media (max-width: 768px) {
+    .shellBootHeaderSpacer {
+      min-height: 9.5rem;
+    }
+  }
+</style>

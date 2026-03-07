@@ -23,65 +23,65 @@ export async function prepareAudioForTranscription(input: {
   await fs.mkdir(TMP_ROOT, { recursive: true })
 
   if (selectedFiles.length > 1) {
-    mergedAudioPath = path.join(TMP_ROOT, `${primaryBaseName}_merged.m4a`)
     concatListPath = path.join(TMP_ROOT, `${primaryBaseName}_merged.concat.txt`)
     await fs.writeFile(
       concatListPath,
       selectedFiles.map((value) => `file '${escapeConcatPath(value)}'`).join('\n'),
       'utf8'
     )
-
-    sendProgress(6, 'progressMerging')
-    await runFfmpeg({
-      ffmpegExe,
-      args: [
-        '-y',
-        '-f',
-        'concat',
-        '-safe',
-        '0',
-        '-i',
-        concatListPath,
-        '-vn',
-        '-c:a',
-        'aac',
-        '-b:a',
-        '96k',
-        mergedAudioPath
-      ],
-      setActiveChild
-    })
-    sendProgress(18, 'progressMergeComplete')
-    inputFilePath = mergedAudioPath
   }
 
   const convertBaseName = selectedFiles.length > 1 ? `${primaryBaseName}_merged` : primaryBaseName
   convertedAudioPath = path.join(TMP_ROOT, `${convertBaseName}.mono16k.ogg`)
-  const conversionStart = selectedFiles.length > 1 ? 20 : 5
+  const conversionStart = selectedFiles.length > 1 ? 6 : 5
   const conversionEnd = selectedFiles.length > 1 ? 52 : 40
 
-  sendProgress(conversionStart, 'progressConverting')
+  sendProgress(conversionStart, selectedFiles.length > 1 ? 'progressMerging' : 'progressConverting')
   await runFfmpeg({
     ffmpegExe,
-    args: [
-      '-y',
-      '-i',
-      inputFilePath,
-      '-vn',
-      '-ac',
-      '1',
-      '-ar',
-      '16000',
-      '-c:a',
-      'libopus',
-      '-b:a',
-      '24k',
-      '-vbr',
-      'on',
-      '-compression_level',
-      '10',
-      convertedAudioPath
-    ],
+    args: selectedFiles.length > 1
+      ? [
+          '-y',
+          '-f',
+          'concat',
+          '-safe',
+          '0',
+          '-i',
+          concatListPath,
+          '-vn',
+          '-ac',
+          '1',
+          '-ar',
+          '16000',
+          '-c:a',
+          'libopus',
+          '-b:a',
+          '24k',
+          '-vbr',
+          'on',
+          '-compression_level',
+          '10',
+          convertedAudioPath
+        ]
+      : [
+          '-y',
+          '-i',
+          inputFilePath,
+          '-vn',
+          '-ac',
+          '1',
+          '-ar',
+          '16000',
+          '-c:a',
+          'libopus',
+          '-b:a',
+          '24k',
+          '-vbr',
+          'on',
+          '-compression_level',
+          '10',
+          convertedAudioPath
+        ],
     onStderr: ({ stderrBuffer, chunk }) => {
       let durationSeconds = 0
       const durationMatch = stderrBuffer.match(/Duration:\s(\d{2}:\d{2}:\d{2}\.\d+)/)
@@ -93,7 +93,10 @@ export async function prepareAudioForTranscription(input: {
       if (durationSeconds > 0 && timeMatches.length > 0) {
         const currentSeconds = parseClockToSeconds(timeMatches[timeMatches.length - 1][1])
         const ratio = Math.max(0, Math.min(1, currentSeconds / durationSeconds))
-        sendProgress(conversionStart + ratio * (conversionEnd - conversionStart), 'progressConverting')
+        const stage = selectedFiles.length > 1 && ratio < 0.35
+          ? 'progressMerging'
+          : 'progressConverting'
+        sendProgress(conversionStart + ratio * (conversionEnd - conversionStart), stage)
       }
     },
     setActiveChild

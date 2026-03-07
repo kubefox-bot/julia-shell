@@ -53,6 +53,11 @@ Useful commands:
 ## Runtime Model
 - Astro server mode with `@astrojs/node` standalone adapter.
 - UI model: `Astro host + React shell`.
+- index page boot path is SSR-first:
+  - Astro reads shell settings/layout from `core.db` on the server,
+  - initial shell state is passed into the React island as props,
+  - server HTML renders widget-card silhouettes before hydration,
+  - after hydration the silhouette state is kept for about 1 second, then live widgets are shown.
 - Production entrypoint: `node ./dist/server/entry.mjs`.
 
 ## Current Architecture (v1.2)
@@ -102,6 +107,10 @@ Shell features:
   - locale,
   - theme,
   - modules list (`id`, `name`, `version`, `ready/not-ready`, enable/disable).
+- shell boot visual:
+  - use card silhouettes, not detailed skeleton rows,
+  - keep the short highlight/pulse animation,
+  - keep silhouette geometry aligned with real widget layout and widget sizes from DB/registry.
 - desktop widget height rule:
   - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
   - mobile may return to adaptive height,
@@ -110,8 +119,9 @@ Shell features:
 Theme notes:
 - night theme must apply to the whole page, not only shell cards,
 - `html`/`body` receive current shell theme via `data-shell-theme`,
+- SSR layout must also receive the resolved shell theme before hydration to avoid white flash on page load,
 - global night variables live in shared global styles,
-- if background stays white, check `src/shared/styles/global.scss` and theme propagation in `ShellApp.tsx`.
+- if background stays white, check `src/shared/styles/global.scss`, `src/pages/index.astro`, `src/layouts/Layout.astro`, and theme propagation in `src/app/shell/ui/ShellApp.tsx`.
 
 ## API Contract
 Shell APIs:
@@ -171,11 +181,15 @@ Required env vars:
 
 Result actions in UI:
 - `Назад`
-- `Озвучить`
+- `Прочитать` (when matching `.txt` exists)
 - `Скопировать`
-- `Сохранить`
 
-`Озвучить` uses browser `speechSynthesis`.
+Current transcribe UI notes:
+- result save is automatic on the server,
+- folder is refreshed after transcription completes,
+- `Прочитать` opens the same result screen immediately from `.txt`, without typewriter animation,
+- widget settings and path history dropdowns use shared design-system option menus,
+- transcribe UI uses local Zustand slices plus shared UI primitives under `src/shared/ui`.
 
 ## Weather Flow (Current)
 - source: Open-Meteo,
@@ -210,6 +224,7 @@ The following legacy areas were removed from active architecture:
 ## Widget Local Context Files
 Widget-specific local instructions live here:
 - `src/widgets/transcribe/AGENTS.md`
+- `src/widgets/transcribe/ui/AGENTS.md`
 - `src/widgets/weather/AGENTS.md`
 
 ## Operational Notes
