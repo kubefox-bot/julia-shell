@@ -6,7 +6,7 @@ afterEach(() => {
 });
 
 describe('channel token guard', () => {
-  it('rejects when token is missing', () => {
+  it('rejects when token is missing', async () => {
     process.env.WIDGET_CHANNEL_TOKEN = 'secret';
     const request = new Request('http://localhost/test', {
       headers: {
@@ -14,10 +14,10 @@ describe('channel token guard', () => {
       }
     });
 
-    expect(isChannelAuthorized(request)).toBe(false);
+    await expect(isChannelAuthorized(request)).resolves.toBe(false);
   });
 
-  it('accepts matching token', () => {
+  it('accepts matching token', async () => {
     process.env.WIDGET_CHANNEL_TOKEN = 'secret';
     const request = new Request('http://localhost/test', {
       headers: {
@@ -25,6 +25,6 @@ describe('channel token guard', () => {
       }
     });
 
-    expect(isChannelAuthorized(request)).toBe(true);
+    await expect(isChannelAuthorized(request)).resolves.toBe(true);
   });
 });

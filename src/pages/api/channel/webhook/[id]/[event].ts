@@ -4,7 +4,7 @@ import { isChannelAuthorized } from '../../../../../shared/lib/channel-auth';
 import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http';
 
 export const POST: APIRoute = async ({ request, params }) => {
-  if (!isChannelAuthorized(request)) {
+  if (!(await isChannelAuthorized(request))) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 

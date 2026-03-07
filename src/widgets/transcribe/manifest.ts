@@ -2,6 +2,7 @@ import type { WidgetManifest } from '../../entities/widget/model/types';
 
 export const transcribeManifest: WidgetManifest = {
   id: 'com.yulia.transcribe',
+  envName: 'transcribe',
   name: 'Transcribe',
   version: '1.0.0',
   description: 'Gemini-based m4a transcription widget with SSE and outbox.',

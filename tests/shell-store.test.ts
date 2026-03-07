@@ -11,6 +11,7 @@ vi.mock('../src/app/shell/lib/api', () => ({
 
 function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettingsResponse {
   return {
+    platform: 'windows',
     layoutSettings: {
       desktopColumns: 12,
       mobileColumns: 1,

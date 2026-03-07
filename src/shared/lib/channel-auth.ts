@@ -1,15 +1,15 @@
-import { secrets } from '../../core/secrets';
+import { secrets } from '../../core/secrets/secrets'
 
-export function isChannelAuthorized(request: Request) {
-  const expectedToken = secrets.getSecret('WIDGET_CHANNEL_TOKEN');
+export async function isChannelAuthorized(request: Request) {
+  const expectedToken = await secrets.getSecret('WIDGET_CHANNEL_TOKEN')
   if (!expectedToken) {
-    return false;
+    return false
   }
 
-  const token = request.headers.get('X-Widget-Token')?.trim();
+  const token = request.headers.get('X-Widget-Token')?.trim()
   if (!token) {
-    return false;
+    return false
   }
 
-  return token === expectedToken;
+  return token === expectedToken
 }

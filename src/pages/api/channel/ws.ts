@@ -8,7 +8,7 @@ function formatSseEvent(event: string, payload: unknown) {
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  if (!isChannelAuthorized(request)) {
+  if (!(await isChannelAuthorized(request))) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 
@@ -63,7 +63,7 @@ export const GET: APIRoute = async ({ request }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  if (!isChannelAuthorized(request)) {
+  if (!(await isChannelAuthorized(request))) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 

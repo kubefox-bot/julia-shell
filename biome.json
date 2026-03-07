@@ -22,6 +22,32 @@
       "recommended": true
     }
   },
+  "overrides": [
+    {
+      "includes": ["src/core/secrets/**/*.ts"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noExcessiveClassesPerFile": {
+              "level": "error",
+              "options": {
+                "maxClasses": 1
+              }
+            },
+            "noExcessiveLinesPerFile": {
+              "level": "warn",
+              "options": {
+                "maxLines": 80
+              }
+            }
+          },
+          "performance": {
+            "noBarrelFile": "error"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

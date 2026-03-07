@@ -17,6 +17,8 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.local
+.env.infisical.local
 .env.production
 
 # local sqlite data
