@@ -3,13 +3,15 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 import { useStore } from 'zustand'
 import { createTranscribeBrowserSlice, type TranscribeBrowserSlice } from './slices/browser-slice'
 import { createTranscribeResultSlice, type TranscribeResultSlice } from './slices/result-slice'
+import { createTranscribeSessionSlice, type TranscribeSessionSlice } from './slices/session-slice'
 import { createTranscribeSettingsSlice, type TranscribeSettingsSlice } from './slices/settings-slice'
 
-export type TranscribeStore = TranscribeBrowserSlice & TranscribeResultSlice & TranscribeSettingsSlice
+export type TranscribeStore = TranscribeBrowserSlice & TranscribeSessionSlice & TranscribeResultSlice & TranscribeSettingsSlice
 
 export function createTranscribeStore() {
   return createStore<TranscribeStore>()((...args) => ({
     ...createTranscribeBrowserSlice(...args),
+    ...createTranscribeSessionSlice(...args),
     ...createTranscribeResultSlice(...args),
     ...createTranscribeSettingsSlice(...args)
   }))
