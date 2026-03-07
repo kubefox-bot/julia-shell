@@ -1,0 +1,902 @@
+---
+import Layout from '../layouts/Layout.astro';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+
+const DOWNLOADS_DIR = path.join(os.homedir(), 'Downloads');
+
+// Получаем список резюме (последние 10)
+let hrFiles: string[] = [];
+try {
+    const files = await fs.readdir(DOWNLOADS_DIR);
+    hrFiles = files
+        .filter(f => {
+            const low = f.toLowerCase();
+            return (low.includes('резюме') || low.includes('соискатель') || low.includes('cv') || low.includes('resume')) && f.endsWith('.pdf');
+        })
+        .sort(async (a, b) => {
+            const statA = await fs.stat(path.join(DOWNLOADS_DIR, a));
+            const statB = await fs.stat(path.join(DOWNLOADS_DIR, b));
+            return statB.mtimeMs - statA.mtimeMs;
+        })
+        .slice(0, 10);
+} catch (e) {
+    console.error('Error reading downloads', e);
+}
+
+// Поиск книг для английского (автоматически)
+let englishBooks: string[] = [];
+try {
+    const files = await fs.readdir(DOWNLOADS_DIR);
+    englishBooks = files.filter(f => {
+        const low = f.toLowerCase();
+        return (low.includes('english') || low.includes('учебник') || low.includes('grammar')) && (f.endsWith('.pdf') || f.endsWith('.epub'));
+    }).slice(0, 4);
+} catch (e) {}
+
+const today = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+---
+
+<Layout title="Yulia Assistant">
+	<header class="header">
+		<h1>Привет, Юля! ✨</h1>
+		<p class="date">{today}</p>
+	</header>
+
+	<div class="grid">
+		<!-- Карточка: Уборка -->
+		<div class="card card-wide" id="clean-card">
+			<div class="card-content">
+				<div class="icon">🧹</div>
+				<h2>Навести порядок</h2>
+				<p>Сгруппировать файлы в загрузках по категориям</p>
+				<button id="clean-btn" class="btn">Запустить магию</button>
+			</div>
+			<div id="clean-status" class="status-overlay">Готово! ✨</div>
+		</div>
+
+		<!-- Карточка: Кандидаты -->
+		<div class="card">
+			<div class="icon">📄</div>
+			<h2>Мои кандидаты</h2>
+			<ul class="file-list">
+				{hrFiles.length > 0 ? hrFiles.map(file => (
+					<li>{file}</li>
+				)) : <li class="empty">Пока нет резюме в загрузках</li>}
+			</ul>
+		</div>
+
+		<!-- Карточка: Английский -->
+		<div class="card">
+			<div class="icon">🇬🇧</div>
+			<h2>English Time</h2>
+			<ul class="file-list">
+				{englishBooks.length > 0 ? englishBooks.map(file => (
+					<li>{file}</li>
+				)) : <li class="empty">Учебники не найдены</li>}
+			</ul>
+			<a href="https://dictionary.cambridge.org/" target="_blank" class="link-btn">Словарь →</a>
+		</div>
+
+		<!-- Карточка: Книжная полка -->
+		<div class="card">
+			<div class="icon">📚</div>
+			<h2>Книжная полка</h2>
+			<p>Доступ к последним книгам (.epub, .fb2)</p>
+			<button id="open-btn" class="btn btn-secondary">Открыть папку</button>
+		</div>
+
+		<!-- Карточка: Транскрибация -->
+		<div class="card card-wide">
+			<div class="icon">🎙️</div>
+			<h2>Транскрибация m4a</h2>
+			<div id="transcribe-setup">
+				<div class="path-input-row">
+					<input id="browse-path-input" type="text" placeholder="Вставь путь к папке..." autocomplete="off" />
+					<button id="browse-load-btn" class="btn btn-secondary small-btn">Показать</button>
+					<button id="browse-clear-btn" class="icon-btn" title="Очистить сохраненный путь">✕</button>
+				</div>
+				<p class="muted-info">Выбери папку из списка и нажми транскрибация.</p>
+				<ul id="browser-list" class="browser-list"></ul>
+				<p class="selected-path">Выбрано: <span id="selected-folder-path">—</span></p>
+				<button id="transcribe-btn" class="btn" disabled>Транскрибация</button>
+			</div>
+			<div id="transcribe-result" class="hidden">
+				<textarea id="transcribe-text" class="transcribe-text" readonly></textarea>
+				<div class="result-actions">
+					<button id="transcribe-back-btn" class="btn btn-secondary">Назад</button>
+					<button id="transcribe-copy-btn" class="btn">Скопировать</button>
+				</div>
+			</div>
+			<p id="transcribe-status" class="transcribe-status">Готово к работе.</p>
+		</div>
+
+		<!-- Карточка: Чат с помощником -->
+		<div class="card card-wide chat-container">
+			<div class="card-content">
+				<div class="icon">💬</div>
+				<h2>Написать тебе</h2>
+				<div class="chat-box" id="chat-box">
+					<div class="message assistant">Привет, Юля! Как дела? ✨</div>
+				</div>
+				<form id="chat-form" class="chat-form">
+					<input type="text" id="chat-input" placeholder="Напиши что-нибудь..." required autocomplete="off" />
+					<button type="submit" class="send-btn">🚀</button>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<footer class="status-bar" id="status-bar">
+		Система готова к работе.
+	</footer>
+</Layout>
+
+<script>
+	const cleanBtn = document.getElementById('clean-btn');
+	const openBtn = document.getElementById('open-btn');
+	const statusBar = document.getElementById('status-bar');
+	const cleanStatus = document.getElementById('clean-status');
+	
+	const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
+	const chatInput = document.getElementById('chat-input') as HTMLInputElement | null;
+	const chatBox = document.getElementById('chat-box') as HTMLDivElement | null;
+	const chatSubmitBtn = chatForm?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+	const defaultChatPlaceholder = 'Напиши что-нибудь...';
+	const transcribeStorageKey = 'yulia:last-transcribe-path';
+	const astroScopeAttr = chatBox?.querySelector('.message')
+		?.getAttributeNames()
+		.find((name) => name.startsWith('data-astro-cid-')) ?? null;
+
+	const browsePathInput = document.getElementById('browse-path-input') as HTMLInputElement | null;
+	const browseLoadBtn = document.getElementById('browse-load-btn') as HTMLButtonElement | null;
+	const browseClearBtn = document.getElementById('browse-clear-btn') as HTMLButtonElement | null;
+	const browserList = document.getElementById('browser-list') as HTMLUListElement | null;
+	const selectedFolderPathEl = document.getElementById('selected-folder-path');
+	const transcribeBtn = document.getElementById('transcribe-btn') as HTMLButtonElement | null;
+	const transcribeStatus = document.getElementById('transcribe-status');
+	const transcribeSetup = document.getElementById('transcribe-setup');
+	const transcribeResult = document.getElementById('transcribe-result');
+	const transcribeText = document.getElementById('transcribe-text') as HTMLTextAreaElement | null;
+	const transcribeBackBtn = document.getElementById('transcribe-back-btn') as HTMLButtonElement | null;
+	const transcribeCopyBtn = document.getElementById('transcribe-copy-btn') as HTMLButtonElement | null;
+
+	let selectedFolderPath: string | null = null;
+
+	cleanBtn?.addEventListener('click', async () => {
+		if (statusBar) statusBar.textContent = 'Магическая уборка началась...';
+		
+		try {
+			const res = await fetch('/api/clean', { method: 'POST' });
+			const data = await res.json();
+			
+			const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
+			const message = data.moved > 0 
+				? `Уборка завершена! Перемещено файлов: ${data.moved} (${sizeMB} MB)`
+				: 'В загрузках уже идеальный порядок! ✨';
+			
+			if (statusBar) statusBar.textContent = message;
+			if (cleanStatus) {
+				cleanStatus.classList.add('active');
+				setTimeout(() => cleanStatus.classList.remove('active'), 3000);
+			}
+		} catch (e) {
+			if (statusBar) statusBar.textContent = 'Ошибка при уборке :(';
+		}
+	});
+
+	openBtn?.addEventListener('click', async () => {
+		try {
+			await fetch('/api/open', { method: 'POST' });
+		} catch (e) {
+			console.error('Failed to open folder');
+		}
+	});
+
+	function applyScopedAttr(element: HTMLElement) {
+		if (astroScopeAttr) {
+			element.setAttribute(astroScopeAttr, '');
+		}
+	}
+
+	function setTranscribeStatus(text: string) {
+		if (transcribeStatus) transcribeStatus.textContent = text;
+	}
+
+	function setSelectedFolder(pathValue: string | null) {
+		selectedFolderPath = pathValue;
+		if (selectedFolderPathEl) {
+			selectedFolderPathEl.textContent = pathValue ?? '—';
+		}
+		if (transcribeBtn) {
+			transcribeBtn.disabled = !pathValue;
+		}
+	}
+
+	function setTranscribeLoading(loading: boolean) {
+		if (transcribeBtn) transcribeBtn.disabled = loading || !selectedFolderPath;
+		if (browseLoadBtn) browseLoadBtn.disabled = loading;
+		if (browseClearBtn) browseClearBtn.disabled = loading;
+		if (browsePathInput) browsePathInput.disabled = loading;
+	}
+
+	function openTranscribeSetup() {
+		transcribeSetup?.classList.remove('hidden');
+		transcribeResult?.classList.add('hidden');
+	}
+
+	function openTranscribeResult(transcript: string) {
+		if (transcribeText) transcribeText.value = transcript;
+		transcribeSetup?.classList.add('hidden');
+		transcribeResult?.classList.remove('hidden');
+	}
+
+	type BrowserEntry = {
+		name: string;
+		path: string;
+		type: 'dir' | 'file';
+	};
+
+	function renderEntries(entries: BrowserEntry[]) {
+		if (!browserList) return;
+		browserList.innerHTML = '';
+
+		if (entries.length === 0) {
+			const empty = document.createElement('li');
+			empty.textContent = 'Папка пустая.';
+			empty.className = 'empty';
+			applyScopedAttr(empty);
+			browserList.appendChild(empty);
+			return;
+		}
+
+		for (const entry of entries) {
+			const li = document.createElement('li');
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.className = `browser-entry ${entry.type === 'dir' ? 'is-dir' : 'is-file'}`;
+			button.textContent = `${entry.type === 'dir' ? '📁' : '📄'} ${entry.name}`;
+			button.dataset.path = entry.path;
+			button.dataset.entryType = entry.type;
+
+			if (selectedFolderPath && entry.type === 'dir' && entry.path === selectedFolderPath) {
+				button.classList.add('selected');
+			}
+
+			button.addEventListener('click', () => {
+				if (entry.type !== 'dir') {
+					setTranscribeStatus('Нужно выбрать папку, а не файл.');
+					return;
+				}
+
+				const allButtons = browserList.querySelectorAll('.browser-entry');
+				allButtons.forEach((item) => item.classList.remove('selected'));
+				button.classList.add('selected');
+				setSelectedFolder(entry.path);
+				setTranscribeStatus('Папка выбрана. Нажми "Транскрибация".');
+			});
+
+			applyScopedAttr(li);
+			applyScopedAttr(button);
+			li.appendChild(button);
+			browserList.appendChild(li);
+		}
+	}
+
+	async function loadPathEntries(rawPath: string) {
+		const inputPath = rawPath.trim();
+		if (!inputPath) {
+			setTranscribeStatus('Вставь путь к папке.');
+			return;
+		}
+
+		setTranscribeStatus('Загружаю содержимое...');
+		setSelectedFolder(null);
+
+		try {
+			const response = await fetch('/api/fs-list', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ path: inputPath })
+			});
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data?.error || 'Не удалось прочитать путь.');
+			}
+
+			if (browsePathInput) browsePathInput.value = data.path;
+			localStorage.setItem(transcribeStorageKey, data.path);
+			renderEntries(data.entries as BrowserEntry[]);
+			setTranscribeStatus('Путь загружен. Выбери папку для транскрибации.');
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Ошибка чтения пути.';
+			setTranscribeStatus(`Ошибка: ${message}`);
+			if (browserList) browserList.innerHTML = '';
+		}
+	}
+
+	browseLoadBtn?.addEventListener('click', async () => {
+		await loadPathEntries(browsePathInput?.value ?? '');
+	});
+
+	browsePathInput?.addEventListener('keydown', async (event) => {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		await loadPathEntries(browsePathInput.value);
+	});
+
+	browseClearBtn?.addEventListener('click', () => {
+		localStorage.removeItem(transcribeStorageKey);
+		if (browsePathInput) browsePathInput.value = '';
+		if (browserList) browserList.innerHTML = '';
+		setSelectedFolder(null);
+		setTranscribeStatus('Сохраненный путь очищен.');
+	});
+
+	transcribeBtn?.addEventListener('click', async () => {
+		if (!selectedFolderPath) {
+			setTranscribeStatus('Сначала выбери папку.');
+			return;
+		}
+
+		setTranscribeLoading(true);
+		setTranscribeStatus('Идет процесс транскрибации...');
+
+		try {
+			const response = await fetch('/api/transcribe', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ folderPath: selectedFolderPath })
+			});
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data?.error || 'Транскрибация не удалась.');
+			}
+
+			openTranscribeResult(data.transcript ?? '');
+			setTranscribeStatus('Готово.');
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Ошибка транскрибации.';
+			setTranscribeStatus(`Ошибка: ${message}`);
+		} finally {
+			setTranscribeLoading(false);
+		}
+	});
+
+	transcribeBackBtn?.addEventListener('click', () => {
+		openTranscribeSetup();
+		setTranscribeStatus('Вернулись к выбору папки.');
+	});
+
+	transcribeCopyBtn?.addEventListener('click', async () => {
+		if (!transcribeText?.value) return;
+		try {
+			await navigator.clipboard.writeText(transcribeText.value);
+			setTranscribeStatus('Текст скопирован.');
+		} catch {
+			setTranscribeStatus('Не удалось скопировать текст.');
+		}
+	});
+
+	const savedPath = localStorage.getItem(transcribeStorageKey);
+	const defaultBrowsePath = 'C:\\Users\\julia\\OneDrive\\Рабочий стол';
+	if (browsePathInput) {
+		browsePathInput.value = savedPath || defaultBrowsePath;
+	}
+
+	openTranscribeSetup();
+	setTranscribeStatus('Вставь путь или используй сохраненный, затем нажми "Показать".');
+	if (browsePathInput?.value) {
+		void loadPathEntries(browsePathInput.value);
+	}
+
+	chatForm?.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const message = chatInput?.value.trim() ?? '';
+		if (!message) return;
+
+		// Добавляем сообщение пользователя
+		addMessage(message, 'user');
+		if (chatInput) chatInput.value = '';
+		const assistantMessage = addMessage('', 'assistant', 'streaming');
+		setChatLoading(true);
+
+		try {
+			const res = await fetch('/api/chat', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ message })
+			});
+
+			if (!res.ok || !res.body) {
+				throw new Error('Failed to open SSE stream');
+			}
+
+			await consumeSseStream(res.body, assistantMessage);
+		} catch (e) {
+			assistantMessage.classList.remove('streaming');
+			assistantMessage.textContent = 'Ой, что-то пошло не так... попробуй еще раз!';
+		} finally {
+			setChatLoading(false);
+		}
+	});
+
+	async function consumeSseStream(stream: ReadableStream<Uint8Array>, msgDiv: HTMLDivElement) {
+		const reader = stream.getReader();
+		const decoder = new TextDecoder();
+		let buffer = '';
+		let gotDone = false;
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '');
+
+			while (true) {
+				const boundary = buffer.indexOf('\n\n');
+				if (boundary === -1) break;
+
+				const eventChunk = buffer.slice(0, boundary);
+				buffer = buffer.slice(boundary + 2);
+				gotDone = processSseEvent(eventChunk, msgDiv) || gotDone;
+			}
+		}
+
+		if (buffer.trim()) {
+			gotDone = processSseEvent(buffer, msgDiv) || gotDone;
+		}
+
+		msgDiv.classList.remove('streaming');
+		if (!gotDone && !msgDiv.textContent?.trim()) {
+			msgDiv.textContent = 'Пустой ответ от Gemini.';
+		}
+	}
+
+	function processSseEvent(rawEvent: string, msgDiv: HTMLDivElement): boolean {
+		const lines = rawEvent.split('\n');
+		let eventName = 'message';
+		const dataLines: string[] = [];
+
+		for (const rawLine of lines) {
+			const line = rawLine.trimEnd();
+			if (line.startsWith('event:')) {
+				eventName = line.slice(6).trim();
+			} else if (line.startsWith('data:')) {
+				dataLines.push(line.slice(5).trimStart());
+			}
+		}
+
+		if (dataLines.length === 0) return false;
+
+		let payload: { text?: string; message?: string } = {};
+		try {
+			payload = JSON.parse(dataLines.join('\n'));
+		} catch {
+			return false;
+		}
+
+		if (eventName === 'token') {
+			if (typeof payload.text === 'string') {
+				msgDiv.textContent += payload.text;
+				if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+			}
+			return false;
+		}
+
+		if (eventName === 'error') {
+			msgDiv.classList.remove('streaming');
+			msgDiv.textContent = typeof payload.message === 'string'
+				? `Ошибка: ${payload.message}`
+				: 'Ошибка потока Gemini.';
+			return true;
+		}
+
+		if (eventName === 'done') {
+			msgDiv.classList.remove('streaming');
+			if (!msgDiv.textContent?.trim()) {
+				msgDiv.textContent = 'Gemini не вернул текст.';
+			}
+			return true;
+		}
+
+		return false;
+	}
+
+	function setChatLoading(loading: boolean) {
+		if (chatInput) {
+			chatInput.disabled = loading;
+			chatInput.placeholder = loading ? 'Gemini печатает в реальном времени...' : defaultChatPlaceholder;
+		}
+		if (chatSubmitBtn) {
+			chatSubmitBtn.disabled = loading;
+		}
+	}
+
+	function addMessage(text: string, role: 'user' | 'assistant', extraClass = ''): HTMLDivElement {
+		const msgDiv = document.createElement('div');
+		msgDiv.className = `message ${role} ${extraClass}`.trim();
+		if (astroScopeAttr) {
+			msgDiv.setAttribute(astroScopeAttr, '');
+		}
+		msgDiv.textContent = text;
+		if (!chatBox) return msgDiv;
+		chatBox.appendChild(msgDiv);
+		chatBox.scrollTop = chatBox.scrollHeight;
+		return msgDiv;
+	}
+</script>
+
+<style>
+	.header {
+		margin-bottom: 2rem;
+	}
+
+	h1 {
+		font-size: 2.5rem;
+		margin: 0;
+		font-weight: 700;
+	}
+
+	.date {
+		color: #888;
+		text-transform: capitalize;
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.5rem;
+		flex-grow: 1;
+	}
+
+	.card-wide {
+		grid-column: span 2;
+	}
+
+	@media (max-width: 768px) {
+		.card-wide { grid-column: span 1; }
+	}
+
+	.card {
+		background: var(--card-bg);
+		border-radius: var(--radius);
+		padding: 2rem;
+		box-shadow: var(--card-shadow);
+		position: relative;
+		overflow: hidden;
+		transition: transform 0.2s;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.card:hover {
+		transform: translateY(-5px);
+	}
+
+	.icon {
+		font-size: 2.5rem;
+		margin-bottom: 1rem;
+	}
+
+	h2 {
+		margin: 0 0 1rem 0;
+		font-size: 1.5rem;
+	}
+
+	.btn {
+		background: var(--accent-rose);
+		border: none;
+		padding: 0.8rem 1.5rem;
+		border-radius: 16px;
+		font-family: inherit;
+		font-weight: 600;
+		cursor: pointer;
+		margin-top: 1rem;
+		transition: opacity 0.2s;
+	}
+
+	.btn:hover {
+		opacity: 0.8;
+	}
+
+	.btn-secondary {
+		background: var(--accent-lavender);
+	}
+
+	.file-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		font-size: 0.9rem;
+	}
+
+	.file-list li {
+		padding: 0.5rem 0;
+		border-bottom: 1px solid #f0f0f0;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.empty {
+		color: #aaa;
+		font-style: italic;
+	}
+
+	.link-btn {
+		display: inline-block;
+		margin-top: 1rem;
+		color: #888;
+		text-decoration: none;
+		font-size: 0.9rem;
+	}
+
+	.status-bar {
+		margin-top: 2rem;
+		background: #fff;
+		padding: 1rem;
+		border-radius: 16px;
+		font-size: 0.9rem;
+		color: #666;
+		box-shadow: var(--card-shadow);
+	}
+
+	.status-overlay {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(255,255,255,0.9);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: bold;
+		font-size: 1.5rem;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.3s;
+	}
+
+	.status-overlay.active {
+		opacity: 1;
+	}
+
+	.path-input-row {
+		display: flex;
+		gap: 0.6rem;
+		align-items: center;
+	}
+
+	#browse-path-input {
+		flex: 1;
+		padding: 0.65rem 0.9rem;
+		border-radius: 12px;
+		border: 1px solid #e7e5e4;
+		font-size: 0.92rem;
+	}
+
+	#browse-path-input:focus {
+		outline: none;
+		border-color: #c4b5fd;
+	}
+
+	.small-btn {
+		margin-top: 0;
+		padding: 0.65rem 0.95rem;
+	}
+
+	.icon-btn {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: 1px solid #e7e5e4;
+		background: #fff;
+		cursor: pointer;
+		font-size: 1rem;
+		line-height: 1;
+	}
+
+	.icon-btn:hover {
+		background: #f9fafb;
+	}
+
+	.muted-info {
+		font-size: 0.82rem;
+		color: #6b7280;
+		margin: 0.7rem 0;
+	}
+
+	.browser-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		max-height: 220px;
+		overflow-y: auto;
+		border: 1px solid #f3f4f6;
+		border-radius: 12px;
+	}
+
+	.browser-list li {
+		border-bottom: 1px solid #f9fafb;
+	}
+
+	.browser-list li:last-child {
+		border-bottom: none;
+	}
+
+	.browser-entry {
+		width: 100%;
+		background: #fff;
+		border: none;
+		text-align: left;
+		padding: 0.65rem 0.8rem;
+		cursor: pointer;
+		font-size: 0.9rem;
+	}
+
+	.browser-entry:hover {
+		background: #f8fafc;
+	}
+
+	.browser-entry.selected {
+		background: #ede9fe;
+		color: #4c1d95;
+		font-weight: 600;
+	}
+
+	.selected-path {
+		font-size: 0.85rem;
+		color: #6b7280;
+		margin: 0.8rem 0;
+		word-break: break-all;
+	}
+
+	.transcribe-status {
+		margin-top: 0.9rem;
+		font-size: 0.88rem;
+		color: #4b5563;
+	}
+
+	.hidden {
+		display: none;
+	}
+
+	.transcribe-text {
+		width: 100%;
+		min-height: 260px;
+		border-radius: 12px;
+		border: 1px solid #e5e7eb;
+		padding: 0.9rem;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		resize: vertical;
+		box-sizing: border-box;
+		background: #f9fafb;
+	}
+
+	.result-actions {
+		display: flex;
+		gap: 0.7rem;
+		margin-top: 0.8rem;
+	}
+
+	/* Chat Styles */
+	.chat-container {
+		max-height: 560px;
+	}
+
+	.chat-box {
+		height: 300px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 0.8rem;
+		margin-bottom: 1.5rem;
+		padding: 1rem;
+		border-radius: 16px;
+		background: radial-gradient(circle at top, #182130, #0d1320 68%);
+		border: 1px solid #1f2937;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	}
+
+	.chat-box::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.chat-box::-webkit-scrollbar-thumb {
+		background: #f1f1f1;
+		border-radius: 10px;
+	}
+
+	.message {
+		padding: 0.75rem 0.95rem;
+		border-radius: 12px;
+		max-width: 86%;
+		font-size: 0.92rem;
+		line-height: 1.5;
+		word-break: break-word;
+		white-space: pre-wrap;
+		animation: fadeInUp 0.2s ease-out;
+	}
+
+	.assistant {
+		background: rgba(17, 24, 39, 0.92);
+		color: #d1fae5;
+		align-self: flex-start;
+		margin-right: auto;
+		border: 1px solid #264653;
+		box-shadow: 0 8px 18px rgba(5, 12, 23, 0.35);
+		border-bottom-left-radius: 4px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	}
+
+	.user {
+		background: #efe7ff;
+		color: #5b476b;
+		align-self: flex-end;
+		margin-left: auto;
+		border: 1px solid #decef8;
+		box-shadow: 0 8px 18px rgba(91, 71, 107, 0.08);
+		border-bottom-right-radius: 4px;
+	}
+
+	.message.streaming::after {
+		content: '▋';
+		margin-left: 0.25rem;
+		animation: blink 0.9s steps(1) infinite;
+		color: #86efac;
+	}
+
+	.chat-form {
+		display: flex;
+		gap: 0.8rem;
+	}
+
+	.chat-form input {
+		flex-grow: 1;
+		padding: 0.8rem 1.2rem;
+		border-radius: 16px;
+		border: 1px solid #d8d4de;
+		font-family: inherit;
+		font-size: 1rem;
+		outline: none;
+		transition: border-color 0.2s;
+	}
+
+	.chat-form input:focus {
+		border-color: var(--accent-rose);
+	}
+
+	.send-btn {
+		background: var(--text-color);
+		color: white;
+		border: none;
+		padding: 0.8rem;
+		border-radius: 16px;
+		cursor: pointer;
+		font-size: 1.2rem;
+		transition: transform 0.2s;
+	}
+
+	.send-btn:hover {
+		transform: scale(1.05);
+	}
+
+	.send-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	@keyframes blink {
+		0%, 49% { opacity: 1; }
+		50%, 100% { opacity: 0; }
+	}
+
+	@keyframes fadeInUp {
+		from { opacity: 0; transform: translateY(4px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+</style>
