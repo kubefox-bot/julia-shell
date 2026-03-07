@@ -5,6 +5,7 @@ describe('validateWidgetManifest', () => {
   it('accepts valid manifest', () => {
     const reasons = validateWidgetManifest({
       id: 'com.test.weather',
+      envName: 'weather',
       name: 'Weather',
       version: '1.2.3',
       description: 'A widget',
@@ -49,5 +50,27 @@ describe('validateWidgetManifest', () => {
     expect(reasons).toContain('headerName.en is required.');
     expect(reasons).toContain('icon must be a non-empty string, svgPath, or componentKey.');
     expect(reasons.some((reason) => reason.includes('Unsupported size'))).toBe(true);
+  });
+
+  it('rejects invalid envName', () => {
+    const reasons = validateWidgetManifest({
+      id: 'com.test.weather',
+      envName: 'com.test.weather',
+      name: 'Weather',
+      version: '1.2.3',
+      description: 'A widget',
+      headerName: {
+        ru: 'Погода',
+        en: 'Weather'
+      },
+      icon: 'x',
+      ready: true,
+      defaultSize: 'medium',
+      supportedSizes: ['medium'],
+      capabilities: [],
+      channels: []
+    });
+
+    expect(reasons).toContain('envName must contain only letters, numbers, underscore, or dash.');
   });
 });

@@ -37,7 +37,16 @@
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` (опционально, default: `gemini-2.5-flash`)
 - `WIDGET_CHANNEL_TOKEN` (для webhook/ws)
+- для Infisical service account:
+  - `INFISICAL_CLIENT_ID`
+  - `INFISICAL_CLIENT_SECRET`
+  - `INFISICAL_PROJECT_ID`
+  - `INFISICAL_SITE_URL` (опционально, default SaaS URL)
 - пример: `.env.example`
+
+Для быстрой dev-настройки Infisical используй локальный файл `.env.infisical.local`.
+Он читается core secret layer автоматически на старте и не коммитится в git.
+Шаблон: `.env.infisical.example`
 
 ## Команды
 ```bash

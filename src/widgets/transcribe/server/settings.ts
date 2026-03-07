@@ -1,0 +1,97 @@
+import {
+  getTranscribeWidgetSettings,
+  listRecentFolders,
+  saveTranscribeWidgetSettings,
+} from '../../../core/db/transcribe-repository'
+import { secrets } from '../../../core/secrets/secrets'
+import { WIDGET_ENV_NAME, WIDGET_ID } from './constants'
+import type { SecretState, TranscribeSettingsPayload } from './types'
+import { buildAvailableModels, resolveConfiguredModel } from './utils'
+
+export async function resolveApiKeyState(): Promise<SecretState> {
+  const infisicalSecret = await secrets.resolveSecret('GEMINI_API_KEY', {
+    widgetId: WIDGET_ID,
+    envName: WIDGET_ENV_NAME,
+  })
+
+  if (infisicalSecret?.source === 'infisical') {
+    return {
+      source: 'infisical',
+      value: infisicalSecret.value,
+      displayValue: infisicalSecret.reference ?? infisicalSecret.secretName,
+      editable: false,
+      secretPath: infisicalSecret.secretPath,
+    }
+  }
+
+  const storedSettings = getTranscribeWidgetSettings(WIDGET_ID)
+  if (storedSettings.localApiKey) {
+    return {
+      source: 'db',
+      value: storedSettings.localApiKey,
+      displayValue: storedSettings.localApiKey,
+      editable: true,
+      secretPath: null,
+    }
+  }
+
+  const envSecret = await secrets.resolveSecret('GEMINI_API_KEY')
+  if (envSecret?.source === 'env') {
+    return {
+      source: 'env',
+      value: envSecret.value,
+      displayValue: envSecret.value,
+      editable: true,
+      secretPath: null,
+    }
+  }
+
+  return {
+    source: 'missing',
+    value: '',
+    displayValue: '',
+    editable: true,
+    secretPath: null,
+  }
+}
+
+export async function buildSettingsPayload(): Promise<TranscribeSettingsPayload> {
+  const widgetSettings = getTranscribeWidgetSettings(WIDGET_ID)
+  const secretState = await resolveApiKeyState()
+  const activeModel = resolveConfiguredModel(widgetSettings.geminiModel)
+
+  return {
+    widgetId: WIDGET_ID,
+    envName: WIDGET_ENV_NAME,
+    geminiModel: activeModel,
+    availableModels: buildAvailableModels(widgetSettings.geminiModel || activeModel),
+    apiKeySource: secretState.source,
+    apiKeyEditable: secretState.editable,
+    apiKeyValue: secretState.displayValue,
+    hasApiKey: Boolean(secretState.value),
+    secretName: 'GEMINI_API_KEY',
+    secretPath: secretState.secretPath,
+    recentFolders: listRecentFolders(WIDGET_ID).map((entry) => entry.folderPath),
+  }
+}
+
+export async function updateTranscribeSettings(input: { geminiModel?: string; apiKey?: string }) {
+  const previous = await resolveApiKeyState()
+  const current = getTranscribeWidgetSettings(WIDGET_ID)
+
+  saveTranscribeWidgetSettings({
+    widgetId: WIDGET_ID,
+    geminiModel:
+      typeof input.geminiModel === 'string' && input.geminiModel.trim()
+        ? input.geminiModel
+        : resolveConfiguredModel(current.geminiModel),
+    localApiKey:
+      previous.source === 'infisical'
+        ? current.localApiKey
+        : typeof input.apiKey === 'string'
+          ? input.apiKey
+          : current.localApiKey,
+  })
+
+  return buildSettingsPayload()
+}

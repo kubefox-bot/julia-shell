@@ -5,6 +5,7 @@ export type ShellLocale = 'system' | 'ru' | 'en';
 export type ShellTheme = 'auto' | 'day' | 'night';
 export type ResolvedShellTheme = 'day' | 'night';
 export type DisplayLocale = 'ru' | 'en';
+export type HostPlatform = 'windows' | 'macos' | 'linux';
 
 export type WidgetHeaderName = {
   ru: string;
@@ -23,6 +24,7 @@ export type NormalizedWidgetIcon =
 
 export type WidgetManifest = {
   id: string;
+  envName?: string;
   name: string;
   version: string;
   description: string;
@@ -62,6 +64,7 @@ export type WidgetServerModule = {
 export type WidgetRenderProps = {
   locale: DisplayLocale;
   theme: ResolvedShellTheme;
+  platform: HostPlatform;
 };
 
 export type WidgetClientModule = {

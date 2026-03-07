@@ -19,6 +19,7 @@ describe('widget registration', () => {
     const serverModule = await module.loadServerModule();
 
     expect(module.manifest.id).toBe('com.yulia.transcribe');
+    expect(module.manifest.envName).toBe('transcribe');
     expect(module.manifest.headerName.en).toBe('Transcribe');
     expect(module.normalizedIcon).toEqual({ kind: 'text', value: '🎙️' });
     expect(typeof module.Render).toBe('function');

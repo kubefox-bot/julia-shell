@@ -27,6 +27,7 @@ export function WidgetGrid() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const activeLocale = useShellLocale();
   const activeTheme = useResolvedShellTheme();
+  const hostPlatform = useShellStore((state) => state.platform);
   const isEditMode = useShellEditMode();
   const { activeId, overId } = useShellDndViewModel();
   const { moduleMap, visibleLayout, previewLayout, columnsStyle } = useShellLayoutViewModel();
@@ -98,7 +99,7 @@ export function WidgetGrid() {
                 supportedSizes={moduleInfo.supportedSizes}
                 onSizeChange={changeWidgetSize}
               >
-                <clientModule.Render locale={activeLocale} theme={activeTheme} />
+                <clientModule.Render locale={activeLocale} theme={activeTheme} platform={hostPlatform} />
               </ShellWidgetCard>
             );
           })}

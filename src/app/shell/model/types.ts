@@ -1,7 +1,8 @@
 import type { CSSProperties, ComponentType } from 'react';
-import type { LayoutItem, LayoutSettings, ResolvedShellTheme, ShellLocale, ShellTheme, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
+import type { HostPlatform, LayoutItem, LayoutSettings, ResolvedShellTheme, ShellLocale, ShellTheme, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
 
 export type ShellSettingsResponse = {
+  platform: HostPlatform;
   layoutSettings: LayoutSettings;
   layout: LayoutItem[];
   modules: WidgetModuleInfo[];
@@ -26,6 +27,7 @@ export type ShellStoreState = {
   isSettingsOpen: boolean;
   browserLocale: string | null;
   nowIso: string;
+  platform: HostPlatform;
   layout: LayoutItem[];
   draftLayout: LayoutItem[];
   modules: WidgetModuleInfo[];
@@ -63,7 +65,7 @@ export type ShellStore = ShellStoreState & ShellStoreActions;
 export type ShellRegistryEntry = {
   widgetId: string;
   Icon: ComponentType;
-  Render: ComponentType<{ locale: 'ru' | 'en'; theme: ResolvedShellTheme }>;
+  Render: ComponentType<{ locale: 'ru' | 'en'; theme: ResolvedShellTheme; platform: HostPlatform }>;
 };
 
 export type ShellLayoutViewModel = {

@@ -2,6 +2,7 @@ import type { WidgetManifest } from './types';
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 const SIZE_SET = new Set(['small', 'medium', 'large']);
+const ENV_NAME_RE = /^[a-z0-9][a-z0-9_-]*$/;
 
 function isValidIcon(manifest: WidgetManifest) {
   if (typeof manifest.icon === 'string') {
@@ -28,6 +29,10 @@ export function validateWidgetManifest(manifest: WidgetManifest): string[] {
 
   if (!manifest.name?.trim()) {
     reasons.push('Missing widget name.');
+  }
+
+  if (typeof manifest.envName === 'string' && manifest.envName.trim() && !ENV_NAME_RE.test(manifest.envName)) {
+    reasons.push('envName must contain only letters, numbers, underscore, or dash.');
   }
 
   if (!VERSION_RE.test(manifest.version ?? '')) {

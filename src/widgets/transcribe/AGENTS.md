@@ -1,6 +1,6 @@
 # AGENTS.md (Transcribe Widget)
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 ## Scope
 This file describes the transcribe widget mini-project.
@@ -12,24 +12,31 @@ Widget identity:
 
 ## Responsibilities
 - browse filesystem folders,
-- select one or multiple `.m4a` files,
+- select one or multiple `.m4a` or `.opus` files,
 - run transcription through Gemini,
+- expose a dev-only `mock` model for local flow testing,
 - stream transcript via SSE events,
 - save transcript `.txt` next to source audio,
-- persist outbox/job states in `transcribe.db`.
+- persist jobs, outbox, settings, and recent folders in `transcribe.db`,
+- read locale from shell core props and render widget-local i18n strings.
 
 ## Source of Truth Files
 Server:
-- `src/widgets/transcribe/server/plugin.ts`
+- `src/widgets/transcribe/server/module.ts`
 
 UI:
 - `src/widgets/transcribe/ui/TranscribeWidget.tsx`
 - `src/widgets/transcribe/ui/TranscribeWidget.module.scss`
+- `src/widgets/transcribe/i18n/index.ts`
+- `src/widgets/transcribe/i18n/ru.ts`
+- `src/widgets/transcribe/i18n/en.ts`
 
 ## Public Widget Actions (`/api/widget/com.yulia.transcribe/*`)
 - `POST fs-list`
 - `POST transcript-read`
 - `GET jobs`
+- `GET settings`
+- `POST settings`
 - `POST transcribe-stream`
 
 ## SSE Contract (`transcribe-stream`)
@@ -46,26 +53,40 @@ DB:
 - `data/transcribe.db`
 
 Table role:
-- `transcribe_jobs`: job lifecycle (`queued`, `processing`, `completed`, `failed`),
-  progress, paths, error text, timestamps.
+- `transcribe_jobs`: current job lifecycle (`queued`, `processing`, `completed`, `failed`),
+  progress, model, platform, source/save paths, error text, timestamps.
+- `transcribe_outbox`: append-only event log for selection, processing, file creation, read, and failure states.
+- `transcribe_widget_settings`: persisted Gemini model and local API key fallback for this widget.
+- `transcribe_recent_folders`: top folders used by the widget select control.
 
 ## Invariants
-- only `.m4a` input is accepted,
+- only `.m4a` and `.opus` input is accepted,
 - selected files must belong to one folder,
 - temporary merged/converted files must be deleted in all outcomes,
 - empty Gemini transcript is an error,
-- API key is read from env secret provider (`GEMINI_API_KEY`), never from UI/db.
+- locale comes only from shell core `WidgetRenderProps.locale`,
+- host platform comes from shell core `WidgetRenderProps.platform`,
+- API key resolution order is:
+  - Infisical path `/widgets/<manifest.envName>` when available,
+  - widget DB fallback,
+  - env fallback,
+- for this widget `manifest.envName` is `transcribe`.
 
 ## External Dependencies
 - `ffmpeg` binary in `tools/ffmpeg`
 - prompt file: `Transcript.md`
 - Gemini SDK: `@google/genai`
+- Infisical SDK: `@infisical/sdk`
+- local dev Infisical env file: `.env.infisical.local` (template: `.env.infisical.example`)
 
 ## UX Notes
 - result opens with typewriter rendering,
 - action buttons remain locked while typewriter queue is active,
 - `Прочитать` uses browser `speechSynthesis`,
-- local path and selected files are restored from browser localStorage.
+- top folders are loaded from `transcribe.db`, not browser localStorage,
+- `Транскрибация` button is shown only when supported audio is selected,
+- `Прочитать` button is shown only when the matching `.txt` exists for the primary selected file,
+- settings icon opens widget-local Gemini/API key settings.
 - on desktop, this widget must fit shell fixed card height `435px`;
 - if content exceeds card height, internal areas should scroll instead of growing outer card.
 
@@ -73,6 +94,6 @@ Table role:
 Before finishing changes:
 - run `yarn test`
 - run `yarn build`
-- manually verify one real transcription flow
+- manually verify one real or `mock` transcription flow
 - confirm temp files cleanup still works
 - confirm `.txt` save path and status messages are correct

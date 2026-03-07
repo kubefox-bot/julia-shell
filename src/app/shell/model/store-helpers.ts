@@ -23,6 +23,7 @@ export function buildShellStatePatch(currentState: ShellStoreState, response: Sh
   const normalizedLayout = normalizeLayout(response.layout, response.modules);
 
   return {
+    platform: response.platform,
     layout: normalizedLayout,
     draftLayout: normalizedLayout,
     modules: response.modules,

@@ -4,6 +4,7 @@
   gap: 0.8rem;
   height: 100%;
   min-height: 0;
+  position: relative;
 }
 
 .day {
@@ -35,7 +36,21 @@
   padding: 0.65rem 0.85rem;
 }
 
+.pathRow select {
+  max-width: 13rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  background: #fff;
+}
+
 .night .pathRow input {
+  background: #111827;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.night .pathRow select {
   background: #111827;
   color: #e2e8f0;
   border-color: #334155;
@@ -185,6 +200,70 @@
   resize: vertical;
   background: #f9fafb;
   flex: 1 1 auto;
+}
+
+.settingsModal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(15 23 42 / 48%);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.settingsPanel {
+  width: min(100%, 30rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 20px 50px rgb(15 23 42 / 22%);
+}
+
+.night .settingsPanel {
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+}
+
+.settingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settingsHeader h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.field input,
+.field select {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  background: #fff;
+}
+
+.night .field input,
+.night .field select {
+  background: #111827;
+  color: #e2e8f0;
+  border-color: #334155;
 }
 
 .night .resultText {

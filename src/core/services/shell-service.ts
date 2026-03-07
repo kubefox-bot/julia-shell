@@ -1,4 +1,4 @@
-import type { LayoutItem, LayoutSettings, WidgetModuleInfo, WidgetSize } from '../../entities/widget/model/types';
+import type { HostPlatform, LayoutItem, LayoutSettings, WidgetModuleInfo, WidgetSize } from '../../entities/widget/model/types';
 import {
   ensureDefaultLayoutItem,
   ensureDefaultModuleState,
@@ -12,6 +12,18 @@ import {
 import { listDiscoveredWidgets } from '../registry/registry';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
+
+function resolveHostPlatform(): HostPlatform {
+  if (process.platform === 'win32') {
+    return 'windows';
+  }
+
+  if (process.platform === 'darwin') {
+    return 'macos';
+  }
+
+  return 'linux';
+}
 
 function sanitizeColumns(value: number, fallback: number) {
   if (!Number.isFinite(value)) return fallback;
@@ -95,6 +107,7 @@ export async function getShellSettings() {
   const layout = getLayoutItems();
 
   return {
+    platform: resolveHostPlatform(),
     layoutSettings: settings,
     layout,
     modules
