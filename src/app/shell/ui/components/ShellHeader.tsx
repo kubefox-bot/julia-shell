@@ -31,8 +31,8 @@ export function ShellHeader() {
       </div>
       <div className={styles.headerAside}>
         <div className={styles.headerClock}>
-          <span className={styles.headerTime}>{formattedTime}</span>
-          <span className={styles.headerDate}>{formattedDate}</span>
+          <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
+          <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>
         </div>
         <div className={styles.headerActions}>
           <IconButton type="button" onClick={openSettings} title={t('settings')}>

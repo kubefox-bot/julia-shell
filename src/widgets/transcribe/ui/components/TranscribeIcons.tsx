@@ -129,6 +129,18 @@ export function CopyGlyph() {
   )
 }
 
+export function ExpandGlyph() {
+  return (
+    <BaseIcon>
+      <rect x="4.5" y="4.5" width="15" height="15" rx="3.2" fill="#DCFCE7" stroke="#16A34A" />
+      <path d="M10.2 13.8H8.2v-2" stroke="#15803D" />
+      <path d="m8.2 13.8 4.25-4.25" stroke="#15803D" />
+      <path d="M15.8 10.2h-2v-2" stroke="#15803D" />
+      <path d="m15.8 10.2-4.25 4.25" stroke="#15803D" />
+    </BaseIcon>
+  )
+}
+
 export function SaveGlyph() {
   return (
     <BaseIcon>

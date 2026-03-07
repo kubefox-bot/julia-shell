@@ -1,5 +1,4 @@
 import type { WidgetRenderProps } from '../../../entities/widget/model/types'
-import { getTranscribeText } from '../i18n'
 import { LoaderStrip } from './components/LoaderStrip'
 import { ResultView } from './components/ResultView'
 import { SettingsModal } from './components/SettingsModal'
@@ -59,7 +58,6 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
         />
       )}
 
-      <p className={styles.status}>{getTranscribeText(props.locale, controller.view.status.key, controller.view.status.vars)}</p>
     </div>
   )
 }
