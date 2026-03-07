@@ -71,6 +71,16 @@ describe('shell store', () => {
     expect(store.getState().layoutSettings.theme).toBe('auto');
   });
 
+  it('hydrateShell seeds server state without network fetch', () => {
+    const store = createShellStore();
+
+    store.getState().hydrateShell(createResponse());
+
+    expect(store.getState().loading).toBe(false);
+    expect(store.getState().layout).toEqual(createResponse().layout);
+    expect(store.getState().modules).toEqual(createResponse().modules);
+  });
+
   it('startEdit and cancelEdit preserve original layout', async () => {
     vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
     const store = createShellStore();

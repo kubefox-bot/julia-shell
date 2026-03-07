@@ -38,6 +38,7 @@ export type ShellStoreState = {
 };
 
 export type ShellStoreActions = {
+  hydrateShell: (response: ShellSettingsResponse) => void;
   setBrowserLocale: (locale: string | null) => void;
   tickNow: (nowIso?: string) => void;
   clearError: () => void;

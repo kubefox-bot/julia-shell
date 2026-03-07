@@ -30,6 +30,7 @@ Server:
 UI:
 - `src/widgets/transcribe/ui/TranscribeWidget.tsx`
 - `src/widgets/transcribe/ui/TranscribeWidget.module.scss`
+- `src/widgets/transcribe/ui/AGENTS.md`
 - `src/widgets/transcribe/i18n/index.ts`
 - `src/widgets/transcribe/i18n/ru.ts`
 - `src/widgets/transcribe/i18n/en.ts`
@@ -88,11 +89,14 @@ Table role:
 ## UX Notes
 - result opens with typewriter rendering,
 - action buttons remain locked while typewriter queue is active,
-- result view speech playback uses browser `speechSynthesis`,
 - top folders are loaded from `transcribe.db`, not browser localStorage,
 - `Транскрибация` button is shown only when supported audio is selected,
-- there is no setup-stage `.txt` open button in the widget UI,
-- settings icon opens widget-local Gemini/API key settings.
+- `Прочитать` is shown when the folder contains a matching `.txt` for the selected or inferred primary audio file,
+- reading `.txt` opens the same result view immediately without typewriter animation,
+- result save is automatic on the server and the folder is refreshed after completion,
+- settings icon opens widget-local Gemini/API key settings,
+- settings model dropdown and directory history dropdown use shared design-system option menus,
+- transcribe UI is decomposed into small components plus Zustand slices.
 - on desktop, this widget must fit shell fixed card height `435px`;
 - if content exceeds card height, internal areas should scroll instead of growing outer card.
 
