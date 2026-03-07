@@ -1,7 +1,69 @@
-import type { LayoutItem, LayoutSettings, WidgetModuleInfo } from '../../../entities/widget/model/types';
+import type { CSSProperties, ComponentType } from 'react';
+import type { LayoutItem, LayoutSettings, ShellLocale, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
 
 export type ShellSettingsResponse = {
   layoutSettings: LayoutSettings;
   layout: LayoutItem[];
   modules: WidgetModuleInfo[];
+};
+
+export type ShellSettingsDraft = {
+  desktopColumns: number;
+  mobileColumns: number;
+  locale: ShellLocale;
+};
+
+export type PreviewLayoutEntry =
+  | { kind: 'widget'; item: LayoutItem }
+  | { kind: 'placeholder'; item: LayoutItem };
+
+export type ShellStoreState = {
+  loading: boolean;
+  error: string | null;
+  isSaving: boolean;
+  isEditMode: boolean;
+  isSettingsOpen: boolean;
+  browserLocale: string | null;
+  layout: LayoutItem[];
+  draftLayout: LayoutItem[];
+  modules: WidgetModuleInfo[];
+  layoutSettings: LayoutSettings;
+  settingsDraft: ShellSettingsDraft;
+  activeId: string | null;
+  overId: string | null;
+};
+
+export type ShellStoreActions = {
+  setBrowserLocale: (locale: string | null) => void;
+  clearError: () => void;
+  loadShell: () => Promise<void>;
+  openSettings: () => void;
+  closeSettings: () => void;
+  updateSettingsDraftColumns: (next: { desktopColumns?: number; mobileColumns?: number }) => void;
+  updateSettingsDraftLocale: (locale: ShellLocale) => void;
+  startEdit: () => void;
+  cancelEdit: () => void;
+  saveLayout: () => Promise<void>;
+  saveSettings: () => Promise<void>;
+  toggleModule: (widgetId: string, enabled: boolean) => Promise<void>;
+  changeWidgetSize: (widgetId: string, size: WidgetSize) => void;
+  startDrag: (widgetId: string) => void;
+  overDrag: (widgetId: string | null) => void;
+  endDrag: () => void;
+};
+
+export type ShellStore = ShellStoreState & ShellStoreActions;
+
+export type ShellRegistryEntry = {
+  widgetId: string;
+  Icon: ComponentType;
+  Render: ComponentType<{ locale: 'ru' | 'en' }>;
+};
+
+export type ShellLayoutViewModel = {
+  moduleMap: Map<string, WidgetModuleInfo>;
+  visibleLayout: LayoutItem[];
+  previewLayout: PreviewLayoutEntry[];
+  hasUnsavedChanges: boolean;
+  columnsStyle: CSSProperties;
 };

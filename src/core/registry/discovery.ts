@@ -1,71 +1,70 @@
 import { validateWidgetManifest } from '../../entities/widget/model/validate-manifest';
-import type { WidgetRuntimeState, WidgetServerPlugin } from '../../entities/widget/model/types';
+import type { RegisteredWidgetModule, WidgetDescriptor, WidgetRuntimeState } from '../../entities/widget/model/types';
 
 type DiscoveredModule = {
-  default?: WidgetServerPlugin;
-  plugin?: WidgetServerPlugin;
+  registerWidget?: () => RegisteredWidgetModule;
 };
 
-export type DiscoveredWidget = {
-  plugin: WidgetServerPlugin;
-  runtime: WidgetRuntimeState;
-};
-
-const discoveredModules = import.meta.glob<DiscoveredModule>('../../widgets/*/server/plugin.ts', {
+const discoveredModules = import.meta.glob<DiscoveredModule>('../../widgets/*/register.ts', {
   eager: true
 });
 
-function normalizePlugin(moduleValue: DiscoveredModule) {
-  if (moduleValue.default) return moduleValue.default;
-  if (moduleValue.plugin) return moduleValue.plugin;
+function normalizeRegisteredModule(moduleValue: DiscoveredModule) {
+  if (typeof moduleValue.registerWidget === 'function') {
+    return moduleValue.registerWidget();
+  }
+
   return null;
 }
 
-export async function discoverWidgets(): Promise<DiscoveredWidget[]> {
-  const plugins: WidgetServerPlugin[] = [];
+export async function discoverWidgets(): Promise<WidgetDescriptor[]> {
+  const registeredModules: RegisteredWidgetModule[] = [];
 
   for (const moduleValue of Object.values(discoveredModules)) {
-    const plugin = normalizePlugin(moduleValue);
-    if (!plugin) continue;
-    plugins.push(plugin);
+    const registeredModule = normalizeRegisteredModule(moduleValue);
+    if (!registeredModule) continue;
+    registeredModules.push(registeredModule);
   }
 
   const idCounts = new Map<string, number>();
-  for (const plugin of plugins) {
-    const current = idCounts.get(plugin.manifest.widgetId) ?? 0;
-    idCounts.set(plugin.manifest.widgetId, current + 1);
+  for (const registeredModule of registeredModules) {
+    const current = idCounts.get(registeredModule.manifest.id) ?? 0;
+    idCounts.set(registeredModule.manifest.id, current + 1);
   }
 
-  const widgets: DiscoveredWidget[] = [];
+  const widgets: WidgetDescriptor[] = [];
 
-  for (const plugin of plugins) {
-    const reasons = validateWidgetManifest(plugin.manifest);
+  for (const registeredModule of registeredModules) {
+    const reasons = validateWidgetManifest(registeredModule.manifest);
 
-    if (!plugin.manifest.ready) {
+    if (!registeredModule.manifest.ready) {
       reasons.push('manifest.ready is false.');
     }
 
-    if ((idCounts.get(plugin.manifest.widgetId) ?? 0) > 1) {
-      reasons.push(`Duplicate widgetId: ${plugin.manifest.widgetId}`);
+    if ((idCounts.get(registeredModule.manifest.id) ?? 0) > 1) {
+      reasons.push(`Duplicate widget id: ${registeredModule.manifest.id}`);
     }
 
-    if (plugin.init) {
-      try {
-        const initResult = await plugin.init();
+    try {
+      const serverModule = await registeredModule.loadServerModule();
+      if (serverModule.init) {
+        const initResult = await serverModule.init();
         if (initResult && initResult.ready === false) {
           reasons.push(initResult.reason?.trim() || 'init() returned not ready.');
         }
-      } catch (error) {
-        reasons.push(error instanceof Error ? error.message : 'init() failed.');
       }
+    } catch (error) {
+      reasons.push(error instanceof Error ? error.message : 'loadServerModule() failed.');
     }
 
+    const runtime: WidgetRuntimeState = {
+      ready: reasons.length === 0,
+      notReadyReasons: reasons
+    };
+
     widgets.push({
-      plugin,
-      runtime: {
-        ready: reasons.length === 0,
-        notReadyReasons: reasons
-      }
+      module: registeredModule,
+      runtime
     });
   }
 

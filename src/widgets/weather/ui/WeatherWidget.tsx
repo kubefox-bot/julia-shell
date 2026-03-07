@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '../../../shared/ui/Button';
 import styles from './WeatherWidget.module.scss';
 
@@ -63,7 +64,7 @@ async function loadForecast(refresh = false) {
   return data as WeatherPayload;
 }
 
-export function WeatherWidget() {
+export function WeatherWidget(_props: WidgetRenderProps) {
   const [data, setData] = useState<WeatherPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

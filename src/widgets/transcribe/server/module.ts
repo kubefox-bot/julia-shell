@@ -4,7 +4,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { GoogleGenAI, createPartFromUri } from '@google/genai';
 import { createTranscribeJob, updateTranscribeJobProgress, completeTranscribeJob, failTranscribeJob, listRecentTranscribeJobs } from '../../../core/db/transcribe-repository';
 import { secrets } from '../../../core/secrets';
-import type { WidgetServerPlugin } from '../../../entities/widget/model/types';
+import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http';
 
 const TOOLS_ROOT = path.join(process.cwd(), 'tools');
@@ -227,18 +227,7 @@ async function listPathEntries(rawPath: string) {
   };
 }
 
-const plugin: WidgetServerPlugin = {
-  manifest: {
-    widgetId: 'com.yulia.transcribe',
-    name: 'Transcribe',
-    version: '1.0.0',
-    description: 'Gemini-based m4a transcription widget with SSE and outbox.',
-    ready: true,
-    defaultSize: 'large',
-    supportedSizes: ['medium', 'large'],
-    capabilities: ['sse', 'transcribe', 'filesystem', 'outbox'],
-    channels: ['bus', 'webhook', 'ws']
-  },
+export const transcribeServerModule: WidgetServerModule = {
   handlers: {
     'POST fs-list': async ({ request }) => {
       try {
@@ -631,5 +620,3 @@ const plugin: WidgetServerPlugin = {
     }
   }
 };
-
-export default plugin;

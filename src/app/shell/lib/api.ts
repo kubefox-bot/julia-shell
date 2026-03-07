@@ -19,6 +19,7 @@ export async function fetchShellSettings() {
 export async function saveShellLayout(payload: {
   desktopColumns: number;
   mobileColumns: number;
+  locale: 'system' | 'ru' | 'en';
   layout: LayoutItem[];
 }) {
   const response = await fetch('/api/shell/settings/layout', {

@@ -31,8 +31,9 @@ describe('core repository', () => {
   it('persists layout settings and layout rows', () => {
     const initial = getLayoutSettings();
     expect(initial.desktopColumns).toBe(12);
+    expect(initial.locale).toBe('system');
 
-    saveLayoutSettings({ desktopColumns: 10, mobileColumns: 2 });
+    saveLayoutSettings({ desktopColumns: 10, mobileColumns: 2, locale: 'en' });
 
     ensureDefaultLayoutItem({ widgetId: 'com.test.one', order: 0, size: 'medium' });
     upsertLayoutItem({ widgetId: 'com.test.one', order: 2, size: 'large' });
@@ -40,7 +41,7 @@ describe('core repository', () => {
     const saved = getLayoutSettings();
     const layout = getLayoutItems();
 
-    expect(saved).toEqual({ desktopColumns: 10, mobileColumns: 2 });
+    expect(saved).toEqual({ desktopColumns: 10, mobileColumns: 2, locale: 'en' });
     expect(layout).toEqual([{ widgetId: 'com.test.one', order: 2, size: 'large' }]);
   });
 
