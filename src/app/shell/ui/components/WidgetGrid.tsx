@@ -73,23 +73,14 @@ export function WidgetGrid() {
           */}
           {previewLayout.map((entry) => {
             if (entry.kind === 'placeholder') {
-              const moduleInfo = moduleMap.get(entry.item.widgetId);
-              const clientModule = clientModuleMap.get(entry.item.widgetId);
-              if (!moduleInfo || !clientModule) return null;
-
               return (
                 <div
                   key={`placeholder-${entry.item.widgetId}`}
                   className={styles.dropShadowSlot}
                   style={{ gridColumn: `span ${SIZE_SPAN[entry.item.size]}` }}
                 >
-                  <div className={styles.dropShadowInner}>
-                    <span>
-                      <clientModule.Icon />
-                    </span>
-                    <strong>{getLocalizedHeader(moduleInfo.headerName, activeLocale)}</strong>
-                    <small>{entry.item.size.toUpperCase()} slot</small>
-                  </div>
+                  <article className={[styles.widgetCard, styles.widgetSilhouetteCard, styles.widgetSilhouetteCardAnimated].join(' ')}>
+                  </article>
                 </div>
               );
             }

@@ -55,8 +55,9 @@ Useful commands:
 - UI model: `Astro host + React shell`.
 - index page boot path is SSR-first:
   - Astro reads shell settings/layout from `core.db` on the server,
-  - initial shell state is passed into the React island as props,
+  - initial shell state and initial clock timestamp are passed into the React island as props,
   - server HTML renders widget-card silhouettes before hydration,
+  - the boot silhouette overlay is rendered outside the React island and removed only after client boot completes,
   - after hydration the silhouette state is kept for about 1 second, then live widgets are shown.
 - Production entrypoint: `node ./dist/server/entry.mjs`.
 
@@ -109,8 +110,11 @@ Shell features:
   - modules list (`id`, `name`, `version`, `ready/not-ready`, enable/disable).
 - shell boot visual:
   - use card silhouettes, not detailed skeleton rows,
-  - keep the short highlight/pulse animation,
+  - SSR overlay must sit above the React island, not inside it,
+  - keep the highlight/pulse animation looping,
+  - pulse must not move cards vertically or scale them,
   - keep silhouette geometry aligned with real widget layout and widget sizes from DB/registry.
+- edit-mode drag placeholder must reuse the same silhouette visual language as boot loading state.
 - desktop widget height rule:
   - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
   - mobile may return to adaptive height,
@@ -120,8 +124,11 @@ Theme notes:
 - night theme must apply to the whole page, not only shell cards,
 - `html`/`body` receive current shell theme via `data-shell-theme`,
 - SSR layout must also receive the resolved shell theme before hydration to avoid white flash on page load,
+- initial shell clock/time SSR and first client render must share the same seeded timestamp to avoid hydration mismatch,
 - global night variables live in shared global styles,
 - if background stays white, check `src/shared/styles/global.scss`, `src/pages/index.astro`, `src/layouts/Layout.astro`, and theme propagation in `src/app/shell/ui/ShellApp.tsx`.
+- if widgets or overlay jump on first paint, check for hydration mismatch first, especially in `src/app/shell/ui/components/ShellHeader.tsx`.
+- if boot silhouettes are vertically shifted, adjust the SSR overlay spacer in `src/pages/index.astro` instead of changing live widget layout.
 
 ## API Contract
 Shell APIs:

@@ -1,6 +1,7 @@
 import { getTranscribeText, isTranscribeTextKey } from '../../i18n'
 import styles from '../TranscribeWidget.module.scss'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
+import { useTranscribeStore } from '../model/store'
 
 type LoaderStripProps = {
   locale: DisplayLocale
@@ -10,24 +11,27 @@ type LoaderStripProps = {
 }
 
 export function LoaderStrip(props: LoaderStripProps) {
+  const status = useTranscribeStore((state) => state.status)
+
   if (!props.visible) {
     return null
   }
 
-  const stageText = props.progressStage && isTranscribeTextKey(props.progressStage)
+  const normalizedProgress = Math.max(0, Math.min(100, props.progress))
+  const stageText = isTranscribeTextKey(props.progressStage)
     ? getTranscribeText(props.locale, props.progressStage)
-    : getTranscribeText(props.locale, 'statusTranscribing')
+    : ''
+  const statusText = getTranscribeText(props.locale, status.key, status.vars)
 
   return (
     <div className={styles.loaderStrip}>
       <div className={styles.loaderStripHeader}>
-        <strong>{getTranscribeText(props.locale, 'statusTranscribing')}</strong>
-        <span>{Math.max(0, Math.min(100, props.progress))}%</span>
+        <strong>{stageText ?? statusText}</strong>
+        <span>{normalizedProgress}%</span>
       </div>
       <div className={styles.loaderStripTrack}>
-        <div className={styles.loaderStripFill} style={{ width: `${Math.max(0, Math.min(100, props.progress))}%` }} />
+        <div className={styles.loaderStripFill} style={{ width: `${normalizedProgress}%` }} />
       </div>
-      <p className={styles.loaderStripStage}>{stageText}</p>
     </div>
   )
 }

@@ -96,7 +96,11 @@ export async function prepareAudioForTranscription(input: {
         const stage = selectedFiles.length > 1 && ratio < 0.35
           ? 'progressMerging'
           : 'progressConverting'
-        sendProgress(conversionStart + ratio * (conversionEnd - conversionStart), stage)
+        const rawProgress = conversionStart + ratio * (conversionEnd - conversionStart)
+        const responsiveProgress = selectedFiles.length > 1 && currentSeconds > 0
+          ? Math.max(rawProgress, conversionStart + 1)
+          : rawProgress
+        sendProgress(responsiveProgress, stage)
       }
     },
     setActiveChild
