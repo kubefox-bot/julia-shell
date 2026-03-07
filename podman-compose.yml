@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  yulia-shell:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: yulia-shell:dev
+    container_name: yulia-shell
+    ports:
+      - "4321:4321"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4321
+      - JULIAAPP_DATA_DIR=/app/data
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - WIDGET_CHANNEL_TOKEN=${WIDGET_CHANNEL_TOKEN:-change-me}
+    volumes:
+      - ./data:/app/data
+      - ./tools/tmp:/app/tools/tmp

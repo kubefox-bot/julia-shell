@@ -3,13 +3,13 @@
 Last updated: 2026-03-07
 
 ## Purpose
-This is Yulia's Astro app. The project is edited from Mac when needed, but the real target environment is a Windows machine on the local network.
+This is Yulia's Astro app in Shell-Core v1.2 architecture.
 
-Primary goals:
-- Gemini chat UI,
-- `.m4a` transcription through Gemini API,
-- Windows-friendly local utility dashboard,
-- server control and personal widgets.
+Primary goals now:
+- extension-like shell with widget registry,
+- `.m4a` transcription via Gemini API,
+- Batumi weather widget with cache,
+- stable local dashboard on Windows target host.
 
 ## Canonical Target Host
 Primary deployment target:
@@ -21,76 +21,113 @@ Primary deployment target:
 - Direct LAN URL: `http://192.168.100.102:4321`
 
 Important:
-- treat the Windows copy as the execution source of truth,
-- treat this Mac copy as a working mirror / editing workspace,
-- when syncing changes, upload into `C:\Users\julia\OneDrive\ssr`.
+- treat Windows copy as runtime source of truth,
+- treat this Mac copy as development mirror,
+- sync into `C:\Users\julia\OneDrive\ssr`.
 
 ## Sync / Upload Notes
-When copying this project to Windows, exclude:
+Exclude from sync:
 - `node_modules`
 - `.astro`
 - `dist`
 - `dev.stdout.log`
 - `dev.stderr.log`
+- `coverage`
 
 Safe approach:
-- sync source files and config only,
-- then run dependency/build commands on Windows itself.
+- sync source/config only,
+- run install/build on Windows.
 
 ## Package Manager
 - package manager: `Yarn 4`
 - linker: `node-modules`
-- core command path on Windows usually resolves through `corepack.cmd`
+- Windows command path usually via `corepack.cmd`
 
 Useful commands:
 - `yarn install`
 - `yarn dev`
+- `yarn test`
 - `yarn build`
 - `yarn start`
 
 ## Runtime Model
-Astro runs in server mode with `@astrojs/node` standalone.
+- Astro server mode with `@astrojs/node` standalone adapter.
+- UI model: `Astro host + React shell`.
+- Production entrypoint: `node ./dist/server/entry.mjs`.
 
-Production entrypoint:
-- `node ./dist/server/entry.mjs`
+## Current Architecture (v1.2)
+- Shell core with widget registry and manifest validation.
+- Only two widgets are supported now:
+  - `com.yulia.transcribe`
+  - `com.yulia.weather`
+- Widget contract requires:
+  - `widgetId`
+  - `name`
+  - `version` in `x.y.z`
+  - `description`
+  - `ready` boolean
+  - sizing/capabilities/channels
+- If a widget is not ready, it must not be enabled.
 
-Testing mode currently used during active UI work:
-- `yarn dev --host 0.0.0.0 --port 4321`
+Shell features:
+- drag/drop grid in Edit mode,
+- `Save` and `Cancel` for layout draft,
+- settings panel with:
+  - layout columns (`desktop/mobile`),
+  - modules list (`id`, `name`, `version`, `ready/not-ready`, enable/disable).
+- desktop widget height rule:
+  - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
+  - mobile may return to adaptive height,
+  - placeholder/drop-shadow slot in edit mode must follow the same desktop height.
 
-## Gemini Settings
-Gemini settings are no longer stored in cookie.
+## API Contract
+Shell APIs:
+- `GET /api/shell/settings`
+- `POST /api/shell/settings/layout`
+- `GET /api/shell/modules`
+- `POST /api/shell/modules/:id/enable`
+- `POST /api/shell/modules/:id/disable`
 
-Current storage model:
-- file on disk: `data/gemini-settings.json`
-- file contains:
-  - `apiKey`
-  - `model`
+Widget namespace:
+- `GET|POST /api/widget/:id/*`
 
-Frontend behavior:
-- transcription card has a gear button,
-- settings panel contains API key input,
-- settings panel contains model selector,
-- default model is `gemini-2.5-flash`.
+Channels:
+- `POST /api/channel/webhook/:id/:event`
+- `GET|POST /api/channel/ws`
 
-Backend behavior:
-- `src/pages/api/gemini-settings.ts` exposes settings load/save,
-- `src/lib/gemini-settings.ts` is the helper/source of truth,
-- `src/pages/api/transcribe-stream.ts` reads settings from file.
+Notes:
+- `/api/channel/ws` currently uses SSE-style stream transport (fallback semantics) on GET.
+- channel endpoints are protected by `X-Widget-Token`.
 
-## Transcription Flow
-Current flow:
-- user browses folders,
-- user manually selects an `.m4a` file,
-- `ffmpeg` converts it to temporary `mono Opus`,
+## Storage Model
+SQLite databases in `data/`:
+- `core.db`: shell layout/settings/module state
+- `weather.db`: weather cache
+- `transcribe.db`: transcription jobs/outbox state
+
+Gemini secrets source:
+- no UI or DB secret storage,
+- use env-based secret provider chain.
+
+Required env vars:
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional, default `gemini-2.5-flash`)
+- `WIDGET_CHANNEL_TOKEN`
+- `JULIAAPP_DATA_DIR` (optional)
+
+## Transcribe Flow (Current)
+- user opens folder and selects one or multiple `.m4a` files,
+- `ffmpeg` may merge selected inputs,
+- audio is converted to temp mono Opus,
 - prompt is loaded from `Transcript.md`,
-- Gemini API receives uploaded audio,
-- transcript returns over SSE,
-- result view opens on first token,
-- text is rendered with a typewriter-style progressive animation,
-- action buttons stay locked while transcript is still being revealed,
-- after completion buttons unlock.
+- Gemini returns transcript over SSE events,
+- UI renders text with typewriter effect,
+- actions unlock only after reveal completes,
+- output `.txt` is saved in source folder,
+- job state is persisted in `transcribe.db`,
+- temp files must always be deleted on success/failure.
 
-Result actions:
+Result actions in UI:
 - `Назад`
 - `Прочитать`
 - `Скопировать`
@@ -98,50 +135,45 @@ Result actions:
 
 `Прочитать` uses browser `speechSynthesis`.
 
-Temporary converted audio must still be deleted after completion or failure.
+## Weather Flow (Current)
+- source: Open-Meteo,
+- fixed location: Batumi,
+- cache TTL: 30 minutes,
+- manual refresh available,
+- fallback to cached payload on upstream failure if cache exists.
 
-## Current Models
-Preferred order is built from settings, but practical defaults are:
-- `gemini-2.5-flash`
-- `gemini-2.0-flash`
-- optional selectable `gemini-2.5-pro`
+## Build / Production
+- `yarn build` includes:
+  - production minification (Terser),
+  - post-build precompression for `dist/client` (`.gz` and `.br` when smaller).
+- raw build without compression: `yarn build:raw`.
 
-Do not assume `pro` is available on free tier.
+Container scaffold (not production-complete):
+- `Containerfile`
+- `podman-compose.yml`
 
-## Main Files
-Core UI:
-- `src/pages/index.astro`
+## Removed Legacy Scope
+The following legacy areas were removed from active architecture:
+- chat card and `/api/chat*`
+- server-control UI/API
+- clean/open helper cards/APIs
+- old transcribe routes outside widget namespace
+- old gemini-settings json API/storage model
 
-Gemini transcription:
-- `src/pages/api/transcribe-stream.ts`
-- `src/pages/api/transcribe-save.ts`
-- `src/pages/api/gemini-settings.ts`
-- `src/lib/gemini-settings.ts`
-- `Transcript.md`
-
-Browser/file helpers:
-- `src/pages/api/fs-list.ts`
-
-Other runtime helpers:
-- `src/pages/api/server-status.ts`
-- `src/pages/api/server-control.ts`
-- `src/lib/server-control.ts`
-
-Windows scripts:
-- `scripts/windows/astro-prod-common.ps1`
-- `scripts/windows/astro-prod-control.ps1`
-- `scripts/windows/astro-prod-register-task.ps1`
-- `scripts/windows/astro-prod-runner.ps1`
+## Widget Local Context Files
+Widget-specific local instructions live here:
+- `src/widgets/transcribe/AGENTS.md`
+- `src/widgets/weather/AGENTS.md`
 
 ## Operational Notes
-- after frontend or API changes, re-run `yarn build` on Windows before checking production,
-- during active UI iteration, use `yarn dev` on Windows,
-- if the page looks stale, suspect old browser cache or old `dist`,
-- if styles do not update, force refresh with `Ctrl+F5`.
+- after frontend/API changes, rebuild on Windows before production check,
+- in active UI iteration use `yarn dev` on Windows,
+- if page looks stale, suspect browser cache or old `dist`,
+- for style staleness use hard refresh (`Ctrl+F5`).
 
 ## Safety Rules
-- do not commit or expose the real Gemini API key,
-- do not sync `data/gemini-settings.json` to public places,
-- keep the Windows path and port stable unless there is a deliberate migration,
-- preserve cleanup of temporary audio files,
-- preserve SSE event contract unless both frontend and backend are updated together.
+- do not commit or expose real Gemini API key,
+- do not publish `data/*.db` contents,
+- keep Windows path and port stable unless intentional migration,
+- preserve temporary audio cleanup behavior,
+- preserve SSE event contract unless frontend and backend are updated together.
