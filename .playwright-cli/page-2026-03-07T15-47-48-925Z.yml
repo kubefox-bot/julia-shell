@@ -1,0 +1,71 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - heading "Yulia Shell" [level=1] [ref=e6]
+        - paragraph [ref=e7]: "Core + widgets: `com.yulia.weather`, `com.yulia.transcribe`"
+      - generic [ref=e8]:
+        - button "⚙️" [ref=e9] [cursor=pointer]
+        - button "✎" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - article [ref=e12]:
+        - generic [ref=e14]:
+          - generic [ref=e15]: 🎙️
+          - heading "Транскрибация" [level=3] [ref=e16]
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - combobox "Вставь путь к папке..." [ref=e21]: C:\Users\julia\OneDrive\Рабочий стол
+              - button "⟳" [ref=e22] [cursor=pointer]
+              - button "Вверх" [ref=e23] [cursor=pointer]
+              - button "✕" [ref=e24] [cursor=pointer]
+            - paragraph [ref=e25]: "Клик по папке открывает ее содержимое. Клик по `.m4a` добавляет или снимает из очереди. Файлы склеиваются в порядке выбора, затем отправляются в Gemini."
+            - list [ref=e26]:
+              - listitem [ref=e27]: Папка пустая или пока не открыта.
+            - paragraph [ref=e28]: "Текущая папка: —"
+            - paragraph [ref=e29]: "Выбранные файлы: —"
+            - paragraph [ref=e32]: 0%
+            - generic [ref=e33]:
+              - button "Транскрибация" [disabled] [ref=e34]
+              - button "Прочитать" [disabled] [ref=e35]
+          - paragraph [ref=e36]: "Ошибка: ENOENT: no such file or directory, stat '/Users/evgeniyscherbina/WORKING/PET/JuliaApp/C:\\Users\\julia\\OneDrive\\Рабочий стол'"
+      - article [ref=e37]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 🌤️
+          - heading "Погода" [level=3] [ref=e41]
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - generic [ref=e46]: 🌤️
+              - heading "Батуми" [level=3] [ref=e47]
+            - button "Обновить" [ref=e75] [cursor=pointer]
+          - paragraph [ref=e49]: Ливни, 7° / 5°
+          - paragraph [ref=e50]: ☔ Придется дома сидеть
+          - list [ref=e76]:
+            - listitem [ref=e77]:
+              - generic [ref=e78]: сб, 7 мар.
+              - generic [ref=e79]: Ливни
+              - strong [ref=e80]: 7° / 5°
+            - listitem [ref=e81]:
+              - generic [ref=e82]: вс, 8 мар.
+              - generic [ref=e83]: Ливни
+              - strong [ref=e84]: 7° / 4°
+            - listitem [ref=e85]:
+              - generic [ref=e86]: пн, 9 мар.
+              - generic [ref=e87]: Ливни
+              - strong [ref=e88]: 7° / 4°
+          - paragraph [ref=e89]: "Обновлено: 07.03, 19:47"
+    - status [ref=e51]
+  - generic [ref=e54]:
+    - button "Menu" [ref=e55]:
+      - img [ref=e57]
+      - generic: Menu
+    - button "Inspect" [ref=e61]:
+      - img [ref=e63]
+      - generic: Inspect
+    - button "Audit" [ref=e65]:
+      - img [ref=e67]
+      - generic: Audit
+    - button "Settings" [ref=e70]:
+      - img [ref=e72]
+      - generic: Settings
