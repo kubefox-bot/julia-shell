@@ -1,0 +1,58 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ru">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Yulia Personal Assistant" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+<style is:global>
+	:root {
+		--bg-color: #fafaf9;
+		--card-bg: #ffffff;
+		--accent-rose: #fce7f3;
+		--accent-lavender: #f3e8ff;
+		--text-color: #44403c;
+		--card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+		--radius: 24px;
+	}
+	
+	html {
+		font-family: 'Inter', system-ui, sans-serif;
+		background: var(--bg-color);
+		color: var(--text-color);
+		margin: 0;
+		padding: 0;
+	}
+
+	body {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		padding: 2rem;
+		box-sizing: border-box;
+	}
+
+	@media (max-width: 600px) {
+		body {
+			padding: 1rem;
+		}
+	}
+</style>

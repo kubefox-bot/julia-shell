@@ -1,0 +1,22 @@
+{
+  "name": "ssr",
+  "type": "module",
+  "version": "0.0.1",
+  "packageManager": "yarn@4.9.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "prod:register-task": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/astro-prod-register-task.ps1",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.5.4",
+    "@google/genai": "^1.44.0",
+    "astro": "^5.17.1"
+  },
+  "devDependencies": {
+    "vite-plugin-pwa": "^1.2.0"
+  }
+}
