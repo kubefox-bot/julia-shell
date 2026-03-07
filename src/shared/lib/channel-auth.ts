@@ -1,7 +1,7 @@
 import { secrets } from '../../core/secrets/secrets'
 
 export async function isChannelAuthorized(request: Request) {
-  const expectedToken = await secrets.getSecret('WIDGET_CHANNEL_TOKEN')
+  const expectedToken = await secrets.get('WIDGET_CHANNEL_TOKEN')
   if (!expectedToken) {
     return false
   }
@@ -11,5 +11,5 @@ export async function isChannelAuthorized(request: Request) {
     return false
   }
 
-  return token === expectedToken
+  return token === expectedToken.value
 }

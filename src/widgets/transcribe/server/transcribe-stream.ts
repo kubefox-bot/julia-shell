@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { spawn, type ChildProcess } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { GoogleGenAI } from '@google/genai'
 import {
   appendTranscribeOutboxEvent,
@@ -13,16 +13,15 @@ import {
 } from '../../../core/db/transcribe-repository'
 import { jsonResponse } from '../../../shared/lib/http'
 import { DEFAULT_GEMINI_MODEL, GEMINI_UPLOAD_MIME, MOCK_GEMINI_MODEL, PROMPT_PATH, TMP_ROOT, TOOLS_ROOT, WIDGET_ID } from './constants'
+import { prepareAudioForTranscription } from './ffmpeg'
 import { startGeminiStream } from './gemini'
 import { runMockTranscription } from './mock'
 import { resolveApiKeyState } from './settings'
 import type { SsePayload, UploadedGeminiFile } from './types'
 import {
   buildGeminiModelCandidates,
-  escapeConcatPath,
   findBinary,
   getHostPlatform,
-  parseClockToSeconds,
   resolveConfiguredModel,
   resolveSelection,
   toSseEvent
@@ -162,11 +161,32 @@ export async function handleTranscribeStream(body: {
             }
           })
 
+          const ffmpegExe = await findBinary(path.join(TOOLS_ROOT, 'ffmpeg'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+          if (!ffmpegExe) {
+            throw new Error('ffmpeg binary not found in tools/ffmpeg or PATH.')
+          }
+
+          const preparedAudio = await prepareAudioForTranscription({
+            ffmpegExe,
+            selectedFiles,
+            primaryBaseName,
+            sendProgress,
+            setActiveChild: (child) => {
+              activeChild = child
+            }
+          })
+          mergedAudioPath = preparedAudio.mergedAudioPath
+          concatListPath = preparedAudio.concatListPath
+          convertedAudioPath = preparedAudio.convertedAudioPath
+
+          if (aborted) return
+
           if (selectedModel === MOCK_GEMINI_MODEL) {
             const mockResult = await runMockTranscription({
               selectedFiles,
               resolvedFolderPath,
               primaryBaseName,
+              convertedAudioPath,
               sendProgress,
               send,
               jobId
@@ -204,139 +224,10 @@ export async function handleTranscribeStream(body: {
             return
           }
 
-          const ffmpegExe = await findBinary(path.join(TOOLS_ROOT, 'ffmpeg'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
-          if (!ffmpegExe) {
-            throw new Error('ffmpeg binary not found in tools/ffmpeg.')
-          }
-
           const prompt = (await fs.readFile(PROMPT_PATH, 'utf8')).trim()
           if (!prompt) {
             throw new Error('Transcript.md is empty.')
           }
-
-          await fs.mkdir(TMP_ROOT, { recursive: true })
-
-          if (selectedFiles.length > 1) {
-            mergedAudioPath = path.join(TMP_ROOT, `${primaryBaseName}_merged.m4a`)
-            concatListPath = path.join(TMP_ROOT, `${primaryBaseName}_merged.concat.txt`)
-            await fs.writeFile(
-              concatListPath,
-              selectedFiles.map((value) => `file '${escapeConcatPath(value)}'`).join('\n'),
-              'utf8'
-            )
-
-            sendProgress(6, 'progressMerging')
-            await new Promise<void>((resolve, reject) => {
-              const ffmpeg = spawn(
-                ffmpegExe,
-                [
-                  '-y',
-                  '-f',
-                  'concat',
-                  '-safe',
-                  '0',
-                  '-i',
-                  concatListPath,
-                  '-vn',
-                  '-c:a',
-                  'aac',
-                  '-b:a',
-                  '96k',
-                  mergedAudioPath
-                ],
-                { windowsHide: true, cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'] }
-              )
-
-              activeChild = ffmpeg
-              let stderrBuffer = ''
-              ffmpeg.stderr.setEncoding('utf8')
-              ffmpeg.stderr.on('data', (chunk: string) => {
-                stderrBuffer += chunk
-              })
-              ffmpeg.on('error', (error) => reject(error))
-              ffmpeg.on('close', (code) => {
-                activeChild = null
-                if (code === 0) {
-                  sendProgress(18, 'progressMergeComplete')
-                  resolve()
-                  return
-                }
-                reject(new Error(stderrBuffer.trim() || `ffmpeg exited with code ${code}`))
-              })
-            })
-
-            inputFilePath = mergedAudioPath
-          }
-
-          if (aborted) return
-
-          const convertBaseName = selectedFiles.length > 1 ? `${primaryBaseName}_merged` : primaryBaseName
-          convertedAudioPath = path.join(TMP_ROOT, `${convertBaseName}.mono16k.ogg`)
-          const conversionStart = selectedFiles.length > 1 ? 20 : 5
-          const conversionEnd = selectedFiles.length > 1 ? 52 : 40
-
-          sendProgress(conversionStart, 'progressConverting')
-          await new Promise<void>((resolve, reject) => {
-            const ffmpeg = spawn(
-              ffmpegExe,
-              [
-                '-y',
-                '-i',
-                inputFilePath,
-                '-vn',
-                '-ac',
-                '1',
-                '-ar',
-                '16000',
-                '-c:a',
-                'libopus',
-                '-b:a',
-                '24k',
-                '-vbr',
-                'on',
-                '-compression_level',
-                '10',
-                convertedAudioPath
-              ],
-              { windowsHide: true, cwd: process.cwd(), stdio: ['ignore', 'pipe', 'pipe'] }
-            )
-
-            activeChild = ffmpeg
-            let stderrBuffer = ''
-            let durationSeconds = 0
-
-            ffmpeg.stderr.setEncoding('utf8')
-            ffmpeg.stderr.on('data', (chunk: string) => {
-              stderrBuffer += chunk
-
-              if (!durationSeconds) {
-                const durationMatch = stderrBuffer.match(/Duration:\s(\d{2}:\d{2}:\d{2}\.\d+)/)
-                if (durationMatch) {
-                  durationSeconds = parseClockToSeconds(durationMatch[1])
-                }
-              }
-
-              const timeMatches = [...chunk.matchAll(/time=(\d{2}:\d{2}:\d{2}\.\d+)/g)]
-              if (durationSeconds > 0 && timeMatches.length > 0) {
-                const currentSeconds = parseClockToSeconds(timeMatches[timeMatches.length - 1][1])
-                const ratio = Math.max(0, Math.min(1, currentSeconds / durationSeconds))
-                sendProgress(conversionStart + ratio * (conversionEnd - conversionStart), 'progressConverting')
-              }
-            })
-
-            ffmpeg.on('error', (error) => reject(error))
-            ffmpeg.on('close', (code) => {
-              activeChild = null
-              if (code === 0) {
-                sendProgress(conversionEnd, 'progressConversionComplete')
-                resolve()
-                return
-              }
-              reject(new Error(stderrBuffer.trim() || `ffmpeg exited with code ${code}`))
-            })
-          })
-
-          if (aborted) return
 
           sendProgress(60, 'progressUploading')
           const ai = new GoogleGenAI({ apiKey: secretState.value })

@@ -4,23 +4,23 @@ import {
   saveTranscribeWidgetSettings,
 } from '../../../core/db/transcribe-repository'
 import { secrets } from '../../../core/secrets/secrets'
+import { logger } from '../../../shared/lib/logger'
 import { WIDGET_ENV_NAME, WIDGET_ID } from './constants'
 import type { SecretState, TranscribeSettingsPayload } from './types'
 import { buildAvailableModels, resolveConfiguredModel } from './utils'
 
 export async function resolveApiKeyState(): Promise<SecretState> {
-  const infisicalSecret = await secrets.resolveSecret('GEMINI_API_KEY', {
-    widgetId: WIDGET_ID,
-    envName: WIDGET_ENV_NAME,
-  })
+  const rootHealthSecret = await secrets.get('HEALTH', '/')
+  logger.dev('[secrets] root HEALTH', rootHealthSecret)
 
+  const infisicalSecret = await secrets.get('GEMINI_API_KEY', WIDGET_ENV_NAME)
   if (infisicalSecret?.source === 'infisical') {
     return {
       source: 'infisical',
       value: infisicalSecret.value,
-      displayValue: infisicalSecret.reference ?? infisicalSecret.secretName,
+      displayValue: infisicalSecret.reference ?? 'GEMINI_API_KEY',
       editable: false,
-      secretPath: infisicalSecret.secretPath,
+      secretPath: infisicalSecret.path,
     }
   }
 
@@ -35,7 +35,7 @@ export async function resolveApiKeyState(): Promise<SecretState> {
     }
   }
 
-  const envSecret = await secrets.resolveSecret('GEMINI_API_KEY')
+  const envSecret = await secrets.get('GEMINI_API_KEY')
   if (envSecret?.source === 'env') {
     return {
       source: 'env',

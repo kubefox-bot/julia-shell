@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { access } from 'node:fs/promises'
 import type { HostPlatform } from '../../../entities/widget/model/types'
 import { DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL, MOCK_GEMINI_MODEL, SUPPORTED_AUDIO_EXTENSIONS } from './constants'
 import type { BrowserEntry, ResolvedSelection } from './types'
@@ -82,6 +83,25 @@ export function buildAvailableModels(storedModel?: string | null) {
 }
 
 export async function findBinary(searchRoot: string, fileName: string): Promise<string | null> {
+  const directCandidate = path.join(searchRoot, fileName)
+  try {
+    await access(directCandidate)
+    return directCandidate
+  } catch {
+    // ignored
+  }
+
+  const pathEntries = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
+  for (const pathEntry of pathEntries) {
+    const candidate = path.join(pathEntry, fileName)
+    try {
+      await access(candidate)
+      return candidate
+    } catch {
+      // ignored
+    }
+  }
+
   const stack: string[] = [searchRoot]
 
   while (stack.length > 0) {

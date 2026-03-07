@@ -14,7 +14,6 @@ type SetupViewProps = {
   onUp: () => void
   onOpenSettings: () => void
   onTranscribe: () => void
-  onOpenTxt: () => void
 }
 
 export function SetupView({
@@ -23,15 +22,13 @@ export function SetupView({
   onEntryClick,
   onUp,
   onOpenSettings,
-  onTranscribe,
-  onOpenTxt
+  onTranscribe
 }: SetupViewProps) {
   const browsePath = useTranscribeStore((state) => state.browsePath)
   const recentFolders = useTranscribeStore((state) => state.recentFolders)
   const entries = useTranscribeStore((state) => state.entries)
   const selectedFolderPath = useTranscribeStore((state) => state.selectedFolderPath)
   const selectedAudioFiles = useTranscribeStore((state) => state.selectedAudioFiles)
-  const selectedTranscriptPath = useTranscribeStore((state) => state.selectedTranscriptPath)
   const loading = useTranscribeStore((state) => state.loading)
   const progress = useTranscribeStore((state) => state.progress)
   const progressStage = useTranscribeStore((state) => state.progressStage)
@@ -41,7 +38,6 @@ export function SetupView({
 
   const selectedAudioText = formatSelectedAudioFiles(locale, selectedAudioFiles)
   const canTranscribe = !loading && Boolean(selectedFolderPath) && selectedAudioFiles.length > 0
-  const canOpenTxt = !loading && Boolean(selectedAudioFiles[0]) && Boolean(selectedTranscriptPath)
   const progressText = progressStage && isTranscribeTextKey(progressStage)
     ? getTranscribeText(locale, 'labelProgress', {
         percent: progress,
@@ -142,11 +138,6 @@ export function SetupView({
         {canTranscribe ? (
           <Button type="button" onClick={onTranscribe} disabled={!canTranscribe}>
             {getTranscribeText(locale, 'buttonTranscribe')}
-          </Button>
-        ) : null}
-        {canOpenTxt ? (
-          <Button type="button" variant="secondary" onClick={onOpenTxt} disabled={!canOpenTxt}>
-            {getTranscribeText(locale, 'buttonOpenTxt')}
           </Button>
         ) : null}
       </div>
