@@ -1,0 +1,36 @@
+@use './tokens.scss';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+body {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}

@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import node from '@astrojs/node';
+import react from '@astrojs/react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://astro.build/config
@@ -9,7 +10,24 @@ export default defineConfig({
   adapter: node({
     mode: 'standalone'
   }),
+  vite: {
+    build: {
+      minify: 'terser',
+      sourcemap: false,
+      reportCompressedSize: false,
+      terserOptions: {
+        compress: {
+          passes: 2,
+          drop_debugger: true
+        },
+        format: {
+          comments: false
+        }
+      }
+    }
+  },
   integrations: [
+    react(),
     {
       name: 'pwa-setup',
       hooks: {
