@@ -3,6 +3,7 @@ import type { BrowserEntry } from '../model/types'
 import styles from '../TranscribeWidget.module.scss'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { getTranscribeText } from '../../i18n'
+import { AudioGlyph, FolderGlyph, TextGlyph } from './TranscribeIcons'
 
 type BrowserListProps = {
   locale: DisplayLocale
@@ -31,8 +32,11 @@ export function BrowserList(props: BrowserListProps) {
               onClick={() => props.onEntryClick(entry)}
               disabled={props.loading}
             >
+              <span className={styles.browserEntryIcon}>
+                {entry.type === 'dir' ? <FolderGlyph /> : hasTranscript ? <TextGlyph /> : <AudioGlyph />}
+              </span>
               {selectionOrder >= 0 ? `[${selectionOrder + 1}] ` : ''}
-              {entry.type === 'dir' ? '📁' : hasTranscript ? '📝' : '🎧'} {entry.name}
+              {entry.name}
             </button>
           </li>
         )
