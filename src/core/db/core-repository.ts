@@ -1,16 +1,9 @@
+import { asc, eq } from 'drizzle-orm';
 import { nowIso } from '../../shared/lib/time';
 import type { LayoutItem, LayoutSettings, ShellLocale } from '../../entities/widget/model/types';
 import { openDb } from './shared';
-
-function ensureLocaleColumn() {
-  const db = openDb('core.db');
-  const rows = db.prepare('PRAGMA table_info(shell_layout_settings)').all() as Array<{ name: string }>;
-  const hasLocaleColumn = rows.some((row) => row.name === 'locale');
-
-  if (!hasLocaleColumn) {
-    db.exec("ALTER TABLE shell_layout_settings ADD COLUMN locale TEXT NOT NULL DEFAULT 'system'");
-  }
-}
+import { openCoreDatabase } from './core-drizzle';
+import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from './core-schema';
 
 function sanitizeLocale(value: string | null | undefined): ShellLocale {
   if (value === 'ru' || value === 'en' || value === 'system') {
@@ -20,10 +13,20 @@ function sanitizeLocale(value: string | null | undefined): ShellLocale {
   return 'system';
 }
 
-function getDb() {
-  const db = openDb('core.db');
+function ensureLocaleColumn() {
+  const sqlite = openDb('core.db');
+  const rows = sqlite.prepare('PRAGMA table_info(shell_layout_settings)').all() as Array<{ name: string }>;
+  const hasLocaleColumn = rows.some((row) => row.name === 'locale');
 
-  db.exec(`
+  if (!hasLocaleColumn) {
+    sqlite.exec("ALTER TABLE shell_layout_settings ADD COLUMN locale TEXT NOT NULL DEFAULT 'system'");
+  }
+}
+
+function bootstrapCoreSchema() {
+  const sqlite = openDb('core.db');
+
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS shell_layout_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       desktop_columns INTEGER NOT NULL DEFAULT 12,
@@ -48,11 +51,22 @@ function getDb() {
   `);
 
   ensureLocaleColumn();
+}
 
-  db.prepare(`
-    INSERT OR IGNORE INTO shell_layout_settings (id, desktop_columns, mobile_columns, locale, updated_at)
-    VALUES (1, 12, 1, 'system', ?)
-  `).run(nowIso());
+function getDb() {
+  bootstrapCoreSchema();
+  const db = openCoreDatabase();
+
+  db.insert(shellLayoutSettingsTable)
+    .values({
+      id: 1,
+      desktopColumns: 12,
+      mobileColumns: 1,
+      locale: 'system',
+      updatedAt: nowIso()
+    })
+    .onConflictDoNothing()
+    .run();
 
   return db;
 }
@@ -60,15 +74,14 @@ function getDb() {
 export function getLayoutSettings(): LayoutSettings {
   const db = getDb();
   const row = db
-    .prepare(`
-      SELECT
-        desktop_columns as desktopColumns,
-        mobile_columns as mobileColumns,
-        locale
-      FROM shell_layout_settings
-      WHERE id = 1
-    `)
-    .get() as (LayoutSettings & { locale: string }) | undefined;
+    .select({
+      desktopColumns: shellLayoutSettingsTable.desktopColumns,
+      mobileColumns: shellLayoutSettingsTable.mobileColumns,
+      locale: shellLayoutSettingsTable.locale
+    })
+    .from(shellLayoutSettingsTable)
+    .where(eq(shellLayoutSettingsTable.id, 1))
+    .get();
 
   return row
     ? {
@@ -81,56 +94,74 @@ export function getLayoutSettings(): LayoutSettings {
 
 export function saveLayoutSettings(next: LayoutSettings) {
   const db = getDb();
-  db.prepare(`
-    UPDATE shell_layout_settings
-    SET desktop_columns = @desktopColumns,
-        mobile_columns = @mobileColumns,
-        locale = @locale,
-        updated_at = @updatedAt
-    WHERE id = 1
-  `).run({
-    desktopColumns: next.desktopColumns,
-    mobileColumns: next.mobileColumns,
-    locale: sanitizeLocale(next.locale),
-    updatedAt: nowIso()
-  });
+  db.update(shellLayoutSettingsTable)
+    .set({
+      desktopColumns: next.desktopColumns,
+      mobileColumns: next.mobileColumns,
+      locale: sanitizeLocale(next.locale),
+      updatedAt: nowIso()
+    })
+    .where(eq(shellLayoutSettingsTable.id, 1))
+    .run();
 }
 
 export function getLayoutItems(): LayoutItem[] {
   const db = getDb();
-  const rows = db
-    .prepare('SELECT widget_id as widgetId, order_index as "order", size FROM widget_layout ORDER BY order_index ASC')
+  return db
+    .select({
+      widgetId: widgetLayoutTable.widgetId,
+      order: widgetLayoutTable.order,
+      size: widgetLayoutTable.size
+    })
+    .from(widgetLayoutTable)
+    .orderBy(asc(widgetLayoutTable.order))
     .all() as LayoutItem[];
-
-  return rows;
 }
 
 export function upsertLayoutItem(item: LayoutItem) {
   const db = getDb();
-  db.prepare(`
-    INSERT INTO widget_layout (widget_id, order_index, size, updated_at)
-    VALUES (@widgetId, @order, @size, @updatedAt)
-    ON CONFLICT(widget_id) DO UPDATE SET
-      order_index = excluded.order_index,
-      size = excluded.size,
-      updated_at = excluded.updated_at
-  `).run({
-    widgetId: item.widgetId,
-    order: item.order,
-    size: item.size,
-    updatedAt: nowIso()
-  });
+  db.insert(widgetLayoutTable)
+    .values({
+      widgetId: item.widgetId,
+      order: item.order,
+      size: item.size,
+      updatedAt: nowIso()
+    })
+    .onConflictDoUpdate({
+      target: widgetLayoutTable.widgetId,
+      set: {
+        order: item.order,
+        size: item.size,
+        updatedAt: nowIso()
+      }
+    })
+    .run();
 }
 
 export function replaceLayout(items: LayoutItem[]) {
+  const sqlite = openDb('core.db');
   const db = getDb();
-  const transaction = db.transaction((rows: LayoutItem[]) => {
-    for (const row of rows) {
-      upsertLayoutItem(row);
-    }
-  });
 
-  transaction(items);
+  sqlite.transaction(() => {
+    for (const item of items) {
+      db.insert(widgetLayoutTable)
+        .values({
+          widgetId: item.widgetId,
+          order: item.order,
+          size: item.size,
+          updatedAt: nowIso()
+        })
+        .onConflictDoUpdate({
+          target: widgetLayoutTable.widgetId,
+          set: {
+            order: item.order,
+            size: item.size,
+            updatedAt: nowIso()
+          }
+        })
+        .run();
+    }
+  })();
 }
 
 export type ModuleStateRow = {
@@ -141,55 +172,63 @@ export type ModuleStateRow = {
 
 export function getModuleStates(): ModuleStateRow[] {
   const db = getDb();
-  const rows = db
-    .prepare('SELECT widget_id as widgetId, enabled, disabled_reason as disabledReason FROM module_state')
-    .all() as Array<{ widgetId: string; enabled: number; disabledReason: string | null }>;
-
-  return rows.map((row) => ({
-    widgetId: row.widgetId,
-    enabled: row.enabled === 1,
-    disabledReason: row.disabledReason
-  }));
+  return db
+    .select({
+      widgetId: moduleStateTable.widgetId,
+      enabled: moduleStateTable.enabled,
+      disabledReason: moduleStateTable.disabledReason
+    })
+    .from(moduleStateTable)
+    .all()
+    .map((row) => ({
+      widgetId: row.widgetId,
+      enabled: Boolean(row.enabled),
+      disabledReason: row.disabledReason
+    }));
 }
 
 export function setModuleEnabled(widgetId: string, enabled: boolean, reason: string | null = null) {
   const db = getDb();
-  db.prepare(`
-    INSERT INTO module_state (widget_id, enabled, disabled_reason, updated_at)
-    VALUES (@widgetId, @enabled, @reason, @updatedAt)
-    ON CONFLICT(widget_id) DO UPDATE SET
-      enabled = excluded.enabled,
-      disabled_reason = excluded.disabled_reason,
-      updated_at = excluded.updated_at
-  `).run({
-    widgetId,
-    enabled: enabled ? 1 : 0,
-    reason,
-    updatedAt: nowIso()
-  });
+  db.insert(moduleStateTable)
+    .values({
+      widgetId,
+      enabled,
+      disabledReason: reason,
+      updatedAt: nowIso()
+    })
+    .onConflictDoUpdate({
+      target: moduleStateTable.widgetId,
+      set: {
+        enabled,
+        disabledReason: reason,
+        updatedAt: nowIso()
+      }
+    })
+    .run();
 }
 
 export function ensureDefaultModuleState(widgetId: string, enabled: boolean) {
   const db = getDb();
-  db.prepare(`
-    INSERT OR IGNORE INTO module_state (widget_id, enabled, disabled_reason, updated_at)
-    VALUES (@widgetId, @enabled, NULL, @updatedAt)
-  `).run({
-    widgetId,
-    enabled: enabled ? 1 : 0,
-    updatedAt: nowIso()
-  });
+  db.insert(moduleStateTable)
+    .values({
+      widgetId,
+      enabled,
+      disabledReason: null,
+      updatedAt: nowIso()
+    })
+    .onConflictDoNothing()
+    .run();
 }
 
 export function ensureDefaultLayoutItem(item: LayoutItem) {
   const db = getDb();
-  db.prepare(`
-    INSERT OR IGNORE INTO widget_layout (widget_id, order_index, size, updated_at)
-    VALUES (@widgetId, @order, @size, @updatedAt)
-  `).run({
-    widgetId: item.widgetId,
-    order: item.order,
-    size: item.size,
-    updatedAt: nowIso()
-  });
+  db.insert(widgetLayoutTable)
+    .values({
+      widgetId: item.widgetId,
+      order: item.order,
+      size: item.size,
+      updatedAt: nowIso()
+    })
+    .onConflictDoNothing()
+    .run();
 }
