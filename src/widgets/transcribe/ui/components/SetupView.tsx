@@ -9,6 +9,7 @@ import { SetupActions } from './SetupActions'
 
 type SetupViewProps = {
   locale: DisplayLocale
+  theme: 'day' | 'night'
   browsePath: string
   recentFolders: string[]
   entries: BrowserEntry[]
@@ -34,6 +35,7 @@ export function SetupView(props: SetupViewProps) {
     <div className={styles.setup}>
       <PathActionsRow
         locale={props.locale}
+        theme={props.theme}
         browsePath={props.browsePath}
         recentFolders={props.recentFolders}
         loading={props.loading}
@@ -60,6 +62,7 @@ export function SetupView(props: SetupViewProps) {
 
       <SetupActions
         locale={props.locale}
+        theme={props.theme}
         canTranscribe={props.canTranscribe}
         canOpenTxt={props.canOpenTxt}
         onTranscribe={props.onTranscribe}

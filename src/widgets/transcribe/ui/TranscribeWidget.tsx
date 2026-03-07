@@ -15,7 +15,7 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
   return (
     <div className={[styles.root, themeClass].join(' ')}>
       {controller.settings.open ? (
-        <SettingsModal locale={props.locale} platform={props.platform} onSave={controller.settings.onSave} />
+        <SettingsModal locale={props.locale} platform={props.platform} theme={props.theme} onSave={controller.settings.onSave} />
       ) : null}
 
       <LoaderStrip
@@ -28,6 +28,7 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
       {!controller.view.resultVisible ? (
         <SetupView
           locale={props.locale}
+          theme={props.theme}
           browsePath={controller.setup.browsePath}
           recentFolders={controller.setup.recentFolders}
           entries={controller.setup.entries}
@@ -50,6 +51,7 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
       ) : (
         <ResultView
           locale={props.locale}
+          theme={props.theme}
           resultText={controller.result.resultText}
           actionsLocked={controller.result.actionsLocked}
           onBack={controller.result.onBack}

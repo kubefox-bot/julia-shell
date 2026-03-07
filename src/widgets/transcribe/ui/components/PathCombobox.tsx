@@ -1,10 +1,13 @@
 import { useRef } from 'react'
+import { OptionMenu } from '../../../../shared/ui/OptionMenu'
 import { getTranscribeText } from '../../i18n'
 import styles from '../TranscribeWidget.module.scss'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
+import { FolderGlyph } from './TranscribeIcons'
 
 type PathComboboxProps = {
   locale: DisplayLocale
+  theme: 'day' | 'night'
   value: string
   options: string[]
   loading: boolean
@@ -16,6 +19,11 @@ type PathComboboxProps = {
 
 export function PathCombobox(props: PathComboboxProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const menuItems = props.options.map((option) => ({
+    value: option,
+    label: option,
+    icon: <FolderGlyph />
+  }))
 
   return (
     <div className={styles.pathCombobox}>
@@ -57,23 +65,22 @@ export function PathCombobox(props: PathComboboxProps) {
         </button>
       </div>
 
-      {props.open && props.options.length > 0 ? (
-        <div className={styles.pathComboboxMenu}>
-          {props.options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={styles.pathComboboxOption}
-              onMouseDown={(event) => {
-                event.preventDefault()
-                props.onChange(option)
-                props.onOpenChange(false)
-                window.setTimeout(() => props.onSubmit(option), 0)
-              }}
-            >
-              {option}
-            </button>
-          ))}
+      {props.open && menuItems.length > 0 ? (
+        <div
+          onMouseDown={(event) => {
+            event.preventDefault()
+          }}
+        >
+          <OptionMenu
+            theme={props.theme}
+            items={menuItems}
+            selectedValue={props.value}
+            onSelect={(option) => {
+              props.onChange(option)
+              props.onOpenChange(false)
+              window.setTimeout(() => props.onSubmit(option), 0)
+            }}
+          />
         </div>
       ) : null}
     </div>

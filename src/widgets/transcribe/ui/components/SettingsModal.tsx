@@ -1,15 +1,18 @@
-import { Button } from '../../../../shared/ui/Button'
-import { IconButton } from '../../../../shared/ui/IconButton'
+import { IconCircle } from '../../../../shared/ui/IconCircle'
+import { OptionSelect } from '../../../../shared/ui/OptionSelect'
 import { getPlatformLabel, getSecretSourceLabel, getTranscribeText } from '../../i18n'
 import { useTranscribeStore } from '../model/store'
 import styles from '../TranscribeWidget.module.scss'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
+import { CloseGlyph, SaveGlyph, WaveGlyph } from './TranscribeIcons'
+import { ActionButton } from './ActionButton'
 
 type SettingsModalProps = Pick<WidgetRenderProps, 'locale' | 'platform'> & {
+  theme: 'day' | 'night'
   onSave: () => void
 }
 
-export function SettingsModal({ locale, platform, onSave }: SettingsModalProps) {
+export function SettingsModal({ locale, platform, theme, onSave }: SettingsModalProps) {
   const settingsSaving = useTranscribeStore((state) => state.settingsSaving)
   const geminiModel = useTranscribeStore((state) => state.geminiModel)
   const availableModels = useTranscribeStore((state) => state.availableModels)
@@ -20,33 +23,43 @@ export function SettingsModal({ locale, platform, onSave }: SettingsModalProps) 
   const setSettingsOpen = useTranscribeStore((state) => state.setSettingsOpen)
   const setGeminiModel = useTranscribeStore((state) => state.setGeminiModel)
   const setApiKeyValue = useTranscribeStore((state) => state.setApiKeyValue)
+  const modelOptions = availableModels.map((model) => ({
+    value: model,
+    label: model,
+    icon: <WaveGlyph />
+  }))
 
   return (
     <div className={styles.settingsModal}>
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h4>{getTranscribeText(locale, 'helperSettingsTitle')}</h4>
-          <IconButton
+          <IconCircle
             type="button"
+            theme={theme}
             title={getTranscribeText(locale, 'buttonCloseSettings')}
             onClick={() => setSettingsOpen(false)}
             disabled={settingsSaving}
           >
-            ✕
-          </IconButton>
+            <CloseGlyph />
+          </IconCircle>
         </div>
 
         <label className={styles.field}>
-          <span>{getTranscribeText(locale, 'helperGeminiModel')}</span>
-          <select value={geminiModel} onChange={(event) => setGeminiModel(event.target.value)} disabled={settingsSaving}>
-            {availableModels.map((model) => (
-              <option key={model} value={model}>{model}</option>
-            ))}
-          </select>
+          <span className={styles.fieldLabel}>{getTranscribeText(locale, 'helperGeminiModel')}</span>
+          <OptionSelect
+            theme={theme}
+            value={geminiModel}
+            options={modelOptions}
+            disabled={settingsSaving}
+            assistiveLabel={getTranscribeText(locale, 'helperGeminiModel')}
+            emptyLabel={getTranscribeText(locale, 'helperGeminiModel')}
+            onChange={setGeminiModel}
+          />
         </label>
 
         <label className={styles.field}>
-          <span>{getTranscribeText(locale, 'helperApiKey')}</span>
+          <span className={styles.fieldLabel}>{getTranscribeText(locale, 'helperApiKey')}</span>
           <input
             type={apiKeyEditable ? 'password' : 'text'}
             value={apiKeyValue}
@@ -70,9 +83,9 @@ export function SettingsModal({ locale, platform, onSave }: SettingsModalProps) 
        
 
         <div className={styles.mainActions}>
-          <Button type="button" onClick={onSave} disabled={settingsSaving}>
+          <ActionButton type="button" theme={theme} icon={<SaveGlyph />} onClick={onSave} disabled={settingsSaving}>
             {getTranscribeText(locale, 'buttonSaveSettings')}
-          </Button>
+          </ActionButton>
         </div>
       </div>
     </div>
