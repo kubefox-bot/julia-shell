@@ -160,6 +160,67 @@ try {
 			</ul>
 		</div>
 
+		<!-- Карточка: Транскрибация -->
+		<div class="card card-wide">
+			<div class="transcribe-head">
+				<div class="transcribe-title">
+					<div class="icon">🎙️</div>
+					<h2>Транскрибация через Gemini</h2>
+				</div>
+				<button id="transcribe-settings-toggle" class="icon-btn settings-toggle-btn" type="button" title="Настройки Gemini">⚙️</button>
+			</div>
+			<div id="transcribe-settings-panel" class="settings-panel hidden">
+				<div class="gemini-key-panel">
+					<label class="field-label" for="gemini-api-key-input">Gemini API Key</label>
+					<div class="path-input-row gemini-key-row">
+						<input id="gemini-api-key-input" type="password" placeholder="Вставь Gemini API Key..." autocomplete="off" />
+						<button id="gemini-api-key-save-btn" class="btn btn-secondary small-btn">Сохранить</button>
+					</div>
+				</div>
+				<div class="gemini-model-panel">
+					<label class="field-label" for="gemini-model-select">Модель Gemini</label>
+					<select id="gemini-model-select" class="settings-select">
+						<option value="gemini-2.5-flash">gemini-2.5-flash</option>
+						<option value="gemini-2.0-flash">gemini-2.0-flash</option>
+						<option value="gemini-2.5-pro">gemini-2.5-pro</option>
+					</select>
+				</div>
+				<p id="gemini-api-key-status" class="muted-info">Ключ пока не сохранен на сервере.</p>
+			</div>
+			<div id="transcribe-setup">
+				<div class="path-input-row">
+					<input id="browse-path-input" type="text" placeholder="Вставь путь к папке..." autocomplete="off" list="browse-recent-list" />
+					<datalist id="browse-recent-list"></datalist>
+					<button id="browse-load-btn" class="icon-btn" type="button" title="Обновить папку">⟳</button>
+					<button id="browse-up-btn" class="btn btn-secondary small-btn">Вверх</button>
+					<button id="browse-clear-btn" class="icon-btn" title="Очистить сохраненный путь">✕</button>
+				</div>
+				<p class="muted-info">Клик по папке открывает ее содержимое. Клик по файлу `.m4a` добавляет или снимает его из очереди транскрибации. Если файлов несколько, они склеиваются по порядку выбора. Перед отправкой аудио сжимается в mono Opus и уходит в Gemini API. Настройки ключа и модели лежат на сервере.</p>
+				<ul id="browser-list" class="browser-list"></ul>
+				<p class="selected-path">Текущая папка: <span id="selected-folder-path">—</span></p>
+				<p class="selected-file">Выбранные файлы: <span id="selected-audio-path">—</span></p>
+				<div class="progress-wrap hidden" id="transcribe-progress-wrap">
+					<div class="progress-bar">
+						<div id="transcribe-progress-fill"></div>
+					</div>
+					<p id="transcribe-progress-text">0%</p>
+				</div>
+				<div class="transcribe-main-actions">
+					<button id="transcribe-btn" class="btn" disabled>Транскрибация</button>
+					<button id="transcribe-open-txt-btn" class="btn btn-secondary hidden" type="button">Прочитать</button>
+				</div>
+			</div>
+			<div id="transcribe-result" class="hidden">
+				<textarea id="transcribe-text" class="transcribe-text" readonly></textarea>
+				<div class="result-actions">
+					<button id="transcribe-fullscreen-btn" class="icon-btn" type="button" title="На весь экран">⛶</button>
+					<button id="transcribe-back-btn" class="btn btn-secondary">Назад</button>
+					<button id="transcribe-copy-btn" class="btn">Скопировать</button>
+				</div>
+			</div>
+			<p id="transcribe-status" class="transcribe-status">Готово к работе.</p>
+		</div>
+
 		<!-- Карточка: Кандидаты -->
 		<div class="card">
 			<div class="icon">📄</div>
@@ -236,67 +297,6 @@ try {
 			<button id="friend-write-btn" class="btn">Написать пойдем гулять!</button>
 		</div>
 
-		<!-- Карточка: Транскрибация -->
-		<div class="card card-wide">
-			<div class="transcribe-head">
-				<div class="transcribe-title">
-					<div class="icon">🎙️</div>
-					<h2>Транскрибация через Gemini</h2>
-				</div>
-				<button id="transcribe-settings-toggle" class="icon-btn settings-toggle-btn" type="button" title="Настройки Gemini">⚙️</button>
-			</div>
-			<div id="transcribe-settings-panel" class="settings-panel hidden">
-				<div class="gemini-key-panel">
-					<label class="field-label" for="gemini-api-key-input">Gemini API Key</label>
-					<div class="path-input-row gemini-key-row">
-						<input id="gemini-api-key-input" type="password" placeholder="Вставь Gemini API Key..." autocomplete="off" />
-						<button id="gemini-api-key-save-btn" class="btn btn-secondary small-btn">Сохранить</button>
-					</div>
-				</div>
-				<div class="gemini-model-panel">
-					<label class="field-label" for="gemini-model-select">Модель Gemini</label>
-					<select id="gemini-model-select" class="settings-select">
-						<option value="gemini-2.5-flash">gemini-2.5-flash</option>
-						<option value="gemini-2.0-flash">gemini-2.0-flash</option>
-						<option value="gemini-2.5-pro">gemini-2.5-pro</option>
-					</select>
-				</div>
-				<p id="gemini-api-key-status" class="muted-info">Ключ пока не сохранен на сервере.</p>
-			</div>
-			<div id="transcribe-setup">
-				<div class="path-input-row">
-					<input id="browse-path-input" type="text" placeholder="Вставь путь к папке..." autocomplete="off" list="browse-recent-list" />
-					<datalist id="browse-recent-list"></datalist>
-					<button id="browse-load-btn" class="btn btn-secondary small-btn">Показать</button>
-					<button id="browse-up-btn" class="btn btn-secondary small-btn">Вверх</button>
-					<button id="browse-clear-btn" class="icon-btn" title="Очистить сохраненный путь">✕</button>
-				</div>
-				<p class="muted-info">Клик по папке открывает ее содержимое. Клик по файлу `.m4a` выбирает его для транскрибации. Перед отправкой файл сжимается в mono Opus и уходит в Gemini API. Настройки ключа и модели лежат на сервере.</p>
-				<ul id="browser-list" class="browser-list"></ul>
-				<p class="selected-path">Текущая папка: <span id="selected-folder-path">—</span></p>
-				<p class="selected-file">Выбранный файл: <span id="selected-audio-path">—</span></p>
-				<div class="progress-wrap hidden" id="transcribe-progress-wrap">
-					<div class="progress-bar">
-						<div id="transcribe-progress-fill"></div>
-					</div>
-					<p id="transcribe-progress-text">0%</p>
-				</div>
-				<div class="transcribe-main-actions">
-					<button id="transcribe-btn" class="btn" disabled>Транскрибация</button>
-					<button id="transcribe-open-txt-btn" class="btn btn-secondary hidden" type="button">Прочитать</button>
-				</div>
-			</div>
-			<div id="transcribe-result" class="hidden">
-				<textarea id="transcribe-text" class="transcribe-text" readonly></textarea>
-				<div class="result-actions">
-					<button id="transcribe-back-btn" class="btn btn-secondary">Назад</button>
-					<button id="transcribe-copy-btn" class="btn">Скопировать</button>
-					<button id="transcribe-save-btn" class="btn">Сохранить</button>
-				</div>
-			</div>
-			<p id="transcribe-status" class="transcribe-status">Готово к работе.</p>
-		</div>
-
 		<!-- Карточка: Чат с помощником -->
 		<div class="card card-wide chat-container">
 			<div class="card-content">
@@ -332,6 +332,7 @@ try {
 	const defaultGeminiModel = 'gemini-2.5-flash';
 	const transcribeLastPathKey = 'yulia:last-transcribe-path';
 	const transcribeRecentPathsKey = 'yulia:transcribe-recent-paths';
+	const transcribeSelectedFilesKey = 'yulia:last-transcribe-selected-files';
 	const astroScopeAttr = chatBox?.querySelector('.message')
 		?.getAttributeNames()
 		.find((name) => name.startsWith('data-astro-cid-')) ?? null;
@@ -359,9 +360,10 @@ try {
 	const transcribeSetup = document.getElementById('transcribe-setup');
 	const transcribeResult = document.getElementById('transcribe-result');
 	const transcribeText = document.getElementById('transcribe-text') as HTMLTextAreaElement | null;
+	const transcribeFullscreenBtn = document.getElementById('transcribe-fullscreen-btn') as HTMLButtonElement | null;
 	const transcribeBackBtn = document.getElementById('transcribe-back-btn') as HTMLButtonElement | null;
 	const transcribeCopyBtn = document.getElementById('transcribe-copy-btn') as HTMLButtonElement | null;
-	const transcribeSaveBtn = document.getElementById('transcribe-save-btn') as HTMLButtonElement | null;
+	const transcribeCard = transcribeResult?.closest('.card') as HTMLElement | null;
 	const serverBadge = document.getElementById('server-badge');
 	const serverMessage = document.getElementById('server-message');
 	const serverTaskState = document.getElementById('server-task-state');
@@ -375,7 +377,7 @@ try {
 	const friendWriteBtn = document.getElementById('friend-write-btn') as HTMLButtonElement | null;
 
 	let selectedFolderPath: string | null = null;
-	let selectedAudioFilePath: string | null = null;
+	let selectedAudioFilePaths: string[] = [];
 	let selectedTranscriptTxtPath: string | null = null;
 	let lastTranscriptSourceFile: string | null = null;
 	let hasServerGeminiApiKey = false;
@@ -480,6 +482,48 @@ try {
 		return audioPath.replace(/\.m4a$/i, '.txt');
 	}
 
+	function getPrimarySelectedAudioFilePath() {
+		return selectedAudioFilePaths[0] ?? null;
+	}
+
+	function formatSelectedAudioFiles(paths: string[]) {
+		if (paths.length === 0) return '—';
+		return paths
+			.map((filePath, index) => `${index + 1}. ${filePath.split(/[\\/]/).pop() ?? filePath}`)
+			.join(' • ');
+	}
+
+	function getStoredSelectedAudioFiles() {
+		const raw = localStorage.getItem(transcribeSelectedFilesKey);
+		if (!raw) return [];
+		try {
+			const parsed = JSON.parse(raw);
+			if (!Array.isArray(parsed)) return [];
+			return parsed.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+		} catch {
+			return [];
+		}
+	}
+
+	function persistSelectedAudioFiles(paths: string[]) {
+		if (paths.length === 0) {
+			localStorage.removeItem(transcribeSelectedFilesKey);
+			return;
+		}
+		localStorage.setItem(transcribeSelectedFilesKey, JSON.stringify(paths));
+	}
+
+	function getVisibleM4aFilePaths() {
+		return currentBrowserEntries
+			.filter((entry) => entry.type === 'file' && entry.name.toLowerCase().endsWith('.m4a'))
+			.map((entry) => entry.path);
+	}
+
+	function getFirstVisibleTranscriptTxtPath() {
+		const txtEntry = currentBrowserEntries.find((entry) => entry.type === 'file' && entry.name.toLowerCase().endsWith('.txt'));
+		return txtEntry?.path ?? null;
+	}
+
 	function setSelectedTranscriptTxtPath(pathValue: string | null) {
 		selectedTranscriptTxtPath = pathValue;
 		if (!transcribeOpenTxtBtn) return;
@@ -498,6 +542,39 @@ try {
 			geminiModelSelect.value = selectedGeminiModel;
 		}
 		updateTranscribeAvailability();
+	}
+
+	function setSelectedAudioFiles(paths: string[], persist = true) {
+		const visiblePaths = new Set(getVisibleM4aFilePaths().map((value) => value.toLowerCase()));
+		selectedAudioFilePaths = paths.filter((value, index, source) => {
+			const normalized = value.toLowerCase();
+			return visiblePaths.has(normalized) && source.findIndex((candidate) => candidate.toLowerCase() === normalized) === index;
+		});
+
+		if (selectedAudioPathEl) {
+			selectedAudioPathEl.textContent = formatSelectedAudioFiles(selectedAudioFilePaths);
+		}
+
+		if (persist) {
+			persistSelectedAudioFiles(selectedAudioFilePaths);
+		}
+
+		setSelectedTranscriptTxtPath(getFirstVisibleTranscriptTxtPath());
+
+		updateTranscribeAvailability();
+	}
+
+	function toggleSelectedAudioFile(pathValue: string) {
+		const existingIndex = selectedAudioFilePaths.findIndex((value) => value.toLowerCase() === pathValue.toLowerCase());
+		if (existingIndex >= 0) {
+			const next = [...selectedAudioFilePaths];
+			next.splice(existingIndex, 1);
+			setSelectedAudioFiles(next);
+			return false;
+		}
+
+		setSelectedAudioFiles([...selectedAudioFilePaths, pathValue]);
+		return true;
 	}
 
 	async function loadGeminiSettings() {
@@ -704,7 +781,7 @@ try {
 
 	function updateTranscribeAvailability() {
 		if (!transcribeBtn) return;
-		transcribeBtn.disabled = transcribeIsLoading || !selectedFolderPath || !selectedAudioFilePath || !hasServerGeminiApiKey;
+		transcribeBtn.disabled = transcribeIsLoading || !selectedFolderPath || selectedAudioFilePaths.length === 0 || !hasServerGeminiApiKey;
 		if (transcribeOpenTxtBtn) {
 			transcribeOpenTxtBtn.disabled = transcribeIsLoading || !selectedTranscriptTxtPath;
 		}
@@ -714,21 +791,6 @@ try {
 		selectedFolderPath = pathValue;
 		if (selectedFolderPathEl) {
 			selectedFolderPathEl.textContent = pathValue ?? '—';
-		}
-		updateTranscribeAvailability();
-	}
-
-	function setSelectedAudioFile(pathValue: string | null) {
-		selectedAudioFilePath = pathValue;
-		if (selectedAudioPathEl) {
-			selectedAudioPathEl.textContent = pathValue ?? '—';
-		}
-		if (!pathValue) {
-			setSelectedTranscriptTxtPath(null);
-		} else {
-			const txtPath = getTranscriptTxtPath(pathValue);
-			const hasTxt = currentBrowserEntries.some((entry) => entry.type === 'file' && entry.path.toLowerCase() === txtPath.toLowerCase());
-			setSelectedTranscriptTxtPath(hasTxt ? txtPath : null);
 		}
 		updateTranscribeAvailability();
 	}
@@ -749,10 +811,31 @@ try {
 
 	function setTranscribeResultLocked(locked: boolean) {
 		transcribeResultLocked = locked;
+		if (transcribeFullscreenBtn) transcribeFullscreenBtn.disabled = locked;
 		if (transcribeBackBtn) transcribeBackBtn.disabled = locked;
 		if (transcribeCopyBtn) transcribeCopyBtn.disabled = locked;
-		if (transcribeSaveBtn) transcribeSaveBtn.disabled = locked;
 		if (transcribeText) transcribeText.readOnly = locked;
+	}
+
+	function syncTranscribeFullscreenState() {
+		if (!transcribeFullscreenBtn || !transcribeCard) return;
+		const isFullscreen = document.fullscreenElement === transcribeCard;
+		transcribeCard.classList.toggle('transcribe-card-fullscreen', isFullscreen);
+		transcribeFullscreenBtn.textContent = isFullscreen ? '🗗' : '⛶';
+		transcribeFullscreenBtn.title = isFullscreen ? 'Выйти из полного экрана' : 'На весь экран';
+	}
+
+	async function toggleTranscribeFullscreen() {
+		if (!transcribeCard) return;
+		try {
+			if (document.fullscreenElement === transcribeCard) {
+				await document.exitFullscreen();
+			} else {
+				await transcribeCard.requestFullscreen();
+			}
+		} catch {
+			setTranscribeStatus('Не удалось переключить полноэкранный режим.');
+		}
 	}
 
 	function openTranscribeSetup() {
@@ -871,12 +954,15 @@ try {
 			const button = document.createElement('button');
 			button.type = 'button';
 			const isM4a = entry.type === 'file' && entry.name.toLowerCase().endsWith('.m4a');
+			const selectionOrder = isM4a
+				? selectedAudioFilePaths.findIndex((value) => value.toLowerCase() === entry.path.toLowerCase())
+				: -1;
 			button.className = `browser-entry ${entry.type === 'dir' ? 'is-dir' : 'is-file'} ${isM4a ? 'is-audio' : ''}`;
-			button.textContent = `${entry.type === 'dir' ? '📁' : '📄'} ${entry.name}`;
+			button.textContent = `${selectionOrder >= 0 ? `[${selectionOrder + 1}] ` : ''}${entry.type === 'dir' ? '📁' : '📄'} ${entry.name}`;
 			button.dataset.path = entry.path;
 			button.dataset.entryType = entry.type;
 
-			if (isM4a && selectedAudioFilePath && entry.path === selectedAudioFilePath) {
+			if (selectionOrder >= 0) {
 				button.classList.add('selected');
 			}
 
@@ -891,13 +977,20 @@ try {
 					return;
 				}
 
-				setSelectedAudioFile(entry.path);
+				const added = toggleSelectedAudioFile(entry.path);
 				renderEntries(entries);
-				const transcriptTxtPath = getTranscriptTxtPath(entry.path);
-				const hasTranscriptTxt = entries.some((item) => item.type === 'file' && item.path.toLowerCase() === transcriptTxtPath.toLowerCase());
-				setTranscribeStatus(hasTranscriptTxt
-					? `Выбран файл: ${entry.name}. Можно запускать транскрибацию или открыть готовый .txt.`
-					: `Выбран файл: ${entry.name}. Теперь можно запускать транскрибацию.`);
+				const primarySelectedPath = getPrimarySelectedAudioFilePath();
+				const hasTranscriptTxt = Boolean(getFirstVisibleTranscriptTxtPath());
+				if (!primarySelectedPath) {
+					setTranscribeStatus('Выбор файлов очищен.');
+					return;
+				}
+				const primaryName = primarySelectedPath.split(/[\\/]/).pop() ?? primarySelectedPath;
+				setTranscribeStatus(added
+					? hasTranscriptTxt
+						? `Добавлен файл: ${entry.name}. Главный файл: ${primaryName}. Можно запускать транскрибацию или открыть готовый .txt.`
+						: `Добавлен файл: ${entry.name}. Главный файл: ${primaryName}.`
+					: `Файл снят: ${entry.name}.`);
 			});
 
 			applyScopedAttr(li);
@@ -916,8 +1009,8 @@ try {
 
 		setTranscribeStatus('Загружаю содержимое...');
 		setSelectedFolder(null);
-		setSelectedAudioFile(null);
 		currentBrowserEntries = [];
+		setSelectedAudioFiles([], false);
 
 		try {
 			const response = await fetch('/api/fs-list', {
@@ -937,9 +1030,18 @@ try {
 			rememberPath(data.path as string);
 			renderEntries(entries);
 			setSelectedFolder(data.path as string);
+			const savedSelection = getStoredSelectedAudioFiles();
+			if (savedSelection.length > 0) {
+				setSelectedAudioFiles(savedSelection, false);
+				renderEntries(entries);
+			}
+			setSelectedTranscriptTxtPath(getFirstVisibleTranscriptTxtPath());
 			const hasM4a = entries.some((entry) => entry.type === 'file' && entry.name.toLowerCase().endsWith('.m4a'));
+			const selectedCount = selectedAudioFilePaths.length;
 			setTranscribeStatus(hasM4a
-				? 'Папка открыта. Выбери .m4a файл вручную для транскрибации.'
+				? selectedCount > 0
+					? `Папка открыта. Восстановлено файлов: ${selectedCount}.`
+					: 'Папка открыта. Выбери один или несколько .m4a файлов вручную для транскрибации.'
 				: 'Папка открыта, но .m4a файлов не найдено.');
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Ошибка чтения пути.';
@@ -978,8 +1080,8 @@ try {
 		if (browsePathInput) browsePathInput.value = '';
 		if (browserList) browserList.innerHTML = '';
 		currentBrowserEntries = [];
+		setSelectedAudioFiles([]);
 		setSelectedFolder(null);
-		setSelectedAudioFile(null);
 		showTranscribeProgress(false);
 		setTranscribeStatus('Сохраненный путь очищен.');
 	});
@@ -999,6 +1101,7 @@ try {
 		let finished = false;
 		let transcript = '';
 		let sourceFile = '';
+		let savePath = '';
 
 		const processEvent = (eventChunk: string) => {
 			const lines = eventChunk.split('\n');
@@ -1047,6 +1150,7 @@ try {
 					transcript = finalTranscript;
 				}
 				sourceFile = typeof payload.sourceFile === 'string' ? payload.sourceFile : '';
+				savePath = typeof payload.savePath === 'string' ? payload.savePath : '';
 				applyFinalTranscript(transcript, sourceFile);
 				return;
 			}
@@ -1078,7 +1182,7 @@ try {
 			throw new Error('Поток завершился без результата.');
 		}
 
-		return { transcript, sourceFile };
+		return { transcript, sourceFile, savePath };
 	}
 
 	transcribeBtn?.addEventListener('click', async () => {
@@ -1086,8 +1190,8 @@ try {
 			setTranscribeStatus('Сначала открой папку.');
 			return;
 		}
-		if (!selectedAudioFilePath) {
-			setTranscribeStatus('Сначала выбери .m4a файл.');
+		if (selectedAudioFilePaths.length === 0) {
+			setTranscribeStatus('Сначала выбери хотя бы один .m4a файл.');
 			return;
 		}
 		if (!hasServerGeminiApiKey) {
@@ -1111,7 +1215,7 @@ try {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					folderPath: selectedFolderPath,
-					filePath: selectedAudioFilePath
+					filePaths: selectedAudioFilePaths
 				})
 			});
 
@@ -1124,8 +1228,21 @@ try {
 
 			const result = await consumeTranscribeSse(response.body);
 			applyFinalTranscript(result.transcript, result.sourceFile);
+			if (result.savePath) {
+				setSelectedTranscriptTxtPath(result.savePath);
+				if (!currentBrowserEntries.some((entry) => entry.type === 'file' && entry.path.toLowerCase() === result.savePath.toLowerCase())) {
+					currentBrowserEntries.push({
+						name: result.savePath.split(/[\\/]/).pop() ?? result.savePath,
+						path: result.savePath,
+						type: 'file'
+					});
+					renderEntries(currentBrowserEntries);
+				}
+				setTranscribeStatus(`Транскрибация закончена: ${result.savePath.split(/[\\/]/).pop() ?? result.savePath}`);
+			} else {
+				setTranscribeStatus('Транскрибация закончена.');
+			}
 			setTranscribeProgress(100, 'Готово');
-			setTranscribeStatus('Готово.');
 		} catch (error) {
 			setTranscribeResultLocked(false);
 			const message = error instanceof Error ? error.message : 'Ошибка транскрибации.';
@@ -1136,8 +1253,8 @@ try {
 	});
 
 	transcribeOpenTxtBtn?.addEventListener('click', async () => {
-		if (!selectedAudioFilePath || !selectedTranscriptTxtPath) {
-			setTranscribeStatus('Рядом с выбранным аудио пока нет .txt файла.');
+		if (!selectedTranscriptTxtPath) {
+			setTranscribeStatus('В этой папке пока нет .txt файла.');
 			return;
 		}
 
@@ -1150,7 +1267,7 @@ try {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					sourceFile: selectedAudioFilePath
+					txtPath: selectedTranscriptTxtPath
 				})
 			});
 			const data = await response.json();
@@ -1162,7 +1279,7 @@ try {
 			transcribeDisplayedText = typeof data?.transcript === 'string' ? data.transcript : '';
 			transcribeTypingQueue = '';
 			transcribeAwaitingUnlock = false;
-			openTranscribeResult(transcribeDisplayedText, selectedAudioFilePath, false);
+			openTranscribeResult(transcribeDisplayedText, selectedTranscriptTxtPath, false);
 			setTranscribeStatus(`Открыт файл: ${data?.txtPath || selectedTranscriptTxtPath}`);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Ошибка чтения .txt файла.';
@@ -1187,39 +1304,11 @@ try {
 		}
 	});
 
-	transcribeSaveBtn?.addEventListener('click', async () => {
-		if (!transcribeText?.value || !lastTranscriptSourceFile) {
-			setTranscribeStatus('Нет данных для сохранения.');
-			return;
-		}
-
-		try {
-			const response = await fetch('/api/transcribe-save', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					sourceFile: lastTranscriptSourceFile,
-					transcript: transcribeText.value
-				})
-			});
-			const data = await response.json();
-			if (!response.ok) throw new Error(data?.error || 'Не удалось сохранить файл.');
-			if (typeof data?.savePath === 'string' && data.savePath) {
-				setSelectedTranscriptTxtPath(data.savePath);
-				if (!currentBrowserEntries.some((entry) => entry.type === 'file' && entry.path.toLowerCase() === data.savePath.toLowerCase())) {
-					currentBrowserEntries.push({
-						name: data.savePath.split(/[\\/]/).pop() ?? data.savePath,
-						path: data.savePath,
-						type: 'file'
-					});
-				}
-			}
-			setTranscribeStatus(`Сохранено: ${data.savePath}`);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Ошибка сохранения.';
-			setTranscribeStatus(`Ошибка: ${message}`);
-		}
+	transcribeFullscreenBtn?.addEventListener('click', () => {
+		void toggleTranscribeFullscreen();
 	});
+
+	document.addEventListener('fullscreenchange', syncTranscribeFullscreenState);
 
 	serverStartBtn?.addEventListener('click', () => {
 		void runServerAction('start');
@@ -1263,7 +1352,7 @@ try {
 	}
 
 	openTranscribeSetup();
-	setTranscribeStatus('Открой шестеренку, сохрани Gemini API Key, затем выбери .m4a файл.');
+	setTranscribeStatus('Открой шестеренку, сохрани Gemini API Key, затем выбери один или несколько .m4a файлов.');
 	if (browsePathInput?.value) {
 		void loadPathEntries(browsePathInput.value);
 	}
@@ -1909,6 +1998,39 @@ try {
 		resize: vertical;
 		box-sizing: border-box;
 		background: #f9fafb;
+	}
+
+	.card.transcribe-card-fullscreen {
+		background: #f8fafc;
+		padding: 1.2rem;
+	}
+
+	.card.transcribe-card-fullscreen:fullscreen {
+		width: 100vw;
+		height: 100vh;
+		max-width: none;
+		margin: 0;
+		border-radius: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		padding: 1.2rem;
+		box-sizing: border-box;
+	}
+
+	.card.transcribe-card-fullscreen:fullscreen #transcribe-result {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	.card.transcribe-card-fullscreen:fullscreen .transcribe-text {
+		flex: 1;
+		min-height: 0;
+		height: 100%;
+		font-size: 1rem;
+		line-height: 1.7;
 	}
 
 	.transcribe-main-actions {
