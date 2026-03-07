@@ -1,0 +1,3 @@
+export const CLOCK_TICK_INTERVAL_MS = 1_000;
+export const AUTO_THEME_DAY_START_HOUR = 7;
+export const AUTO_THEME_NIGHT_START_HOUR = 19;

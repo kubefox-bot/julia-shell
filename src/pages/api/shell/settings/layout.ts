@@ -7,6 +7,7 @@ export const POST: APIRoute = async ({ request }) => {
     desktopColumns?: number;
     mobileColumns?: number;
     locale?: 'system' | 'ru' | 'en';
+    theme?: 'auto' | 'day' | 'night';
     layout?: Array<{ widgetId: string; order: number; size: 'small' | 'medium' | 'large' }>;
   }>(request);
 
@@ -14,6 +15,7 @@ export const POST: APIRoute = async ({ request }) => {
     desktopColumns: body.desktopColumns,
     mobileColumns: body.mobileColumns,
     locale: body.locale,
+    theme: body.theme,
     layout: body.layout
   });
 

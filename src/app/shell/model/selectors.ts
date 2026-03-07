@@ -1,6 +1,9 @@
+import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import type { WidgetModuleInfo } from '../../../entities/widget/model/types';
+import type { ResolvedShellTheme, WidgetModuleInfo } from '../../../entities/widget/model/types';
+import { getDailyQuote, getShellText } from '../lib/i18n';
+import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from './constants';
 import { resolveDisplayLocale } from '../../../shared/lib/locale';
 import { buildPreviewLayout, getVisibleLayout, getVisibleWidgetIds, hasUnsavedLayoutChanges } from './layout';
 import { useShellStore } from './store';
@@ -22,6 +25,22 @@ export function useShellLocale() {
   );
 }
 
+export function useShellTheme() {
+  return useShellStore((state) => state.layoutSettings.theme);
+}
+
+export function useResolvedShellTheme(): ResolvedShellTheme {
+  const configuredTheme = useShellTheme();
+  const nowIso = useShellStore((state) => state.nowIso);
+
+  if (configuredTheme === 'day' || configuredTheme === 'night') {
+    return configuredTheme;
+  }
+
+  const hour = DateTime.fromISO(nowIso).hour;
+  return hour >= AUTO_THEME_DAY_START_HOUR && hour < AUTO_THEME_NIGHT_START_HOUR ? 'day' : 'night';
+}
+
 export function useShellEditMode() {
   return useShellStore((state) => state.isEditMode);
 }
@@ -38,6 +57,7 @@ export function useShellDndViewModel() {
 
 export function useShellSettingsViewModel() {
   const activeLocale = useShellLocale();
+  const activeTheme = useShellTheme();
   const isSettingsOpen = useShellStore((state) => state.isSettingsOpen);
   const isSaving = useShellStore((state) => state.isSaving);
   const modules = useShellStore((state) => state.modules);
@@ -48,8 +68,39 @@ export function useShellSettingsViewModel() {
     isSaving,
     modules,
     settingsDraft,
-    activeLocale
+    activeLocale,
+    activeTheme
   };
+}
+
+export function useShellClockViewModel() {
+  const nowIso = useShellStore((state) => state.nowIso);
+  const activeLocale = useShellLocale();
+
+  return useMemo(() => {
+    const luxonLocale = activeLocale === 'ru' ? 'ru' : 'en';
+    const now = DateTime.fromISO(nowIso).setLocale(luxonLocale);
+
+    return {
+      now,
+      formattedTime: now.toFormat('HH:mm:ss'),
+      formattedDate: now.toFormat(activeLocale === 'ru' ? 'cccc, d LLLL' : 'cccc, LLLL d'),
+      quote: getDailyQuote(activeLocale, now),
+      greeting: getShellText(activeLocale, 'greeting')
+    };
+  }, [activeLocale, nowIso]);
+}
+
+export function useShellI18n() {
+  const activeLocale = useShellLocale();
+
+  return useMemo(
+    () => ({
+      locale: activeLocale,
+      t: (key: Parameters<typeof getShellText>[1]) => getShellText(activeLocale, key)
+    }),
+    [activeLocale]
+  );
 }
 
 export function useShellLayoutViewModel(): ShellLayoutViewModel {

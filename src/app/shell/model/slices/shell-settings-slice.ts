@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { saveShellLayout } from '../../lib/api';
+import { resolveDisplayLocale } from '../../../../shared/lib/locale';
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types';
 import { buildShellStatePatch, sanitizeColumns, toSettingsDraft } from '../store-helpers';
 
@@ -9,7 +10,7 @@ export type ShellSettingsSlice = Pick<
 > &
   Pick<
     ShellStoreActions,
-    'openSettings' | 'closeSettings' | 'updateSettingsDraftColumns' | 'updateSettingsDraftLocale' | 'saveSettings'
+    'openSettings' | 'closeSettings' | 'updateSettingsDraftColumns' | 'updateSettingsDraftLocale' | 'toggleLocale' | 'updateSettingsDraftTheme' | 'saveSettings' | 'toggleTheme'
   >;
 
 export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSettingsSlice> = (set, get) => ({
@@ -17,7 +18,8 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
   settingsDraft: {
     desktopColumns: 12,
     mobileColumns: 1,
-    locale: 'system'
+    locale: 'system',
+    theme: 'auto'
   },
   openSettings: () => {
     const { layoutSettings } = get();
@@ -56,6 +58,37 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
       }
     }));
   },
+  toggleLocale: async () => {
+    const { layoutSettings, draftLayout, browserLocale } = get();
+    const activeLocale = resolveDisplayLocale(layoutSettings.locale, browserLocale);
+    const nextLocale = activeLocale === 'en' ? 'ru' : 'en';
+    set({ isSaving: true, error: null });
+
+    try {
+      const response = await saveShellLayout({
+        desktopColumns: layoutSettings.desktopColumns,
+        mobileColumns: layoutSettings.mobileColumns,
+        locale: nextLocale,
+        theme: layoutSettings.theme,
+        layout: draftLayout
+      });
+
+      set((state) => buildShellStatePatch(state, response));
+    } catch (error) {
+      set({
+        isSaving: false,
+        error: error instanceof Error ? error.message : 'Не удалось переключить язык.'
+      });
+    }
+  },
+  updateSettingsDraftTheme: (theme) => {
+    set((state) => ({
+      settingsDraft: {
+        ...state.settingsDraft,
+        theme
+      }
+    }));
+  },
   saveSettings: async () => {
     const { settingsDraft, draftLayout } = get();
     set({ isSaving: true, error: null });
@@ -65,6 +98,7 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
         desktopColumns: settingsDraft.desktopColumns,
         mobileColumns: settingsDraft.mobileColumns,
         locale: settingsDraft.locale,
+        theme: settingsDraft.theme,
         layout: draftLayout
       });
 
@@ -77,6 +111,33 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
       set({
         isSaving: false,
         error: error instanceof Error ? error.message : 'Не удалось сохранить settings.'
+      });
+    }
+  },
+  toggleTheme: async () => {
+    const { layoutSettings, draftLayout } = get();
+    const nextTheme =
+      layoutSettings.theme === 'auto'
+        ? 'day'
+        : layoutSettings.theme === 'day'
+          ? 'night'
+          : 'auto';
+    set({ isSaving: true, error: null });
+
+    try {
+      const response = await saveShellLayout({
+        desktopColumns: layoutSettings.desktopColumns,
+        mobileColumns: layoutSettings.mobileColumns,
+        locale: layoutSettings.locale,
+        theme: nextTheme,
+        layout: draftLayout
+      });
+
+      set((state) => buildShellStatePatch(state, response));
+    } catch (error) {
+      set({
+        isSaving: false,
+        error: error instanceof Error ? error.message : 'Не удалось переключить тему.'
       });
     }
   }

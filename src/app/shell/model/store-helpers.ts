@@ -14,7 +14,8 @@ export function toSettingsDraft(layoutSettings: LayoutSettings): ShellSettingsDr
   return {
     desktopColumns: layoutSettings.desktopColumns,
     mobileColumns: layoutSettings.mobileColumns,
-    locale: layoutSettings.locale
+    locale: layoutSettings.locale,
+    theme: layoutSettings.theme
   };
 }
 
@@ -34,6 +35,7 @@ export function buildShellStatePatch(currentState: ShellStoreState, response: Sh
     overId: null,
     isEditMode: currentState.isEditMode,
     isSettingsOpen: currentState.isSettingsOpen,
-    browserLocale: currentState.browserLocale
+    browserLocale: currentState.browserLocale,
+    nowIso: currentState.nowIso
   };
 }

@@ -32,8 +32,9 @@ describe('core repository', () => {
     const initial = getLayoutSettings();
     expect(initial.desktopColumns).toBe(12);
     expect(initial.locale).toBe('system');
+    expect(initial.theme).toBe('auto');
 
-    saveLayoutSettings({ desktopColumns: 10, mobileColumns: 2, locale: 'en' });
+    saveLayoutSettings({ desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });
 
     ensureDefaultLayoutItem({ widgetId: 'com.test.one', order: 0, size: 'medium' });
     upsertLayoutItem({ widgetId: 'com.test.one', order: 2, size: 'large' });
@@ -41,7 +42,7 @@ describe('core repository', () => {
     const saved = getLayoutSettings();
     const layout = getLayoutItems();
 
-    expect(saved).toEqual({ desktopColumns: 10, mobileColumns: 2, locale: 'en' });
+    expect(saved).toEqual({ desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });
     expect(layout).toEqual([{ widgetId: 'com.test.one', order: 2, size: 'large' }]);
   });
 

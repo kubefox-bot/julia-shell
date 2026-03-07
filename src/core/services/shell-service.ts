@@ -105,6 +105,7 @@ export async function updateLayoutSettings(input: {
   desktopColumns?: number;
   mobileColumns?: number;
   locale?: LayoutSettings['locale'];
+  theme?: LayoutSettings['theme'];
   layout?: LayoutItem[];
 }) {
   const current = getLayoutSettings();
@@ -112,7 +113,8 @@ export async function updateLayoutSettings(input: {
   const nextSettings: LayoutSettings = {
     desktopColumns: sanitizeColumns(input.desktopColumns ?? current.desktopColumns, current.desktopColumns),
     mobileColumns: sanitizeColumns(input.mobileColumns ?? current.mobileColumns, current.mobileColumns),
-    locale: input.locale ?? current.locale
+    locale: input.locale ?? current.locale,
+    theme: input.theme ?? current.theme
   };
 
   saveLayoutSettings(nextSettings);

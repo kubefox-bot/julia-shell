@@ -33,6 +33,7 @@ export const createShellLayoutSlice: StateCreator<ShellStore, [], [], ShellLayou
         desktopColumns: layoutSettings.desktopColumns,
         mobileColumns: layoutSettings.mobileColumns,
         locale: layoutSettings.locale,
+        theme: layoutSettings.theme,
         layout: draftLayout
       });
 

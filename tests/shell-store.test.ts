@@ -14,7 +14,8 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
     layoutSettings: {
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system'
+      locale: 'system',
+      theme: 'auto'
     },
     layout: [
       { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
@@ -66,6 +67,7 @@ describe('shell store', () => {
     expect(store.getState().layout).toEqual(createResponse().layout);
     expect(store.getState().draftLayout).toEqual(createResponse().layout);
     expect(store.getState().layoutSettings.locale).toBe('system');
+    expect(store.getState().layoutSettings.theme).toBe('auto');
   });
 
   it('startEdit and cancelEdit preserve original layout', async () => {
@@ -111,7 +113,8 @@ describe('shell store', () => {
         layoutSettings: {
           desktopColumns: 10,
           mobileColumns: 2,
-          locale: 'en'
+          locale: 'en',
+          theme: 'night'
         }
       })
     );
@@ -121,14 +124,56 @@ describe('shell store', () => {
     store.getState().openSettings();
     store.getState().updateSettingsDraftColumns({ desktopColumns: 10, mobileColumns: 2 });
     store.getState().updateSettingsDraftLocale('en');
+    store.getState().updateSettingsDraftTheme('night');
     await store.getState().saveSettings();
 
     expect(store.getState().isSettingsOpen).toBe(false);
     expect(store.getState().layoutSettings).toEqual({
       desktopColumns: 10,
       mobileColumns: 2,
-      locale: 'en'
+      locale: 'en',
+      theme: 'night'
     });
+  });
+
+  it('toggleTheme persists next theme', async () => {
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
+      createResponse({
+        layoutSettings: {
+          desktopColumns: 12,
+          mobileColumns: 1,
+          locale: 'system',
+          theme: 'day'
+        }
+      })
+    );
+
+    const store = createShellStore();
+    await store.getState().loadShell();
+    await store.getState().toggleTheme();
+
+    expect(store.getState().layoutSettings.theme).toBe('day');
+  });
+
+  it('toggleLocale persists next locale', async () => {
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
+      createResponse({
+        layoutSettings: {
+          desktopColumns: 12,
+          mobileColumns: 1,
+          locale: 'en',
+          theme: 'auto'
+        }
+      })
+    );
+
+    const store = createShellStore();
+    await store.getState().loadShell();
+    await store.getState().toggleLocale();
+
+    expect(store.getState().layoutSettings.locale).toBe('en');
   });
 
   it('toggleModule reloads shell state', async () => {
@@ -167,5 +212,12 @@ describe('shell store', () => {
     expect(store.getState().draftLayout[0]?.widgetId).toBe('com.yulia.transcribe');
     expect(store.getState().activeId).toBeNull();
     expect(store.getState().overId).toBeNull();
+  });
+
+  it('tickNow updates shared shell clock value', () => {
+    const store = createShellStore();
+    store.getState().tickNow('2026-03-07T12:00:00.000Z');
+
+    expect(store.getState().nowIso).toBe('2026-03-07T12:00:00.000Z');
   });
 });

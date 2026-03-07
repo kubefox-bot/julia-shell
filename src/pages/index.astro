@@ -1,8 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { ShellApp } from '../app/shell/ui/ShellApp';
+
+
+const title  = "Julia Shell";
+
 ---
 
-<Layout title="Yulia Shell">
+<Layout title={title}>
   <ShellApp client:load />
 </Layout>

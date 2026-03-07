@@ -95,6 +95,7 @@ function formatSelectedAudioFiles(paths: string[]) {
 }
 
 export function TranscribeWidget(_props: WidgetRenderProps) {
+  const themeClass = _props.theme === 'night' ? styles.night : styles.day;
   const [browsePath, setBrowsePath] = useState('');
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [entries, setEntries] = useState<BrowserEntry[]>([]);
@@ -479,7 +480,7 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
   const canTranscribe = !loading && selectedFolderPath && selectedAudioFiles.length > 0;
 
   return (
-    <div className={styles.root}>
+    <div className={[styles.root, themeClass].join(' ')}>
       {!resultVisible ? (
         <div className={styles.setup}>
           <div className={styles.pathRow}>

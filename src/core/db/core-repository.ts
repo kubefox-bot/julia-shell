@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import { nowIso } from '../../shared/lib/time';
-import type { LayoutItem, LayoutSettings, ShellLocale } from '../../entities/widget/model/types';
+import type { LayoutItem, LayoutSettings, ShellLocale, ShellTheme } from '../../entities/widget/model/types';
 import { openDb } from './shared';
 import { openCoreDatabase } from './core-drizzle';
 import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from './core-schema';
@@ -13,13 +13,26 @@ function sanitizeLocale(value: string | null | undefined): ShellLocale {
   return 'system';
 }
 
-function ensureLocaleColumn() {
+function sanitizeTheme(value: string | null | undefined): ShellTheme {
+  if (value === 'auto' || value === 'day' || value === 'night') {
+    return value;
+  }
+
+  return 'auto';
+}
+
+function ensureSettingsColumns() {
   const sqlite = openDb('core.db');
   const rows = sqlite.prepare('PRAGMA table_info(shell_layout_settings)').all() as Array<{ name: string }>;
   const hasLocaleColumn = rows.some((row) => row.name === 'locale');
+  const hasThemeColumn = rows.some((row) => row.name === 'theme');
 
   if (!hasLocaleColumn) {
     sqlite.exec("ALTER TABLE shell_layout_settings ADD COLUMN locale TEXT NOT NULL DEFAULT 'system'");
+  }
+
+  if (!hasThemeColumn) {
+    sqlite.exec("ALTER TABLE shell_layout_settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'auto'");
   }
 }
 
@@ -32,6 +45,7 @@ function bootstrapCoreSchema() {
       desktop_columns INTEGER NOT NULL DEFAULT 12,
       mobile_columns INTEGER NOT NULL DEFAULT 1,
       locale TEXT NOT NULL DEFAULT 'system',
+      theme TEXT NOT NULL DEFAULT 'auto',
       updated_at TEXT NOT NULL
     );
 
@@ -50,7 +64,7 @@ function bootstrapCoreSchema() {
     );
   `);
 
-  ensureLocaleColumn();
+  ensureSettingsColumns();
 }
 
 function getDb() {
@@ -63,6 +77,7 @@ function getDb() {
       desktopColumns: 12,
       mobileColumns: 1,
       locale: 'system',
+      theme: 'auto',
       updatedAt: nowIso()
     })
     .onConflictDoNothing()
@@ -77,7 +92,8 @@ export function getLayoutSettings(): LayoutSettings {
     .select({
       desktopColumns: shellLayoutSettingsTable.desktopColumns,
       mobileColumns: shellLayoutSettingsTable.mobileColumns,
-      locale: shellLayoutSettingsTable.locale
+      locale: shellLayoutSettingsTable.locale,
+      theme: shellLayoutSettingsTable.theme
     })
     .from(shellLayoutSettingsTable)
     .where(eq(shellLayoutSettingsTable.id, 1))
@@ -87,9 +103,10 @@ export function getLayoutSettings(): LayoutSettings {
     ? {
         desktopColumns: row.desktopColumns,
         mobileColumns: row.mobileColumns,
-        locale: sanitizeLocale(row.locale)
+        locale: sanitizeLocale(row.locale),
+        theme: sanitizeTheme(row.theme)
       }
-    : { desktopColumns: 12, mobileColumns: 1, locale: 'system' };
+    : { desktopColumns: 12, mobileColumns: 1, locale: 'system', theme: 'auto' };
 }
 
 export function saveLayoutSettings(next: LayoutSettings) {
@@ -99,6 +116,7 @@ export function saveLayoutSettings(next: LayoutSettings) {
       desktopColumns: next.desktopColumns,
       mobileColumns: next.mobileColumns,
       locale: sanitizeLocale(next.locale),
+      theme: sanitizeTheme(next.theme),
       updatedAt: nowIso()
     })
     .where(eq(shellLayoutSettingsTable.id, 1))
