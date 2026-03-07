@@ -1,5 +1,5 @@
 import type { CSSProperties, ComponentType } from 'react';
-import type { LayoutItem, LayoutSettings, ShellLocale, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
+import type { LayoutItem, LayoutSettings, ResolvedShellTheme, ShellLocale, ShellTheme, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
 
 export type ShellSettingsResponse = {
   layoutSettings: LayoutSettings;
@@ -11,6 +11,7 @@ export type ShellSettingsDraft = {
   desktopColumns: number;
   mobileColumns: number;
   locale: ShellLocale;
+  theme: ShellTheme;
 };
 
 export type PreviewLayoutEntry =
@@ -24,6 +25,7 @@ export type ShellStoreState = {
   isEditMode: boolean;
   isSettingsOpen: boolean;
   browserLocale: string | null;
+  nowIso: string;
   layout: LayoutItem[];
   draftLayout: LayoutItem[];
   modules: WidgetModuleInfo[];
@@ -35,12 +37,16 @@ export type ShellStoreState = {
 
 export type ShellStoreActions = {
   setBrowserLocale: (locale: string | null) => void;
+  tickNow: (nowIso?: string) => void;
   clearError: () => void;
   loadShell: () => Promise<void>;
   openSettings: () => void;
   closeSettings: () => void;
   updateSettingsDraftColumns: (next: { desktopColumns?: number; mobileColumns?: number }) => void;
   updateSettingsDraftLocale: (locale: ShellLocale) => void;
+  toggleLocale: () => Promise<void>;
+  updateSettingsDraftTheme: (theme: ShellTheme) => void;
+  toggleTheme: () => Promise<void>;
   startEdit: () => void;
   cancelEdit: () => void;
   saveLayout: () => Promise<void>;
@@ -57,7 +63,7 @@ export type ShellStore = ShellStoreState & ShellStoreActions;
 export type ShellRegistryEntry = {
   widgetId: string;
   Icon: ComponentType;
-  Render: ComponentType<{ locale: 'ru' | 'en' }>;
+  Render: ComponentType<{ locale: 'ru' | 'en'; theme: ResolvedShellTheme }>;
 };
 
 export type ShellLayoutViewModel = {

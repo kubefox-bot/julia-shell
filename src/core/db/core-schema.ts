@@ -5,6 +5,7 @@ export const shellLayoutSettingsTable = sqliteTable('shell_layout_settings', {
   desktopColumns: integer('desktop_columns').notNull().default(12),
   mobileColumns: integer('mobile_columns').notNull().default(1),
   locale: text('locale').notNull().default('system'),
+  theme: text('theme').notNull().default('auto'),
   updatedAt: text('updated_at').notNull()
 });
 

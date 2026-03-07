@@ -6,6 +6,14 @@
   min-height: 0;
 }
 
+.day {
+  color: #0f172a;
+}
+
+.night {
+  color: #e2e8f0;
+}
+
 .setup,
 .resultBlock {
   display: flex;
@@ -25,6 +33,12 @@
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 0.65rem 0.85rem;
+}
+
+.night .pathRow input {
+  background: #111827;
+  color: #e2e8f0;
+  border-color: #334155;
 }
 
 .pathRow input:focus {
@@ -48,8 +62,16 @@
   border-radius: 12px;
 }
 
+.night .browserList {
+  border-color: #243244;
+}
+
 .browserList li {
   border-bottom: 1px solid #f9fafb;
+}
+
+.night .browserList li {
+  border-bottom-color: #1e293b;
 }
 
 .browserList li:last-child {
@@ -65,14 +87,28 @@
   padding: 0.65rem 0.8rem;
 }
 
+.night .browserEntry {
+  background: #111827;
+  color: #e2e8f0;
+}
+
 .browserEntry:hover:not(:disabled) {
   background: #f8fafc;
+}
+
+.night .browserEntry:hover:not(:disabled) {
+  background: #172033;
 }
 
 .selected {
   background: #ede9fe;
   color: #4c1d95;
   font-weight: 600;
+}
+
+.night .selected {
+  background: #312e81;
+  color: #e9d5ff;
 }
 
 .empty {
@@ -88,8 +124,16 @@
   word-break: break-word;
 }
 
+.night .meta {
+  color: #94a3b8;
+}
+
 .meta span {
   color: #334155;
+}
+
+.night .meta span {
+  color: #e2e8f0;
 }
 
 .progressWrap {
@@ -111,6 +155,10 @@
   border-radius: 999px;
   overflow: hidden;
   background: #eceff3;
+}
+
+.night .progressBar {
+  background: #243244;
 }
 
 .progressBar > div {
@@ -139,10 +187,20 @@
   flex: 1 1 auto;
 }
 
+.night .resultText {
+  background: #111827;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
 .status {
   margin: 0;
   font-size: 0.88rem;
   color: #4b5563;
+}
+
+.night .status {
+  color: #cbd5e1;
 }
 
 @media (max-width: 700px) {

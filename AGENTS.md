@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 ## Purpose
 This is Yulia's Astro app in Shell-Core v1.2 architecture.
@@ -56,29 +56,62 @@ Useful commands:
 - Production entrypoint: `node ./dist/server/entry.mjs`.
 
 ## Current Architecture (v1.2)
-- Shell core with widget registry and manifest validation.
-- Only two widgets are supported now:
+- Shell core with manifest-driven widget registry and validation.
+- Widget registration is DI-style:
+  - each widget provides its own `manifest.ts`,
+  - each widget exports a `register.ts`,
+  - core autodiscovers registrations and never hardcodes widget render/icon wiring.
+- Supported widgets now:
   - `com.yulia.transcribe`
   - `com.yulia.weather`
 - Widget contract requires:
-  - `widgetId`
+  - `id`
   - `name`
   - `version` in `x.y.z`
   - `description`
+  - `headerName: { ru, en }`
+  - `icon`
   - `ready` boolean
   - sizing/capabilities/channels
 - If a widget is not ready, it must not be enabled.
 
 Shell features:
+- Zustand-based shell state manager with slices for:
+  - shell data,
+  - settings,
+  - layout,
+  - drag/drop.
 - drag/drop grid in Edit mode,
 - `Save` and `Cancel` for layout draft,
+- iOS-like wiggle animation in edit mode for widget bodies,
+- overlay settings modal above the dashboard,
+- localized shell UI (`ru` and `en`),
+- quick locale switch in header,
+- quote-of-the-day in header,
+- live clock/date in header,
+- theme modes:
+  - `auto`
+  - `day`
+  - `night`
+- auto-theme is resolved by local time:
+  - day: `07:00-18:59`
+  - night: `19:00-06:59`
+- resolved theme is propagated into widgets so every widget must support both day and night presentation,
 - settings panel with:
   - layout columns (`desktop/mobile`),
+  - locale,
+  - theme,
   - modules list (`id`, `name`, `version`, `ready/not-ready`, enable/disable).
 - desktop widget height rule:
   - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
   - mobile may return to adaptive height,
   - placeholder/drop-shadow slot in edit mode must follow the same desktop height.
+
+Theme notes:
+- night theme must apply to the whole page, not only shell cards,
+- `html`/`body` receive current shell theme via `data-shell-theme`,
+- global night variables live in shared global styles,
+- if background stays white, check `src/shared/styles/global.scss` and theme propagation in `ShellApp.tsx`.
 
 ## API Contract
 Shell APIs:
@@ -104,6 +137,14 @@ SQLite databases in `data/`:
 - `core.db`: shell layout/settings/module state
 - `weather.db`: weather cache
 - `transcribe.db`: transcription jobs/outbox state
+
+`core.db` notes:
+- `core` DB access is implemented through Drizzle ORM on top of `better-sqlite3`,
+- shell settings persisted there include:
+  - `desktopColumns`
+  - `mobileColumns`
+  - `locale`
+  - `theme`
 
 Gemini secrets source:
 - no UI or DB secret storage,
@@ -147,6 +188,11 @@ Result actions in UI:
   - production minification (Terser),
   - post-build precompression for `dist/client` (`.gz` and `.br` when smaller).
 - raw build without compression: `yarn build:raw`.
+
+Linting / typing:
+- Biome is used for code linting/formatting policy.
+- Stylelint is used for SCSS.
+- Type checking runs through `astro check`.
 
 Container scaffold (not production-complete):
 - `Containerfile`

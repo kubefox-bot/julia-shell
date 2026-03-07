@@ -2,6 +2,8 @@ import type { ComponentType } from 'react';
 
 export type WidgetSize = 'small' | 'medium' | 'large';
 export type ShellLocale = 'system' | 'ru' | 'en';
+export type ShellTheme = 'auto' | 'day' | 'night';
+export type ResolvedShellTheme = 'day' | 'night';
 export type DisplayLocale = 'ru' | 'en';
 
 export type WidgetHeaderName = {
@@ -59,6 +61,7 @@ export type WidgetServerModule = {
 
 export type WidgetRenderProps = {
   locale: DisplayLocale;
+  theme: ResolvedShellTheme;
 };
 
 export type WidgetClientModule = {
@@ -101,4 +104,5 @@ export type LayoutSettings = {
   desktopColumns: number;
   mobileColumns: number;
   locale: ShellLocale;
+  theme: ShellTheme;
 };

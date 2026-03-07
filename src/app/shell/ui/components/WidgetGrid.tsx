@@ -11,7 +11,7 @@ import {
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { getLocalizedHeader } from '../../../../shared/lib/locale';
 import { useShellRegistry } from '../../lib/registry';
-import { useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
+import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import styles from '../ShellApp.module.scss';
 import { ShellDragPreview } from './ShellDragPreview';
@@ -26,6 +26,7 @@ const SIZE_SPAN = {
 export function WidgetGrid() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const activeLocale = useShellLocale();
+  const activeTheme = useResolvedShellTheme();
   const isEditMode = useShellEditMode();
   const { activeId, overId } = useShellDndViewModel();
   const { moduleMap, visibleLayout, previewLayout, columnsStyle } = useShellLayoutViewModel();
@@ -97,7 +98,7 @@ export function WidgetGrid() {
                 supportedSizes={moduleInfo.supportedSizes}
                 onSizeChange={changeWidgetSize}
               >
-                <clientModule.Render locale={activeLocale} />
+                <clientModule.Render locale={activeLocale} theme={activeTheme} />
               </ShellWidgetCard>
             );
           })}

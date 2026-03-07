@@ -1,15 +1,17 @@
 import { getLocalizedHeader } from '../../../../shared/lib/locale';
 import { Button } from '../../../../shared/ui/Button';
 import { IconButton } from '../../../../shared/ui/IconButton';
-import { useShellSettingsViewModel } from '../../model/selectors';
+import { useShellI18n, useShellSettingsViewModel } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import styles from '../ShellApp.module.scss';
 
 export function ShellSettingsOverlay() {
+  const { t } = useShellI18n();
   const { isSettingsOpen, isSaving, modules, settingsDraft, activeLocale } = useShellSettingsViewModel();
   const closeSettings = useShellStore((state) => state.closeSettings);
   const updateSettingsDraftColumns = useShellStore((state) => state.updateSettingsDraftColumns);
   const updateSettingsDraftLocale = useShellStore((state) => state.updateSettingsDraftLocale);
+  const updateSettingsDraftTheme = useShellStore((state) => state.updateSettingsDraftTheme);
   const saveSettings = useShellStore((state) => state.saveSettings);
   const toggleModule = useShellStore((state) => state.toggleModule);
 
@@ -18,25 +20,25 @@ export function ShellSettingsOverlay() {
   }
 
   return (
-    <div className={styles.settingsOverlay} role="dialog" aria-modal="true" aria-label="Shell Settings">
-      <button type="button" className={styles.settingsScrim} onClick={closeSettings} aria-label="Close settings overlay" />
+    <div className={styles.settingsOverlay} role="dialog" aria-modal="true" aria-label={t('settingsOverlayLabel')}>
+      <button type="button" className={styles.settingsScrim} onClick={closeSettings} aria-label={t('closeSettings')} />
       <section className={styles.settingsPanel}>
         <div className={styles.settingsHero}>
           <div>
-            <p className={styles.settingsEyebrow}>Shell Overlay</p>
-            <h2>Shell Settings</h2>
-            <p>Grid, locale и registry модулей поверх dashboard.</p>
+            <p className={styles.settingsEyebrow}>{t('settings')}</p>
+            <h2>{t('settingsTitle')}</h2>
+            <p>{t('settingsSubtitle')}</p>
           </div>
-          <IconButton type="button" onClick={closeSettings} title="Close settings">
+          <IconButton type="button" onClick={closeSettings} title={t('closeSettings')}>
             ✕
           </IconButton>
         </div>
 
         <div className={styles.settingsBlock}>
-          <h3>Layout Grid</h3>
+          <h3>{t('layoutBlockTitle')}</h3>
           <div className={styles.gridControls}>
             <label>
-              Desktop Columns
+              {t('desktopColumns')}
               <input
                 type="number"
                 min={1}
@@ -46,7 +48,7 @@ export function ShellSettingsOverlay() {
               />
             </label>
             <label>
-              Mobile Columns
+              {t('mobileColumns')}
               <input
                 type="number"
                 min={1}
@@ -56,25 +58,33 @@ export function ShellSettingsOverlay() {
               />
             </label>
             <label>
-              Locale
+              {t('locale')}
               <select value={settingsDraft.locale} onChange={(event) => updateSettingsDraftLocale(event.target.value as typeof settingsDraft.locale)}>
-                <option value="system">System</option>
-                <option value="ru">Русский</option>
-                <option value="en">English</option>
+                <option value="system">{t('localeSystem')}</option>
+                <option value="ru">{t('localeRu')}</option>
+                <option value="en">{t('localeEn')}</option>
+              </select>
+            </label>
+            <label>
+              {t('theme')}
+              <select value={settingsDraft.theme} onChange={(event) => updateSettingsDraftTheme(event.target.value as typeof settingsDraft.theme)}>
+                <option value="auto">{t('themeAuto')}</option>
+                <option value="day">{t('themeDay')}</option>
+                <option value="night">{t('themeNight')}</option>
               </select>
             </label>
           </div>
         </div>
 
         <div className={styles.settingsBlock}>
-          <h3>Modules</h3>
+          <h3>{t('modulesBlockTitle')}</h3>
           <div className={styles.moduleTable}>
             <div className={styles.moduleHead}>
-              <span>ID</span>
-              <span>Name</span>
-              <span>Version</span>
-              <span>State</span>
-              <span>Toggle</span>
+              <span>{t('modulesId')}</span>
+              <span>{t('modulesName')}</span>
+              <span>{t('modulesVersion')}</span>
+              <span>{t('modulesState')}</span>
+              <span>{t('modulesToggle')}</span>
             </div>
             {modules.map((module) => (
               <div className={styles.moduleRow} key={module.id}>
@@ -82,7 +92,7 @@ export function ShellSettingsOverlay() {
                 <span title={module.description}>{getLocalizedHeader(module.headerName, activeLocale)}</span>
                 <span className={styles.mono}>{module.version}</span>
                 <span className={module.ready ? styles.ready : styles.notReady}>
-                  {module.ready ? 'ready' : 'not-ready'}
+                  {module.ready ? t('ready') : t('notReady')}
                 </span>
                 <span>
                   <Button
@@ -91,7 +101,7 @@ export function ShellSettingsOverlay() {
                     disabled={!module.ready || isSaving}
                     onClick={() => void toggleModule(module.id, !module.enabled)}
                   >
-                    {module.enabled ? 'Disable' : 'Enable'}
+                    {module.enabled ? t('disable') : t('enable')}
                   </Button>
                 </span>
                 {!module.ready && module.notReadyReasons.length > 0 ? (
@@ -104,10 +114,10 @@ export function ShellSettingsOverlay() {
 
         <div className={styles.settingsFooter}>
           <Button type="button" variant="ghost" onClick={closeSettings} disabled={isSaving}>
-            Close
+            {t('close')}
           </Button>
           <Button type="button" onClick={() => void saveSettings()} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Сохранить'}
+            {isSaving ? t('saving') : t('save')}
           </Button>
         </div>
       </section>

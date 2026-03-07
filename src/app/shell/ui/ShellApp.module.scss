@@ -5,11 +5,35 @@
   position: relative;
 }
 
+.shellRoot[data-theme='night'] {
+  --bg-color: #08111f;
+  --card-bg: #101b2d;
+  --accent-rose: #31243c;
+  --accent-lavender: #1f2147;
+  --text-color: #e2e8f0;
+  --muted-text: #94a3b8;
+  --card-shadow: 0 18px 40px rgb(2 6 23 / 45%);
+  --border-subtle: #243244;
+  --surface-soft: #111827;
+  --success-bg: #052e1b;
+  --success-fg: #86efac;
+  --danger-bg: #3f1212;
+  --danger-fg: #fecaca;
+  --button-primary-fg: #fbcfe8;
+  --button-secondary-fg: #ddd6fe;
+  --button-ghost-bg: #111827;
+  --icon-button-hover-bg: #172033;
+}
+
 .loading {
   background: #fff;
   border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   padding: 2rem;
+}
+
+.shellRoot[data-theme='night'] .loading {
+  background: #101b2d;
 }
 
 .header {
@@ -19,9 +43,42 @@
   align-items: flex-start;
 }
 
+.headerIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.headerAside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
+}
+
+.headerEyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.shellRoot[data-theme='night'] .headerEyebrow {
+  color: #7dd3fc;
+}
+
 .header h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: clamp(2rem, 3.6vw, 2.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+}
+
+.shellRoot[data-theme='night'] .header h1 {
+  color: #f8fafc;
 }
 
 .header p {
@@ -30,11 +87,55 @@
   font-size: 0.9rem;
 }
 
+.headerSubtitle {
+  max-width: 640px;
+}
+
+.headerClock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  width: fit-content;
+  background: linear-gradient(135deg, rgb(219 234 254 / 92%), rgb(245 243 255 / 95%));
+  box-shadow: inset 0 0 0 1px rgb(191 219 254 / 85%);
+}
+
+.shellRoot[data-theme='night'] .headerClock {
+  background: linear-gradient(135deg, rgb(30 41 59 / 92%), rgb(49 46 129 / 88%));
+  box-shadow: inset 0 0 0 1px rgb(99 102 241 / 28%);
+}
+
+.headerTime {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1e3a8a;
+}
+
+.shellRoot[data-theme='night'] .headerTime {
+  color: #e0f2fe;
+}
+
+.headerDate {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #5b21b6;
+  text-transform: capitalize;
+}
+
+.shellRoot[data-theme='night'] .headerDate {
+  color: #c4b5fd;
+}
+
 .headerActions {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .settingsPanel {
@@ -51,6 +152,12 @@
   flex-direction: column;
   gap: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.shellRoot[data-theme='night'] .settingsPanel {
+  background: linear-gradient(180deg, #0f1b34 0%, #111827 18%, var(--card-bg) 18.1%);
+  border-color: rgb(99 102 241 / 20%);
+  box-shadow: 0 28px 80px rgb(2 6 23 / 62%);
 }
 
 .settingsPanel h2,
@@ -94,6 +201,13 @@
   background: rgba(255, 255, 255, 0.92);
 }
 
+.shellRoot[data-theme='night'] .gridControls input,
+.shellRoot[data-theme='night'] .gridControls select {
+  background: rgb(15 23 42 / 92%);
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
 .moduleTable {
   display: flex;
   flex-direction: column;
@@ -118,10 +232,20 @@
   font-weight: 700;
 }
 
+.shellRoot[data-theme='night'] .moduleHead {
+  background: #162033;
+  color: #94a3b8;
+}
+
 .moduleRow {
   background: #fff;
   border-top: 1px solid #f8fafc;
   font-size: 0.88rem;
+}
+
+.shellRoot[data-theme='night'] .moduleRow {
+  background: #0f172a;
+  border-top-color: #162033;
 }
 
 .moduleReason {
@@ -132,6 +256,10 @@
   background: var(--danger-bg);
   border-radius: 8px;
   padding: 0.35rem 0.5rem;
+}
+
+.shellRoot[data-theme='night'] .moduleReason {
+  background: rgb(127 29 29 / 52%);
 }
 
 .mono {
@@ -185,6 +313,10 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease, filter 0.22s ease;
   position: relative;
   overflow: hidden;
+}
+
+.shellRoot[data-theme='night'] .widgetCard {
+  background: linear-gradient(180deg, #0f172a, #111c31);
 }
 
 .widgetFrame {
@@ -269,6 +401,16 @@
   padding: 0.2rem 0.55rem;
   font-size: 0.95rem;
   box-shadow: 0 8px 20px rgba(148, 163, 184, 0.15);
+}
+
+.shellRoot[data-theme='night'] .dragHandle,
+.shellRoot[data-theme='night'] .sizeGroup {
+  border-color: #334155;
+}
+
+.shellRoot[data-theme='night'] .sizeGroup button {
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 .dragging {
@@ -467,6 +609,14 @@
   .header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .headerAside {
+    align-items: flex-start;
+  }
+
+  .headerActions {
+    justify-content: flex-start;
   }
 
   .settingsPanel {

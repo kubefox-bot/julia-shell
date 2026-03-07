@@ -5,25 +5,30 @@ import { buildShellStatePatch } from '../store-helpers';
 
 export type ShellDataSlice = Pick<
   ShellStoreState,
-  'loading' | 'error' | 'isSaving' | 'browserLocale' | 'layout' | 'draftLayout' | 'modules' | 'layoutSettings'
+  'loading' | 'error' | 'isSaving' | 'browserLocale' | 'nowIso' | 'layout' | 'draftLayout' | 'modules' | 'layoutSettings'
 > &
-  Pick<ShellStoreActions, 'setBrowserLocale' | 'clearError' | 'loadShell' | 'toggleModule'>;
+  Pick<ShellStoreActions, 'setBrowserLocale' | 'tickNow' | 'clearError' | 'loadShell' | 'toggleModule'>;
 
 export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSlice> = (set, get) => ({
   loading: true,
   error: null,
   isSaving: false,
   browserLocale: null,
+  nowIso: new Date().toISOString(),
   layout: [],
   draftLayout: [],
   modules: [],
   layoutSettings: {
     desktopColumns: 12,
     mobileColumns: 1,
-    locale: 'system'
+    locale: 'system',
+    theme: 'auto'
   },
   setBrowserLocale: (locale) => {
     set({ browserLocale: locale });
+  },
+  tickNow: (nowIso) => {
+    set({ nowIso: nowIso ?? new Date().toISOString() });
   },
   clearError: () => {
     set({ error: null });

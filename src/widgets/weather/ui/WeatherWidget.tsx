@@ -65,6 +65,7 @@ async function loadForecast(refresh = false) {
 }
 
 export function WeatherWidget(_props: WidgetRenderProps) {
+  const themeClass = _props.theme === 'night' ? styles.night : styles.day;
   const [data, setData] = useState<WeatherPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export function WeatherWidget(_props: WidgetRenderProps) {
   }, [runLoad]);
 
   return (
-    <div className={styles.weatherRoot}>
+    <div className={[styles.weatherRoot, themeClass].join(' ')}>
       <div className={styles.header}>
         <div>
           <div className={styles.icon}>🌤️</div>
