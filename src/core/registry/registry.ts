@@ -1,7 +1,7 @@
-import type { WidgetRouteHandler, WidgetServerPlugin } from '../../entities/widget/model/types';
-import { discoverWidgets, type DiscoveredWidget } from './discovery';
+import type { WidgetDescriptor, WidgetRouteHandler } from '../../entities/widget/model/types';
+import { discoverWidgets } from './discovery';
 
-let cachedWidgetsPromise: Promise<DiscoveredWidget[]> | null = null;
+let cachedWidgetsPromise: Promise<WidgetDescriptor[]> | null = null;
 
 async function getWidgets() {
   if (!cachedWidgetsPromise) {
@@ -26,33 +26,34 @@ export async function listDiscoveredWidgets() {
 
 export async function getWidgetById(widgetId: string) {
   const widgets = await getWidgets();
-  return widgets.find((entry) => entry.plugin.manifest.widgetId === widgetId) ?? null;
+  return widgets.find((entry) => entry.module.manifest.id === widgetId) ?? null;
 }
 
 export async function resolveWidgetHandler(widgetId: string, method: string, action: string): Promise<{
-  plugin: WidgetServerPlugin;
+  descriptor: WidgetDescriptor;
   handler: WidgetRouteHandler;
   ready: boolean;
   notReadyReasons: string[];
 } | null> {
-  const widget = await getWidgetById(widgetId);
-  if (!widget) {
+  const descriptor = await getWidgetById(widgetId);
+  if (!descriptor) {
     return null;
   }
 
+  const serverModule = await descriptor.module.loadServerModule();
   const key = buildHandlerKey(method, action);
   const fallbackKey = buildHandlerKey('*', action);
-  const handler = widget.plugin.handlers[key] ?? widget.plugin.handlers[fallbackKey] ?? null;
+  const handler = serverModule.handlers[key] ?? serverModule.handlers[fallbackKey] ?? null;
 
   if (!handler) {
     return null;
   }
 
   return {
-    plugin: widget.plugin,
+    descriptor,
     handler,
-    ready: widget.runtime.ready,
-    notReadyReasons: widget.runtime.notReadyReasons
+    ready: descriptor.runtime.ready,
+    notReadyReasons: descriptor.runtime.notReadyReasons
   };
 }
 

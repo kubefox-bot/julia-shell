@@ -1,5 +1,5 @@
 import { getWeatherCache, upsertWeatherCache } from '../../../core/db/weather-repository';
-import type { WidgetServerPlugin } from '../../../entities/widget/model/types';
+import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '../../../shared/lib/http';
 
 const BATUMI_LATITUDE = 41.65;
@@ -149,18 +149,7 @@ async function getWeather(forceRefresh: boolean) {
   }
 }
 
-const plugin: WidgetServerPlugin = {
-  manifest: {
-    widgetId: 'com.yulia.weather',
-    name: 'Weather',
-    version: '1.0.0',
-    description: 'Batumi weather widget with server cache.',
-    ready: true,
-    defaultSize: 'medium',
-    supportedSizes: ['small', 'medium', 'large'],
-    capabilities: ['forecast', 'cache', 'refresh'],
-    channels: ['bus', 'webhook', 'ws']
-  },
+export const weatherServerModule: WidgetServerModule = {
   handlers: {
     'GET forecast': async () => {
       try {
@@ -184,5 +173,3 @@ const plugin: WidgetServerPlugin = {
     }
   }
 };
-
-export default plugin;

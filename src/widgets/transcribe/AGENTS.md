@@ -66,6 +66,8 @@ Table role:
 - action buttons remain locked while typewriter queue is active,
 - `Прочитать` uses browser `speechSynthesis`,
 - local path and selected files are restored from browser localStorage.
+- on desktop, this widget must fit shell fixed card height `435px`;
+- if content exceeds card height, internal areas should scroll instead of growing outer card.
 
 ## Safe Change Checklist
 Before finishing changes:

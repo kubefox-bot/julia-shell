@@ -1,5 +1,14 @@
 import type { LayoutItem, LayoutSettings, WidgetModuleInfo, WidgetSize } from '../../entities/widget/model/types';
-import { getLayoutItems, getLayoutSettings, getModuleStates, ensureDefaultLayoutItem, ensureDefaultModuleState, replaceLayout, saveLayoutSettings, setModuleEnabled } from '../db/core-repository';
+import {
+  ensureDefaultLayoutItem,
+  ensureDefaultModuleState,
+  getLayoutItems,
+  getLayoutSettings,
+  getModuleStates,
+  replaceLayout,
+  saveLayoutSettings,
+  setModuleEnabled
+} from '../db/core-repository';
 import { listDiscoveredWidgets } from '../registry/registry';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
@@ -30,14 +39,14 @@ function normalizeLayoutItems(items: LayoutItem[]) {
 export async function ensureCoreDefaults() {
   const widgets = await listDiscoveredWidgets();
 
-  widgets.forEach((widget, index) => {
+  widgets.forEach((descriptor, index) => {
     ensureDefaultLayoutItem({
-      widgetId: widget.plugin.manifest.widgetId,
+      widgetId: descriptor.module.manifest.id,
       order: index,
-      size: widget.plugin.manifest.defaultSize
+      size: descriptor.module.manifest.defaultSize
     });
 
-    ensureDefaultModuleState(widget.plugin.manifest.widgetId, widget.runtime.ready);
+    ensureDefaultModuleState(descriptor.module.manifest.id, descriptor.runtime.ready);
   });
 }
 
@@ -49,27 +58,30 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
 
   const modules: WidgetModuleInfo[] = [];
 
-  for (const widget of widgets) {
-    const state = stateMap.get(widget.plugin.manifest.widgetId);
-    let enabled = state?.enabled ?? widget.runtime.ready;
-    const notReadyReasons = [...widget.runtime.notReadyReasons];
+  for (const descriptor of widgets) {
+    const widgetId = descriptor.module.manifest.id;
+    const state = stateMap.get(widgetId);
+    let enabled = state?.enabled ?? descriptor.runtime.ready;
+    const notReadyReasons = [...descriptor.runtime.notReadyReasons];
 
-    if (!widget.runtime.ready && enabled) {
+    if (!descriptor.runtime.ready && enabled) {
       const reason = notReadyReasons[0] ?? 'Widget is not ready.';
-      setModuleEnabled(widget.plugin.manifest.widgetId, false, reason);
+      setModuleEnabled(widgetId, false, reason);
       enabled = false;
     }
 
     modules.push({
-      widgetId: widget.plugin.manifest.widgetId,
-      name: widget.plugin.manifest.name,
-      version: widget.plugin.manifest.version,
-      description: widget.plugin.manifest.description,
-      ready: widget.runtime.ready,
+      id: widgetId,
+      name: descriptor.module.manifest.name,
+      version: descriptor.module.manifest.version,
+      description: descriptor.module.manifest.description,
+      headerName: descriptor.module.manifest.headerName,
+      normalizedIcon: descriptor.module.normalizedIcon,
+      ready: descriptor.runtime.ready,
       enabled,
       notReadyReasons,
-      defaultSize: widget.plugin.manifest.defaultSize,
-      supportedSizes: widget.plugin.manifest.supportedSizes
+      defaultSize: descriptor.module.manifest.defaultSize,
+      supportedSizes: descriptor.module.manifest.supportedSizes
     });
   }
 
@@ -92,13 +104,15 @@ export async function getShellSettings() {
 export async function updateLayoutSettings(input: {
   desktopColumns?: number;
   mobileColumns?: number;
+  locale?: LayoutSettings['locale'];
   layout?: LayoutItem[];
 }) {
   const current = getLayoutSettings();
 
   const nextSettings: LayoutSettings = {
     desktopColumns: sanitizeColumns(input.desktopColumns ?? current.desktopColumns, current.desktopColumns),
-    mobileColumns: sanitizeColumns(input.mobileColumns ?? current.mobileColumns, current.mobileColumns)
+    mobileColumns: sanitizeColumns(input.mobileColumns ?? current.mobileColumns, current.mobileColumns),
+    locale: input.locale ?? current.locale
   };
 
   saveLayoutSettings(nextSettings);
@@ -113,13 +127,13 @@ export async function updateLayoutSettings(input: {
 
 export async function setShellModuleEnabled(widgetId: string, enabled: boolean) {
   const modules = await listShellModules();
-  const moduleInfo = modules.find((module) => module.widgetId === widgetId);
+  const moduleInfo = modules.find((module) => module.id === widgetId);
 
   if (!moduleInfo) {
     return {
       ok: false,
       status: 404,
-      message: 'Unknown widgetId.'
+      message: 'Unknown widget id.'
     };
   }
 
@@ -137,11 +151,11 @@ export async function setShellModuleEnabled(widgetId: string, enabled: boolean) 
   return {
     ok: true,
     status: 200,
-    module: (await listShellModules()).find((module) => module.widgetId === widgetId)
+    module: (await listShellModules()).find((module) => module.id === widgetId)
   };
 }
 
 export async function getEnabledWidgetIds() {
   const modules = await listShellModules();
-  return new Set(modules.filter((module) => module.ready && module.enabled).map((module) => module.widgetId));
+  return new Set(modules.filter((module) => module.ready && module.enabled).map((module) => module.id));
 }

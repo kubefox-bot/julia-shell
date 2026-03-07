@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '../../../shared/ui/Button';
 import { IconButton } from '../../../shared/ui/IconButton';
 import styles from './TranscribeWidget.module.scss';
@@ -97,7 +98,7 @@ function formatSelectedAudioFiles(paths: string[]) {
     .join(' • ');
 }
 
-export function TranscribeWidget() {
+export function TranscribeWidget(_props: WidgetRenderProps) {
   const [browsePath, setBrowsePath] = useState('');
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [entries, setEntries] = useState<BrowserEntry[]>([]);

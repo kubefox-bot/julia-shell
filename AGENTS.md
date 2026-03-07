@@ -75,6 +75,10 @@ Shell features:
 - settings panel with:
   - layout columns (`desktop/mobile`),
   - modules list (`id`, `name`, `version`, `ready/not-ready`, enable/disable).
+- desktop widget height rule:
+  - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
+  - mobile may return to adaptive height,
+  - placeholder/drop-shadow slot in edit mode must follow the same desktop height.
 
 ## API Contract
 Shell APIs:

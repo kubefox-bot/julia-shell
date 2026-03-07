@@ -1,10 +1,31 @@
+import type { ComponentType } from 'react';
+
 export type WidgetSize = 'small' | 'medium' | 'large';
+export type ShellLocale = 'system' | 'ru' | 'en';
+export type DisplayLocale = 'ru' | 'en';
+
+export type WidgetHeaderName = {
+  ru: string;
+  en: string;
+};
+
+export type WidgetIconInput =
+  | string
+  | { svgPath: string }
+  | { componentKey: string };
+
+export type NormalizedWidgetIcon =
+  | { kind: 'text'; value: string }
+  | { kind: 'svgPath'; value: string }
+  | { kind: 'component'; value: string };
 
 export type WidgetManifest = {
-  widgetId: string;
+  id: string;
   name: string;
   version: string;
   description: string;
+  headerName: WidgetHeaderName;
+  icon: WidgetIconInput;
   ready: boolean;
   defaultSize: WidgetSize;
   supportedSizes: WidgetSize[];
@@ -15,11 +36,6 @@ export type WidgetManifest = {
 export type WidgetRuntimeState = {
   ready: boolean;
   notReadyReasons: string[];
-};
-
-export type WidgetDescriptor = {
-  manifest: WidgetManifest;
-  runtime: WidgetRuntimeState;
 };
 
 export type WidgetRouteContext = {
@@ -33,17 +49,38 @@ export type WidgetRouteContext = {
 
 export type WidgetRouteHandler = (context: WidgetRouteContext) => Promise<Response> | Response;
 
-export type WidgetServerPlugin = {
-  manifest: WidgetManifest;
+export type WidgetServerModule = {
   handlers: Record<string, WidgetRouteHandler>;
   init?: () => Promise<{ ready: boolean; reason?: string } | void> | { ready: boolean; reason?: string } | void;
 };
 
+export type WidgetRenderProps = {
+  locale: DisplayLocale;
+};
+
+export type WidgetClientModule = {
+  manifest: WidgetManifest;
+  Render: ComponentType<WidgetRenderProps>;
+  Icon: ComponentType;
+  normalizedIcon: NormalizedWidgetIcon;
+};
+
+export type RegisteredWidgetModule = WidgetClientModule & {
+  loadServerModule: () => Promise<WidgetServerModule>;
+};
+
+export type WidgetDescriptor = {
+  module: RegisteredWidgetModule;
+  runtime: WidgetRuntimeState;
+};
+
 export type WidgetModuleInfo = {
-  widgetId: string;
+  id: string;
   name: string;
   version: string;
   description: string;
+  headerName: WidgetHeaderName;
+  normalizedIcon: NormalizedWidgetIcon;
   ready: boolean;
   enabled: boolean;
   notReadyReasons: string[];
@@ -60,4 +97,5 @@ export type LayoutItem = {
 export type LayoutSettings = {
   desktopColumns: number;
   mobileColumns: number;
+  locale: ShellLocale;
 };

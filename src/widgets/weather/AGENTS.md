@@ -50,6 +50,8 @@ Cache policy:
 - show list of upcoming days,
 - show refresh button,
 - show update time and cache indicator.
+- on desktop, this widget must fit shell fixed card height `435px`;
+- if forecast content grows, scrolling must stay inside the widget body rather than stretching the shell card.
 
 ## Safe Change Checklist
 Before finishing changes:

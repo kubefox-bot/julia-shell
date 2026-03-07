@@ -17,7 +17,7 @@ async function handleRequest(method: string, request: Request, id: string | unde
   }
 
   const modules = await listShellModules();
-  const moduleInfo = modules.find((entry) => entry.widgetId === id);
+  const moduleInfo = modules.find((entry) => entry.id === id);
 
   if (!moduleInfo) {
     return jsonResponse({ error: `Unknown widget: ${id}` }, 404);

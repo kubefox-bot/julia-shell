@@ -3,11 +3,27 @@ import type { WidgetManifest } from './types';
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 const SIZE_SET = new Set(['small', 'medium', 'large']);
 
+function isValidIcon(manifest: WidgetManifest) {
+  if (typeof manifest.icon === 'string') {
+    return manifest.icon.trim().length > 0;
+  }
+
+  if ('svgPath' in manifest.icon) {
+    return typeof manifest.icon.svgPath === 'string' && manifest.icon.svgPath.trim().length > 0;
+  }
+
+  if ('componentKey' in manifest.icon) {
+    return typeof manifest.icon.componentKey === 'string' && manifest.icon.componentKey.trim().length > 0;
+  }
+
+  return false;
+}
+
 export function validateWidgetManifest(manifest: WidgetManifest): string[] {
   const reasons: string[] = [];
 
-  if (!manifest.widgetId?.trim()) {
-    reasons.push('Missing widgetId.');
+  if (!manifest.id?.trim()) {
+    reasons.push('Missing widget id.');
   }
 
   if (!manifest.name?.trim()) {
@@ -22,8 +38,20 @@ export function validateWidgetManifest(manifest: WidgetManifest): string[] {
     reasons.push('description is required.');
   }
 
+  if (!manifest.headerName?.ru?.trim()) {
+    reasons.push('headerName.ru is required.');
+  }
+
+  if (!manifest.headerName?.en?.trim()) {
+    reasons.push('headerName.en is required.');
+  }
+
   if (typeof manifest.ready !== 'boolean') {
     reasons.push('ready must be boolean.');
+  }
+
+  if (!isValidIcon(manifest)) {
+    reasons.push('icon must be a non-empty string, svgPath, or componentKey.');
   }
 
   if (!SIZE_SET.has(manifest.defaultSize)) {

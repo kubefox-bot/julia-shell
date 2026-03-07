@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  height: 100%;
+  min-height: 0;
 }
 
 .setup,
@@ -9,6 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-height: 0;
 }
 
 .pathRow {
@@ -133,6 +136,7 @@
   line-height: 1.5;
   resize: vertical;
   background: #f9fafb;
+  flex: 1 1 auto;
 }
 
 .status {

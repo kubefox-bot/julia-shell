@@ -1,6 +1,24 @@
 import { nowIso } from '../../shared/lib/time';
-import type { LayoutItem, LayoutSettings } from '../../entities/widget/model/types';
+import type { LayoutItem, LayoutSettings, ShellLocale } from '../../entities/widget/model/types';
 import { openDb } from './shared';
+
+function ensureLocaleColumn() {
+  const db = openDb('core.db');
+  const rows = db.prepare('PRAGMA table_info(shell_layout_settings)').all() as Array<{ name: string }>;
+  const hasLocaleColumn = rows.some((row) => row.name === 'locale');
+
+  if (!hasLocaleColumn) {
+    db.exec("ALTER TABLE shell_layout_settings ADD COLUMN locale TEXT NOT NULL DEFAULT 'system'");
+  }
+}
+
+function sanitizeLocale(value: string | null | undefined): ShellLocale {
+  if (value === 'ru' || value === 'en' || value === 'system') {
+    return value;
+  }
+
+  return 'system';
+}
 
 function getDb() {
   const db = openDb('core.db');
@@ -10,6 +28,7 @@ function getDb() {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       desktop_columns INTEGER NOT NULL DEFAULT 12,
       mobile_columns INTEGER NOT NULL DEFAULT 1,
+      locale TEXT NOT NULL DEFAULT 'system',
       updated_at TEXT NOT NULL
     );
 
@@ -28,9 +47,11 @@ function getDb() {
     );
   `);
 
+  ensureLocaleColumn();
+
   db.prepare(`
-    INSERT OR IGNORE INTO shell_layout_settings (id, desktop_columns, mobile_columns, updated_at)
-    VALUES (1, 12, 1, ?)
+    INSERT OR IGNORE INTO shell_layout_settings (id, desktop_columns, mobile_columns, locale, updated_at)
+    VALUES (1, 12, 1, 'system', ?)
   `).run(nowIso());
 
   return db;
@@ -39,10 +60,23 @@ function getDb() {
 export function getLayoutSettings(): LayoutSettings {
   const db = getDb();
   const row = db
-    .prepare('SELECT desktop_columns as desktopColumns, mobile_columns as mobileColumns FROM shell_layout_settings WHERE id = 1')
-    .get() as LayoutSettings | undefined;
+    .prepare(`
+      SELECT
+        desktop_columns as desktopColumns,
+        mobile_columns as mobileColumns,
+        locale
+      FROM shell_layout_settings
+      WHERE id = 1
+    `)
+    .get() as (LayoutSettings & { locale: string }) | undefined;
 
-  return row ?? { desktopColumns: 12, mobileColumns: 1 };
+  return row
+    ? {
+        desktopColumns: row.desktopColumns,
+        mobileColumns: row.mobileColumns,
+        locale: sanitizeLocale(row.locale)
+      }
+    : { desktopColumns: 12, mobileColumns: 1, locale: 'system' };
 }
 
 export function saveLayoutSettings(next: LayoutSettings) {
@@ -51,11 +85,13 @@ export function saveLayoutSettings(next: LayoutSettings) {
     UPDATE shell_layout_settings
     SET desktop_columns = @desktopColumns,
         mobile_columns = @mobileColumns,
+        locale = @locale,
         updated_at = @updatedAt
     WHERE id = 1
   `).run({
     desktopColumns: next.desktopColumns,
     mobileColumns: next.mobileColumns,
+    locale: sanitizeLocale(next.locale),
     updatedAt: nowIso()
   });
 }
