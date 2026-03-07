@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { GoogleGenAI, createPartFromUri } from '@google/genai';
 import { createTranscribeJob, updateTranscribeJobProgress, completeTranscribeJob, failTranscribeJob, listRecentTranscribeJobs } from '../../../core/db/transcribe-repository';
 import { secrets } from '../../../core/secrets';
@@ -303,7 +303,7 @@ export const transcribeServerModule: WidgetServerModule = {
         return jsonResponse({ error: 'GEMINI_API_KEY is missing in environment.' }, 400);
       }
 
-      let activeChild: ChildProcessWithoutNullStreams | null = null;
+      let activeChild: ChildProcess | null = null;
       let closed = false;
       let aborted = false;
       let lastProgress = -1;
