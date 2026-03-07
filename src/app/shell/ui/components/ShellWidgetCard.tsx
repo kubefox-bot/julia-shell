@@ -65,40 +65,43 @@ export function ShellWidgetCard({
         .filter(Boolean)
         .join(' ')}
     >
-      <div className={styles.widgetHead}>
-        <div className={styles.widgetTitleWrap}>
-          <span className={styles.widgetIcon}>
-            <Icon />
-          </span>
-          <h3>{title}</h3>
-        </div>
-        {editMode ? (
-          <div className={styles.widgetEditTools}>
-            <div className={styles.sizeGroup}>
-              {supportedSizes.map((candidateSize) => (
-                <button
-                  key={candidateSize}
-                  type="button"
-                  className={candidateSize === size ? styles.sizeActive : ''}
-                  onClick={() => onSizeChange(id, candidateSize)}
-                >
-                  {SIZE_LABELS[candidateSize]}
-                </button>
-              ))}
+      <div className={styles.widgetFrame}>
+        <div className={styles.widgetHead}>
+          <div className={styles.widgetTitleWrap}>
+            <span className={styles.widgetIcon}>
+              <Icon />
+            </span>
+            <h3>{title}</h3>
+          </div>
+          {editMode ? (
+            <div className={styles.widgetEditTools}>
+              <div className={styles.sizeGroup}>
+                {supportedSizes.map((candidateSize) => (
+                  <button
+                    key={candidateSize}
+                    type="button"
+                    className={candidateSize === size ? styles.sizeActive : ''}
+                    onClick={() => onSizeChange(id, candidateSize)}
+                  >
+                    {SIZE_LABELS[candidateSize]}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className={styles.dragHandle} {...attributes} {...listeners} title="Переместить">
+                ⋮⋮
+              </button>
             </div>
-            <button type="button" className={styles.dragHandle} {...attributes} {...listeners} title="Переместить">
-              ⋮⋮
-            </button>
-          </div>
-        ) : null}
-      </div>
-      <div className={styles.widgetBody}>
-        {children}
-        {editMode ? (
-          <div className={styles.widgetBodyLock} aria-hidden="true">
-            <div className={styles.widgetBodyLockBadge}>Edit Mode</div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
+
+        <div className={[styles.widgetBody, editMode ? styles.widgetBodyEditMode : ''].filter(Boolean).join(' ')}>
+          {children}
+          {editMode ? (
+            <div className={styles.widgetBodyLock} aria-hidden="true">
+              <div className={styles.widgetBodyLockBadge}>Edit Mode</div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </article>
   );
