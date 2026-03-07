@@ -10,7 +10,7 @@ type PathComboboxProps = {
   loading: boolean
   open: boolean
   onChange: (value: string) => void
-  onSubmit: () => void
+  onSubmit: (value?: string) => void
   onOpenChange: (open: boolean) => void
 }
 
@@ -25,6 +25,13 @@ export function PathCombobox(props: PathComboboxProps) {
           value={props.value}
           onChange={(event) => props.onChange(event.target.value)}
           onFocus={() => props.onOpenChange(true)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              props.onOpenChange(false)
+              props.onSubmit(props.value)
+            }
+          }}
           onBlur={() => {
             window.setTimeout(() => props.onOpenChange(false), 120)
           }}
@@ -37,7 +44,7 @@ export function PathCombobox(props: PathComboboxProps) {
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             if (props.open) {
-              props.onSubmit()
+              props.onOpenChange(false)
               return
             }
             props.onOpenChange(true)
@@ -61,7 +68,7 @@ export function PathCombobox(props: PathComboboxProps) {
                 event.preventDefault()
                 props.onChange(option)
                 props.onOpenChange(false)
-                window.setTimeout(() => props.onSubmit(), 0)
+                window.setTimeout(() => props.onSubmit(option), 0)
               }}
             >
               {option}

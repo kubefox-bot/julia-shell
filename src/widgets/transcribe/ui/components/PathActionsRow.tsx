@@ -12,7 +12,7 @@ type PathActionsRowProps = {
   loading: boolean
   pathPickerOpen: boolean
   onBrowsePathChange: (value: string) => void
-  onPathSubmit: () => void
+  onPathSubmit: (value?: string) => void
   onPathPickerOpenChange: (open: boolean) => void
   onUp: () => void
   onOpenSettings: () => void

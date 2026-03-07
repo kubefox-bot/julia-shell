@@ -62,6 +62,20 @@ export function findMatchingTranscriptPath(primaryAudioPath: string | null, entr
   return entries.find((entry) => entry.type === 'file' && entry.name.toLowerCase() === transcriptFileName)?.path ?? null
 }
 
+export function findReadableAudioPath(selectedAudioFiles: string[], entries: BrowserEntry[]) {
+  const candidates = selectedAudioFiles.length > 0
+    ? selectedAudioFiles
+    : entries.filter((entry) => isSupportedAudioEntry(entry)).map((entry) => entry.path)
+
+  for (const audioPath of candidates) {
+    if (findMatchingTranscriptPath(audioPath, entries)) {
+      return audioPath
+    }
+  }
+
+  return null
+}
+
 export function formatSelectedAudioFiles(locale: 'ru' | 'en', paths: string[]) {
   if (paths.length === 0) {
     return getTranscribeText(locale, 'helperSelectedFilesEmpty')

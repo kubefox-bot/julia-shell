@@ -22,6 +22,10 @@
   --button-secondary-fg: #ddd6fe;
   --button-ghost-bg: #111827;
   --icon-button-hover-bg: #172033;
+  --scrollbar-track: rgb(36 50 68 / 0.7);
+  --scrollbar-thumb: linear-gradient(180deg, #14b8a6, #0891b2);
+  --scrollbar-thumb-hover: linear-gradient(180deg, #2dd4bf, #0ea5e9);
+  --scrollbar-corner: transparent;
 }
 
 html,
@@ -32,6 +36,8 @@ body {
   background: var(--bg-color);
   color: var(--text-color);
   transition: background-color 220ms ease, color 220ms ease;
+  scrollbar-width: thin;
+  scrollbar-color: #0f766e var(--scrollbar-track);
 }
 
 body {
@@ -65,4 +71,35 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #0f766e var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-corner);
 }

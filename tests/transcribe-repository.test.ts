@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 describe('transcribe repository', () => {
-  it('persists widget settings and ranks recent folders', () => {
+  it('persists widget settings and keeps recent folders as a 5-item stack', () => {
     expect(getTranscribeWidgetSettings('com.yulia.transcribe').geminiModel).toBe('')
 
     saveTranscribeWidgetSettings({
@@ -40,14 +40,21 @@ describe('transcribe repository', () => {
     touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\A')
     touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\B')
     touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\A')
+    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\C')
+    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\D')
+    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\E')
+    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\F')
 
     expect(getTranscribeWidgetSettings('com.yulia.transcribe')).toMatchObject({
       geminiModel: 'mock',
       localApiKey: 'local-key'
     })
     expect(listRecentFolders('com.yulia.transcribe').map((entry) => entry.folderPath)).toEqual([
+      'C:\\OneDrive\\F',
+      'C:\\OneDrive\\E',
+      'C:\\OneDrive\\D',
+      'C:\\OneDrive\\C',
       'C:\\OneDrive\\A',
-      'C:\\OneDrive\\B'
     ])
   })
 
