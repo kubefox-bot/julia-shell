@@ -1,5 +1,6 @@
 # build output
 dist/
+coverage/
 # generated types
 .astro/
 
@@ -17,6 +18,9 @@ pnpm-debug.log*
 # environment variables
 .env
 .env.production
+
+# local sqlite data
+data/
 
 # macOS-specific files
 .DS_Store

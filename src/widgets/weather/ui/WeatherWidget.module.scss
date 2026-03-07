@@ -1,0 +1,73 @@
+.weatherRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.summary {
+  margin: 0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mood {
+  margin: 0;
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.86rem;
+  color: #475569;
+}
+
+.list strong {
+  color: #0f172a;
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted-text);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger-fg);
+  background: var(--danger-bg);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+}
