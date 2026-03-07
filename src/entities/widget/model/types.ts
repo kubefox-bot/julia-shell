@@ -51,7 +51,10 @@ export type WidgetRouteHandler = (context: WidgetRouteContext) => Promise<Respon
 
 export type WidgetServerModule = {
   handlers: Record<string, WidgetRouteHandler>;
-  init?: () => Promise<{ ready: boolean; reason?: string } | void> | { ready: boolean; reason?: string } | void;
+  init?: () =>
+    | Promise<{ ready: boolean; reason?: string } | undefined>
+    | { ready: boolean; reason?: string }
+    | undefined;
 };
 
 export type WidgetRenderProps = {

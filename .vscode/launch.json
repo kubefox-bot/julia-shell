@@ -2,8 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "./node_modules/.bin/astro dev",
-      "name": "Development server",
+      "command": "yarn dev",
+      "cwd": "${workspaceFolder}",
+      "name": "Astro Dev",
+      "request": "launch",
+      "type": "node-terminal"
+    },
+    {
+      "command": "yarn build",
+      "cwd": "${workspaceFolder}",
+      "name": "Build",
       "request": "launch",
       "type": "node-terminal"
     }

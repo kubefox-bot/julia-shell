@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import type { WidgetModuleInfo } from '../../../entities/widget/model/types';
 import { resolveDisplayLocale } from '../../../shared/lib/locale';
 import { buildPreviewLayout, getVisibleLayout, getVisibleWidgetIds, hasUnsavedLayoutChanges } from './layout';
@@ -77,7 +78,7 @@ export function useShellLayoutViewModel(): ShellLayoutViewModel {
       columnsStyle: {
         '--desktop-columns': String(layoutSettings.desktopColumns),
         '--mobile-columns': String(layoutSettings.mobileColumns)
-      }
+      } as CSSProperties
     };
   }, [activeId, draftLayout, isEditMode, layout, layoutSettings.desktopColumns, layoutSettings.mobileColumns, modules, overId]);
 }

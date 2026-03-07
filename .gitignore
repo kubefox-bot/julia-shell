@@ -27,3 +27,7 @@ data/
 
 # jetbrains setting folder
 .idea/
+
+.playwright-cli
+.stylelintcache
+.biome-cache

@@ -19,7 +19,7 @@ export function ShellSettingsOverlay() {
 
   return (
     <div className={styles.settingsOverlay} role="dialog" aria-modal="true" aria-label="Shell Settings">
-      <div className={styles.settingsScrim} onClick={closeSettings} />
+      <button type="button" className={styles.settingsScrim} onClick={closeSettings} aria-label="Close settings overlay" />
       <section className={styles.settingsPanel}>
         <div className={styles.settingsHero}>
           <div>

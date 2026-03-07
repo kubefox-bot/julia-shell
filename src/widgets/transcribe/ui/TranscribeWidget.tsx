@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '../../../shared/ui/Button';
 import { IconButton } from '../../../shared/ui/IconButton';
@@ -87,10 +87,6 @@ function parseSseEventChunk(rawEvent: string) {
   }
 }
 
-function getTranscriptTxtPath(audioPath: string) {
-  return audioPath.replace(/\.m4a$/i, '.txt');
-}
-
 function formatSelectedAudioFiles(paths: string[]) {
   if (paths.length === 0) return '—';
   return paths
@@ -120,13 +116,6 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
   const selectedAudioText = useMemo(() => formatSelectedAudioFiles(selectedAudioFiles), [selectedAudioFiles]);
 
   useEffect(() => {
-    const savedPath = localStorage.getItem(transcribeLastPathKey) ?? defaultBrowsePath;
-    setBrowsePath(savedPath);
-    setRecentPaths([...getRecentPaths()].reverse());
-    void loadPathEntries(savedPath);
-  }, []);
-
-  useEffect(() => {
     resultTextRef.current = resultText;
   }, [resultText]);
 
@@ -140,20 +129,20 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
     };
   }, []);
 
-  const getVisibleM4aFilePaths = (sourceEntries = entries) => {
+  const getVisibleM4aFilePaths = useCallback((sourceEntries = entries) => {
     return sourceEntries
       .filter((entry) => entry.type === 'file' && entry.name.toLowerCase().endsWith('.m4a'))
       .map((entry) => entry.path);
-  };
+  }, [entries]);
 
-  const getFirstVisibleTranscriptTxtPath = (sourceEntries = entries) => {
+  const getFirstVisibleTranscriptTxtPath = useCallback((sourceEntries = entries) => {
     const txtEntry = sourceEntries.find((entry) => entry.type === 'file' && entry.name.toLowerCase().endsWith('.txt'));
     return txtEntry?.path ?? null;
-  };
+  }, [entries]);
 
-  const syncRecentPaths = () => {
+  const syncRecentPaths = useCallback(() => {
     setRecentPaths([...getRecentPaths()].reverse());
-  };
+  }, []);
 
   const openSetupView = () => {
     if (typewriterTimerRef.current !== null) {
@@ -191,7 +180,7 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
     typewriterTimerRef.current = window.setTimeout(runTypewriter, 22);
   };
 
-  const setSelectedFiles = (next: string[], shouldPersist = true, sourceEntries = entries) => {
+  const setSelectedFiles = useCallback((next: string[], shouldPersist = true, sourceEntries = entries) => {
     const visiblePaths = new Set(getVisibleM4aFilePaths(sourceEntries).map((value) => value.toLowerCase()));
     const unique = next.filter((value, index, source) => {
       const normalized = value.toLowerCase();
@@ -205,9 +194,9 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
     }
 
     setSelectedTranscriptPath(getFirstVisibleTranscriptTxtPath(sourceEntries));
-  };
+  }, [entries, getFirstVisibleTranscriptTxtPath, getVisibleM4aFilePaths]);
 
-  const loadPathEntries = async (inputPath: string) => {
+  const loadPathEntries = useCallback(async (inputPath: string) => {
     const value = inputPath.trim();
     if (!value) {
       setStatus('Вставь путь к папке.');
@@ -255,7 +244,14 @@ export function TranscribeWidget(_props: WidgetRenderProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setSelectedFiles, syncRecentPaths]);
+
+  useEffect(() => {
+    const savedPath = localStorage.getItem(transcribeLastPathKey) ?? defaultBrowsePath;
+    setBrowsePath(savedPath);
+    setRecentPaths([...getRecentPaths()].reverse());
+    void loadPathEntries(savedPath);
+  }, [loadPathEntries]);
 
   const toggleSelectedAudioFile = (filePath: string) => {
     const currentIndex = selectedAudioFiles.findIndex((value) => value.toLowerCase() === filePath.toLowerCase());
