@@ -187,6 +187,26 @@
   overflow: hidden;
 }
 
+.widgetFrame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.widgetBodyEditMode {
+  animation: widgetWiggle 168ms ease-in-out infinite alternate;
+  transform-origin: 50% 8%;
+}
+
+.widgetCard:nth-child(odd) .widgetBodyEditMode {
+  animation-delay: -0.08s;
+}
+
+.widgetCard:nth-child(3n) .widgetBodyEditMode {
+  animation-delay: -0.16s;
+}
+
 .widgetHead {
   display: flex;
   justify-content: space-between;
@@ -254,6 +274,10 @@
 .dragging {
   opacity: 0.28;
   filter: saturate(0.75);
+}
+
+.dragging .widgetBodyEditMode {
+  animation: none;
 }
 
 .dropTarget {
@@ -462,5 +486,15 @@
   to {
     transform: scale(1);
     box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.68), 0 16px 40px rgba(59, 130, 246, 0.14);
+  }
+}
+
+@keyframes widgetWiggle {
+  from {
+    transform: rotate(-1.35deg);
+  }
+
+  to {
+    transform: rotate(1.35deg);
   }
 }
