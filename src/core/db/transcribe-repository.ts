@@ -30,6 +30,14 @@ export type TranscribeWidgetSettings = {
   updatedAt: string | null
 }
 
+let recentFolderTouchSequence = 0
+
+function nextRecentFolderTimestamp() {
+  const value = new Date(Date.now() + recentFolderTouchSequence).toISOString()
+  recentFolderTouchSequence += 1
+  return value
+}
+
 function ensureTranscribeJobsColumns() {
   const db = openDb('transcribe.db')
   const rows = db.prepare('PRAGMA table_info(transcribe_jobs)').all() as Array<{ name: string }>
@@ -96,7 +104,7 @@ function bootstrap() {
     CREATE INDEX IF NOT EXISTS idx_transcribe_jobs_created_at ON transcribe_jobs(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_transcribe_jobs_status ON transcribe_jobs(status);
     CREATE INDEX IF NOT EXISTS idx_transcribe_outbox_job_created ON transcribe_outbox(job_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_transcribe_recent_folders_rank ON transcribe_recent_folders(widget_id, use_count DESC, last_used_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_transcribe_recent_folders_rank ON transcribe_recent_folders(widget_id, last_used_at DESC);
   `)
 
   ensureTranscribeJobsColumns()
@@ -310,27 +318,43 @@ export function touchRecentFolder(widgetId: string, folderPath: string) {
   if (!normalizedPath) {
     return
   }
+  const transaction = db.transaction(() => {
+    const timestamp = nextRecentFolderTimestamp()
 
-  db.prepare(`
-    INSERT INTO transcribe_recent_folders (
-      widget_id,
-      folder_path,
-      use_count,
-      last_used_at
-    ) VALUES (?, ?, 1, ?)
-    ON CONFLICT(widget_id, folder_path) DO UPDATE SET
-      use_count = transcribe_recent_folders.use_count + 1,
-      last_used_at = excluded.last_used_at
-  `).run(widgetId, normalizedPath, nowIso())
+    db.prepare(`
+      INSERT INTO transcribe_recent_folders (
+        widget_id,
+        folder_path,
+        use_count,
+        last_used_at
+      ) VALUES (?, ?, 1, ?)
+      ON CONFLICT(widget_id, folder_path) DO UPDATE SET
+        last_used_at = excluded.last_used_at
+    `).run(widgetId, normalizedPath, timestamp)
+
+    db.prepare(`
+      DELETE FROM transcribe_recent_folders
+      WHERE widget_id = ?
+        AND folder_path NOT IN (
+        SELECT folder_path
+        FROM transcribe_recent_folders
+        WHERE widget_id = ?
+        ORDER BY last_used_at DESC
+        LIMIT 5
+      )
+    `).run(widgetId, widgetId)
+  })
+
+  transaction()
 }
 
-export function listRecentFolders(widgetId: string, limit = 8) {
+export function listRecentFolders(widgetId: string, limit = 5) {
   const db = getDb()
   return db.prepare(`
     SELECT folder_path as folderPath
     FROM transcribe_recent_folders
     WHERE widget_id = ?
-    ORDER BY use_count DESC, last_used_at DESC
+    ORDER BY last_used_at DESC
     LIMIT ?
   `).all(widgetId, limit) as Array<{ folderPath: string }>
 }

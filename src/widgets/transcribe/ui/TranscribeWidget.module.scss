@@ -72,7 +72,7 @@
   height: 2.3rem;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(180deg, #ecfeff, #ccfbf1);
+  background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +81,7 @@
 }
 
 .night .pathComboboxTrigger {
-  background: linear-gradient(180deg, #164e63, #0f766e);
+  background: transparent;
 }
 
 .pathComboboxTriangle {
@@ -89,14 +89,14 @@
   height: 0;
   border-top: 0.34rem solid transparent;
   border-bottom: 0.34rem solid transparent;
-  border-left: 0.5rem solid #0f172a;
+  border-left: 0.5rem solid #0f766e;
   transform: rotate(90deg);
   transform-origin: center;
   transition: transform 0.18s ease;
 }
 
 .night .pathComboboxTriangle {
-  border-left-color: #e2e8f0;
+  border-left-color: #5eead4;
 }
 
 .pathComboboxTriangleActive {

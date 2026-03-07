@@ -3,6 +3,7 @@ import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,
+  findReadableAudioPath,
   formatSelectedAudioFiles,
   isSupportedAudioEntry,
   parseSseEventChunk
@@ -43,10 +44,11 @@ export function useTranscribeController(props: WidgetRenderProps) {
   const typewriterTimerRef = useRef<number | null>(null)
   const resultTextRef = useRef('')
   const entriesRef = useRef<BrowserEntry[]>([])
+  const readableAudioPath = findReadableAudioPath(selectedAudioFiles, entries)
 
   const setStatus = useCallback((key: typeof status.key, vars?: Record<string, string | number>) => {
     store.getState().setStatus({ key, vars })
-  }, [status.key, store])
+  }, [store])
 
   useEffect(() => {
     resultTextRef.current = resultText
@@ -66,8 +68,8 @@ export function useTranscribeController(props: WidgetRenderProps) {
   }, [])
 
   useEffect(() => {
-    store.getState().setSelectedTranscriptPath(findMatchingTranscriptPath(selectedAudioFiles[0] ?? null, entries))
-  }, [entries, selectedAudioFiles, store])
+    store.getState().setSelectedTranscriptPath(findMatchingTranscriptPath(readableAudioPath, entries))
+  }, [entries, readableAudioPath, store])
 
   const runTypewriter = useCallback(() => {
     if (!typewriterQueueRef.current.length) {
@@ -363,7 +365,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
   }, [ensureTypewriterRunning, loadPathEntries, selectedAudioFiles, selectedFolderPath, setStatus, stopTypewriter, store])
 
   const onOpenTxt = useCallback(async () => {
-    const primarySelectedAudio = selectedAudioFiles[0] ?? null
+    const primarySelectedAudio = readableAudioPath
     if (!primarySelectedAudio || !selectedTranscriptPath) {
       setStatus('statusNoTxt')
       return
@@ -401,7 +403,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
     } finally {
       store.getState().setLoading(false)
     }
-  }, [openTranscriptResult, selectedAudioFiles, selectedFolderPath, selectedTranscriptPath, setStatus, store])
+  }, [openTranscriptResult, readableAudioPath, selectedFolderPath, selectedTranscriptPath, setStatus, store])
 
   const onCopy = useCallback(async () => {
     const currentText = store.getState().resultText
@@ -520,9 +522,9 @@ export function useTranscribeController(props: WidgetRenderProps) {
       selectedAudioText: formatSelectedAudioFiles(props.locale, selectedAudioFiles),
       pathPickerOpen,
       canTranscribe: !loading && Boolean(selectedFolderPath) && selectedAudioFiles.length > 0,
-      canOpenTxt: !loading && Boolean(selectedAudioFiles[0]) && Boolean(selectedTranscriptPath),
+      canOpenTxt: !loading && Boolean(readableAudioPath) && Boolean(selectedTranscriptPath),
       onBrowsePathChange: (value: string) => store.getState().setBrowsePath(value),
-      onPathSubmit: () => void loadPathEntries(browsePath, { allowEmpty: true }),
+      onPathSubmit: (nextPath?: string) => void loadPathEntries(nextPath ?? browsePath, { allowEmpty: true }),
       onPathPickerOpenChange: (open: boolean) => store.getState().setPathPickerOpen(open),
       onUp,
       onOpenSettings: () => store.getState().setSettingsOpen(true),
