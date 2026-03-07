@@ -8,6 +8,7 @@ export async function runMockTranscription(input: {
   selectedFiles: string[]
   resolvedFolderPath: string
   primaryBaseName: string
+  convertedAudioPath: string
   sendProgress: (percent: number, stage: string) => void
   send: (event: string, payload: SsePayload) => void
   jobId: string
@@ -16,6 +17,7 @@ export async function runMockTranscription(input: {
     'Mock transcription mode is active.',
     `Primary file: ${path.basename(input.selectedFiles[0])}.`,
     `Merged files count: ${input.selectedFiles.length}.`,
+    `Prepared opus file: ${path.basename(input.convertedAudioPath)}.`,
     'This text simulates Gemini token streaming for local development.',
     'Use it to verify progress, save flow, outbox entries, and the txt reader.'
   ].join('\n')

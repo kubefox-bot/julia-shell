@@ -22,7 +22,6 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
   const entries = useTranscribeStore((state) => state.entries)
   const selectedFolderPath = useTranscribeStore((state) => state.selectedFolderPath)
   const selectedAudioFiles = useTranscribeStore((state) => state.selectedAudioFiles)
-  const selectedTranscriptPath = useTranscribeStore((state) => state.selectedTranscriptPath)
   const status = useTranscribeStore((state) => state.status)
   const loading = useTranscribeStore((state) => state.loading)
   const resultVisible = useTranscribeStore((state) => state.resultVisible)
@@ -331,48 +330,6 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
     }
   }, [ensureTypewriterRunning, selectedAudioFiles, selectedFolderPath, setStatus, store])
 
-  const onOpenTxt = useCallback(async () => {
-    const primarySelectedAudio = selectedAudioFiles[0] ?? null
-    if (!selectedTranscriptPath || !primarySelectedAudio) {
-      setStatus('statusNoTxt')
-      return
-    }
-
-    store.setState({ loading: true })
-    setStatus('statusOpenTxt')
-
-    try {
-      const response = await fetch('/api/widget/com.yulia.transcribe/transcript-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceFile: primarySelectedAudio,
-          folderPath: selectedFolderPath,
-          txtPath: selectedTranscriptPath
-        })
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to open .txt file.')
-      }
-
-      openSetupView()
-      store.setState({
-        resultVisible: true,
-        resultText: typeof data.transcript === 'string' ? data.transcript : '',
-        lastTranscriptFileName: (data.txtPath as string).split(/[\\/]/).pop() ?? data.txtPath
-      })
-      setStatus('statusOpenedFile', { file: data.txtPath as string })
-    } catch (error) {
-      setStatus('statusError', {
-        message: error instanceof Error ? error.message : 'Txt read failed.'
-      })
-    } finally {
-      store.setState({ loading: false })
-    }
-  }, [openSetupView, selectedAudioFiles, selectedFolderPath, selectedTranscriptPath, setStatus, store])
-
   const onReadAloud = useCallback(() => {
     const currentText = store.getState().resultText
     if (!currentText.trim()) return
@@ -478,7 +435,6 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
           onUp={onUp}
           onOpenSettings={() => store.setState({ settingsOpen: true })}
           onTranscribe={onTranscribe}
-          onOpenTxt={onOpenTxt}
         />
       ) : (
         <ResultView

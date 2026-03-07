@@ -13,6 +13,9 @@ Widget identity:
 ## Responsibilities
 - browse filesystem folders,
 - select one or multiple `.m4a` or `.opus` files,
+- preserve user selection order for multi-file transcription,
+- merge selected files into one temporary source before Gemini upload,
+- compress merged audio to low-bitrate mono `.opus` for minimal payload size,
 - run transcription through Gemini,
 - expose a dev-only `mock` model for local flow testing,
 - stream transcript via SSE events,
@@ -62,12 +65,15 @@ Table role:
 ## Invariants
 - only `.m4a` and `.opus` input is accepted,
 - selected files must belong to one folder,
+- selected files are processed in the exact order chosen by the user,
+- multiple selected inputs are merged by `ffmpeg` into one temporary stream before upload,
+- upload source is always a temporary low-quality mono Opus file,
 - temporary merged/converted files must be deleted in all outcomes,
 - empty Gemini transcript is an error,
 - locale comes only from shell core `WidgetRenderProps.locale`,
 - host platform comes from shell core `WidgetRenderProps.platform`,
 - API key resolution order is:
-  - Infisical path `/widgets/<manifest.envName>` when available,
+  - Infisical path `/<manifest.envName>` when available,
   - widget DB fallback,
   - env fallback,
 - for this widget `manifest.envName` is `transcribe`.
@@ -82,13 +88,21 @@ Table role:
 ## UX Notes
 - result opens with typewriter rendering,
 - action buttons remain locked while typewriter queue is active,
-- `Прочитать` uses browser `speechSynthesis`,
+- result view speech playback uses browser `speechSynthesis`,
 - top folders are loaded from `transcribe.db`, not browser localStorage,
 - `Транскрибация` button is shown only when supported audio is selected,
-- `Прочитать` button is shown only when the matching `.txt` exists for the primary selected file,
+- there is no setup-stage `.txt` open button in the widget UI,
 - settings icon opens widget-local Gemini/API key settings.
 - on desktop, this widget must fit shell fixed card height `435px`;
 - if content exceeds card height, internal areas should scroll instead of growing outer card.
+
+## Processing Pipeline
+1. User opens a folder and selects one or more `.m4a` / `.opus` files.
+2. Server validates that all selected files belong to the same folder.
+3. `ffmpeg` merges selected files in selection order into one temporary source.
+4. The merged source is converted to a compact mono Opus file with low bitrate.
+5. Gemini receives that single Opus payload and returns streamed transcript tokens.
+6. Final `.txt` is saved next to the source files.
 
 ## Safe Change Checklist
 Before finishing changes:

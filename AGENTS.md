@@ -7,7 +7,7 @@ This is Yulia's Astro app in Shell-Core v1.2 architecture.
 
 Primary goals now:
 - extension-like shell with widget registry,
-- `.m4a` transcription via Gemini API,
+- `.m4a` / `.opus` transcription via Gemini API,
 - Batumi weather widget with cache,
 - stable local dashboard on Windows target host.
 
@@ -157,9 +157,10 @@ Required env vars:
 - `JULIAAPP_DATA_DIR` (optional)
 
 ## Transcribe Flow (Current)
-- user opens folder and selects one or multiple `.m4a` files,
-- `ffmpeg` may merge selected inputs,
-- audio is converted to temp mono Opus,
+- user opens folder and selects one or multiple `.m4a` / `.opus` files,
+- selected files are processed in exact selection order,
+- `ffmpeg` merges selected inputs into one temporary source,
+- merged audio is converted to compact temp mono Opus with low bitrate,
 - prompt is loaded from `Transcript.md`,
 - Gemini returns transcript over SSE events,
 - UI renders text with typewriter effect,
@@ -170,11 +171,11 @@ Required env vars:
 
 Result actions in UI:
 - `Назад`
-- `Прочитать`
+- `Озвучить`
 - `Скопировать`
 - `Сохранить`
 
-`Прочитать` uses browser `speechSynthesis`.
+`Озвучить` uses browser `speechSynthesis`.
 
 ## Weather Flow (Current)
 - source: Open-Meteo,

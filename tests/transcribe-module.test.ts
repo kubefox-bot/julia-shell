@@ -8,12 +8,36 @@ import { transcribeServerModule } from '../src/widgets/transcribe/server/module'
 
 let tempDir = ''
 let audioDir = ''
+let originalPath = ''
+let ffmpegStubDir = ''
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-transcribe-module-'))
   audioDir = path.join(tempDir, 'audio')
+  ffmpegStubDir = path.join(tempDir, 'bin')
   fs.mkdirSync(audioDir, { recursive: true })
-  fs.writeFileSync(path.join(audioDir, 'clip.opus'), 'fake-audio')
+  fs.mkdirSync(ffmpegStubDir, { recursive: true })
+  fs.writeFileSync(path.join(audioDir, 'clip-1.opus'), 'fake-audio-1')
+  fs.writeFileSync(path.join(audioDir, 'clip-2.opus'), 'fake-audio-2')
+  const ffmpegStubPath = path.join(ffmpegStubDir, 'ffmpeg')
+  fs.writeFileSync(
+    ffmpegStubPath,
+    `#!/bin/sh
+set -eu
+log_file="${tempDir.replace(/"/g, '\\"')}/ffmpeg.log"
+printf '%s\n' "$*" >> "$log_file"
+output=""
+for last in "$@"; do
+  output="$last"
+done
+printf 'Duration: 00:00:02.00\\ntime=00:00:02.00\\n' >&2
+printf 'stub-audio' > "$output"
+`,
+    'utf8'
+  )
+  fs.chmodSync(ffmpegStubPath, 0o755)
+  originalPath = process.env.PATH ?? ''
+  process.env.PATH = `${ffmpegStubDir}${path.delimiter}${originalPath}`
   process.env.JULIAAPP_DATA_DIR = tempDir
   process.env.GEMINI_MODEL = 'mock'
   delete process.env.GEMINI_API_KEY
@@ -22,19 +46,20 @@ beforeEach(() => {
 afterEach(() => {
   resetDbCache()
   fs.rmSync(tempDir, { recursive: true, force: true })
+  process.env.PATH = originalPath
   delete process.env.JULIAAPP_DATA_DIR
   delete process.env.GEMINI_MODEL
   delete process.env.GEMINI_API_KEY
 })
 
 describe('transcribe server module', () => {
-  it('handles mock transcription for .opus and resolves txt by basename', async () => {
+  it('handles mock transcription through ffmpeg pipeline for multiple .opus files', async () => {
     const transcribeResponse = await transcribeServerModule.handlers['POST transcribe-stream']({
       request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcribe-stream', {
         method: 'POST',
         body: JSON.stringify({
           folderPath: audioDir,
-          filePaths: [path.join(audioDir, 'clip.opus')]
+          filePaths: [path.join(audioDir, 'clip-1.opus'), path.join(audioDir, 'clip-2.opus')]
         }),
         headers: {
           'Content-Type': 'application/json'
@@ -49,16 +74,21 @@ describe('transcribe server module', () => {
 
     expect(transcribeResponse.status).toBe(200)
     const body = await transcribeResponse.text()
+    expect(body).not.toContain('event: error')
+    const ffmpegLog = fs.readFileSync(path.join(tempDir, 'ffmpeg.log'), 'utf8')
+    expect(ffmpegLog).toContain('-f concat -safe 0')
+    expect(ffmpegLog).toContain('-c:a libopus -b:a 24k')
     expect(body).toContain('event: token')
     expect(body).toContain('event: done')
-    expect(fs.existsSync(path.join(audioDir, 'clip.txt'))).toBe(true)
+    expect(body).toContain('Prepared opus file:')
+    expect(fs.existsSync(path.join(audioDir, 'clip-1.txt'))).toBe(true)
     expect(listRecentTranscribeJobs(1)[0]?.model).toBe('mock')
 
     const readResponse = await transcribeServerModule.handlers['POST transcript-read']({
       request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcript-read', {
         method: 'POST',
         body: JSON.stringify({
-          sourceFile: 'clip.opus',
+          sourceFile: 'clip-1.opus',
           folderPath: audioDir
         }),
         headers: {
@@ -74,7 +104,8 @@ describe('transcribe server module', () => {
 
     expect(readResponse.status).toBe(200)
     const readPayload = await readResponse.json() as { transcript: string; txtPath: string }
-    expect(readPayload.txtPath.endsWith('clip.txt')).toBe(true)
+    expect(readPayload.txtPath.endsWith('clip-1.txt')).toBe(true)
     expect(readPayload.transcript).toContain('Mock transcription mode is active.')
+    expect(readPayload.transcript).toContain('Prepared opus file:')
   })
 })

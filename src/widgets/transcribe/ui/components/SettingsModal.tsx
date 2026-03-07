@@ -67,9 +67,7 @@ export function SettingsModal({ locale, platform, onSave }: SettingsModalProps) 
             {getTranscribeText(locale, 'helperSecretPath')}: <span>{secretPath}</span>
           </p>
         ) : null}
-        <p className={styles.mutedInfo}>
-          {getTranscribeText(locale, apiKeyEditable ? 'helperSettingsHintEditable' : 'helperSettingsHintInfisical')}
-        </p>
+       
 
         <div className={styles.mainActions}>
           <Button type="button" onClick={onSave} disabled={settingsSaving}>

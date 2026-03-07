@@ -1,19 +1,26 @@
 import type { InfisicalConfig } from '../types'
 
 export function getInfisicalConfig(): InfisicalConfig | null {
-  const clientId = process.env.INFISICAL_CLIENT_ID?.trim()
-  const clientSecret = process.env.INFISICAL_CLIENT_SECRET?.trim()
-  const projectId = process.env.INFISICAL_PROJECT_ID?.trim()
-  const siteUrl = process.env.INFISICAL_SITE_URL?.trim()
+  const accessToken = process.env.JULIAAPP_INFISICAL_ACCESS_TOKEN?.trim()
+  const clientId = process.env.JULIAAPP_INFISICAL_CLIENT_ID?.trim()
+  const clientSecret = process.env.JULIAAPP_INFISICAL_CLIENT_SECRET?.trim()
+  const projectId = process.env.JULIAAPP_INFISICAL_PROJECT_ID?.trim()
+  const siteUrl = process.env.JULIAAPP_INFISICAL_SITE_URL?.trim()
+  const environment = process.env.JULIAAPP_INFISICAL_ENVIRONMENT?.trim() || 'main'
 
-  if (!clientId || !clientSecret || !projectId) {
+  const hasAccessToken = Boolean(accessToken)
+  const hasUniversalAuth = Boolean(clientId && clientSecret)
+
+  if (!projectId || (!hasAccessToken && !hasUniversalAuth)) {
     return null
   }
 
   return {
-    clientId,
-    clientSecret,
     projectId,
     siteUrl: siteUrl || undefined,
+    environment,
+    accessToken: accessToken || undefined,
+    clientId: clientId || undefined,
+    clientSecret: clientSecret || undefined,
   }
 }
