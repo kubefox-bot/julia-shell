@@ -17,8 +17,8 @@ pub async fn write_session(path: &Path, session: &StoredSession) -> std::io::Res
         tokio::fs::create_dir_all(parent).await?;
     }
 
-    let raw = serde_json::to_string(session)
-        .map_err(|error| std::io::Error::other(error.to_string()))?;
+    let raw =
+        serde_json::to_string(session).map_err(|error| std::io::Error::other(error.to_string()))?;
 
     tokio::fs::write(path, raw).await
 }
