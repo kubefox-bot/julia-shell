@@ -91,13 +91,28 @@ jobs:
         working-directory: dist
         run: sha256sum * > SHA256SUMS
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release (PR)
+        if: github.event_name == 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'pull_request' && format('agent-pr-{0}', github.event.pull_request.number) || 'agent-latest' }}
-          name: ${{ github.event_name == 'pull_request' && format('Agent PR #{0}', github.event.pull_request.number) || 'Agent Latest' }}
-          make_latest: ${{ github.event_name == 'push' }}
-          prerelease: ${{ github.event_name == 'pull_request' }}
+          tag_name: agent-pr-${{ github.event.pull_request.number }}
+          name: Agent PR ${{ github.event.pull_request.number }}
+          prerelease: true
+          files: |
+            dist/julia-agent-linux-x64.tar.gz
+            dist/julia-agent-windows-x64.zip
+            dist/julia-agent-macos-arm64.tar.gz
+            dist/SHA256SUMS
+          overwrite_files: true
+
+      - name: Publish GitHub Release (main)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: agent-latest
+          name: Agent Latest
+          make_latest: true
+          prerelease: false
           files: |
             dist/julia-agent-linux-x64.tar.gz
             dist/julia-agent-windows-x64.zip
