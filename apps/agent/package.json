@@ -1,0 +1,10 @@
+{
+  "name": "@julia/agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "check": "cargo check",
+    "build": "cargo build",
+    "test": "cargo test"
+  }
+}

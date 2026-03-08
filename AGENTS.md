@@ -37,6 +37,7 @@ Exclude from sync:
 Safe approach:
 - sync source/config only,
 - run install/build on Windows.
+- monorepo sync target remains `C:\Users\julia\OneDrive\ssr`; keep `apps/*` and `packages/*` in sync together.
 
 ## Package Manager
 - package manager: `Yarn 4`
@@ -50,6 +51,52 @@ Useful commands:
 - `yarn build`
 - `yarn start`
 
+## Monorepo Usage
+- run commands from repository root (`JuliaApp`) unless explicitly required otherwise.
+- workspace layout:
+  - `apps/server` - Astro SSR shell + APIs + agent server runtime.
+  - `apps/agent` - Rust agent runtime (Windows/Linux/macOS).
+  - `packages/protocol` - shared protocol contract (`agent_control.proto`).
+- root scripts target `@julia/server` lifecycle by default:
+  - `yarn dev`, `yarn test`, `yarn build`, `yarn start`.
+- protocol/agent checks:
+  - `yarn check:protocol`
+  - `yarn check:agent`
+  - `yarn build:agent`
+- explicit workspace commands when needed:
+  - `yarn workspace @julia/server typecheck`
+  - `yarn workspace @julia/server test`
+  - `yarn workspace @julia/server build`
+- if wire contract changes, update all three together:
+  - `packages/protocol` + `apps/server` + `apps/agent`.
+
+## Agent Stage-1 Notes (Implemented)
+- transport between server and agent is gRPC bidi (`StreamConnect`).
+- agent implementation is Rust and supports Windows/Linux/macOS binaries.
+- runtime source of truth for online/offline is in-memory live connection, not DB fallback.
+- heartbeat timeout:
+  - env `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (default `60000` ms).
+- server status endpoints:
+  - `GET /api/agent/status`
+  - `POST /api/agent/status/retry`
+- status enum:
+  - `connected`
+  - `connected_dev`
+  - `unauthorized`
+  - `disconnected`
+- dev status mode is controlled only by:
+  - `JULIAAPP_AGENT_ENABLE_DEV=1`
+- transcribe production gate:
+  - without online agent -> transcribe is not ready.
+  - in dev bypass (`JULIAAPP_AGENT_ENABLE_DEV=1`) server path mode is allowed.
+- heartbeat entries are not persisted in `agent_events` (reduced DB noise).
+- server sends initial `health_ping` after first valid connect to unblock client stream startup.
+- agent sends hostname in heartbeat; status API returns hostname for UI.
+- shell header status badge is reactive:
+  - polling + manual refresh/retry,
+  - on status transition shell modules are reloaded,
+  - hostname is shown in badge text.
+
 ## Runtime Model
 - Astro server mode with `@astrojs/node` standalone adapter.
 - UI model: `Astro host + React shell`.
@@ -60,6 +107,13 @@ Useful commands:
   - the boot silhouette overlay is rendered outside the React island and removed only after client boot completes,
   - after hydration the silhouette state is kept for about 1 second, then live widgets are shown.
 - Production entrypoint: `node ./dist/server/entry.mjs`.
+
+Monorepo path note:
+- legacy references like `src/...` in this document map to `apps/server/src/...`.
+
+Agent startup note:
+- server should be started directly (`yarn dev` / `yarn start`) without `infisical run`.
+- secrets are loaded via server SDK chain on startup and cached in memory.
 
 ## Current Architecture (v1.2)
 - Shell core with manifest-driven widget registry and validation.
@@ -173,6 +227,12 @@ Required env vars:
 - `WIDGET_CHANNEL_TOKEN`
 - `JULIAAPP_DATA_DIR` (optional)
 
+Agent/auth related env:
+- `ADMIN_TOKEN` (required for admin enroll-token API).
+- `AGENT_ENROLL_TOKEN` (server-side fallback for enroll validation flow, if used by deployment profile).
+- `JULIAAPP_AGENT_ENABLE_DEV` (`1` enables dev bypass semantics).
+- `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (optional).
+
 ## Transcribe Flow (Current)
 - user opens folder and selects one or multiple `.m4a` / `.opus` files,
 - selected files are processed in exact selection order,
@@ -220,6 +280,15 @@ Container scaffold (not production-complete):
 - `Containerfile`
 - `podman-compose.yml`
 
+CI container publish:
+- GitHub workflow: `.github/workflows/container-publish.yml`.
+- publishes `apps/server` container image to GHCR:
+  - `ghcr.io/<owner>/juliaapp-server:latest`
+  - `ghcr.io/<owner>/juliaapp-server:sha-<commit>`
+- workflow validates server before publish:
+  - `yarn workspace @julia/server typecheck`
+  - `yarn workspace @julia/server build`
+
 ## Removed Legacy Scope
 The following legacy areas were removed from active architecture:
 - chat card and `/api/chat*`
@@ -230,9 +299,9 @@ The following legacy areas were removed from active architecture:
 
 ## Widget Local Context Files
 Widget-specific local instructions live here:
-- `src/widgets/transcribe/AGENTS.md`
-- `src/widgets/transcribe/ui/AGENTS.md`
-- `src/widgets/weather/AGENTS.md`
+- `apps/server/src/widgets/transcribe/AGENTS.md`
+- `apps/server/src/widgets/transcribe/ui/AGENTS.md`
+- `apps/server/src/widgets/weather/AGENTS.md`
 
 ## Operational Notes
 - after frontend/API changes, rebuild on Windows before production check,

@@ -1,80 +1,121 @@
-# JuliaApp (Shell v1.2)
+# JuliaApp Monorepo
 
-Локальный Astro-проект для Юли. Основной target-хост: Windows `192.168.100.102`.
+Stage 1 monorepo layout:
 
-## Что сейчас внутри
-- `Astro host + React shell UI`
-- только 2 виджета:
-  - `com.yulia.transcribe`
-  - `com.yulia.weather`
-- extension-like widget registry (`manifest + handlers`)
-- единый namespace API: `/api/widget/:id/*`
-- shell settings (layout columns + modules table)
-- drag/edit/save/cancel для widget grid
-- channels:
-  - internal bus
-  - webhook (`/api/channel/webhook/:id/:event`)
-  - ws endpoint (`/api/channel/ws`, SSE fallback transport)
+- `apps/server` - Astro SSR shell + widget APIs + agent control core.
+- `apps/agent` - Rust agent runtime (Linux/macOS/Windows).
+- `packages/protocol` - gRPC/protobuf contracts.
 
-## SQLite
-Используются отдельные БД в `data/`:
-- `core.db` — shell layout/settings/module state
-- `weather.db` — cache погоды
-- `transcribe.db` — jobs/outbox транскрибации
+## Monorepo usage
 
-## API
-- `GET /api/shell/settings`
-- `POST /api/shell/settings/layout`
-- `GET /api/shell/modules`
-- `POST /api/shell/modules/:id/enable`
-- `POST /api/shell/modules/:id/disable`
-- `GET|POST /api/widget/:id/*`
-- `POST /api/channel/webhook/:id/:event`
-- `GET|POST /api/channel/ws` (SSE fallback transport для channel stream)
+All commands are run from repository root: `/Users/evgeniyscherbina/WORKING/PET/JuliaApp`.
 
-## Environment
-Нужны переменные:
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL` (опционально, default: `gemini-2.5-flash`)
-- `WIDGET_CHANNEL_TOKEN` (для webhook/ws)
-- для Infisical service account:
-  - `INFISICAL_CLIENT_ID`
-  - `INFISICAL_CLIENT_SECRET`
-  - `INFISICAL_PROJECT_ID`
-  - `INFISICAL_SITE_URL` (опционально, default SaaS URL)
-- пример: `.env.example`
+Typical flow:
+1. Install deps once: `yarn install`
+2. Develop server UI/API: `yarn dev`
+3. Check contracts: `yarn check:protocol`
+4. Check agent build: `yarn check:agent`
+5. Run server tests: `yarn test`
+6. Build server: `yarn build`
 
-Для быстрой dev-настройки Infisical используй локальный файл `.env.infisical.local`.
-Он читается core secret layer автоматически на старте и не коммитится в git.
-Шаблон: `.env.infisical.example`
+## Workspace commands
 
-## Команды
 ```bash
 yarn install
-yarn dev
-yarn test
-yarn build
-yarn start
+
+yarn dev            # @julia/server dev
+yarn build          # @julia/server build
+yarn test           # @julia/server tests
+
+yarn check:protocol # proto syntax/check
+
+yarn check:agent    # cargo check (apps/agent)
+yarn build:agent    # cargo build (apps/agent)
+
+# explicit workspace calls (optional)
+yarn workspace @julia/server dev
+yarn workspace @julia/server typecheck
+yarn workspace @julia/server test
+yarn workspace @julia/server build
 ```
 
-`yarn build` теперь делает production-минификацию (Terser) и дополнительно генерирует precompressed ассеты (`.gz` и `.br`) для `dist/client`.
-Если нужен только чистый build без этапа сжатия, используй `yarn build:raw`.
+## Repo responsibilities
 
-## Podman scaffold
-Добавлены базовые файлы:
-- `Containerfile`
-- `podman-compose.yml`
+- `apps/server`: Astro shell, HTTP APIs, gRPC ingress, SQLite DB files under configured data dir.
+- `apps/agent`: Rust cross-platform agent (Windows/Linux/macOS).
+- `packages/protocol`: `agent_control.proto` and protocol checks/codegen inputs.
 
-Это scaffold-уровень, не production-ready runtime-контур.
+## Data path (Podman)
 
-## Agent Architecture Plan
-- migration plan for dedicated server + Rust agent:
-  - `docs/agent-architecture-plan.md`
+Server runtime data is expected under host path:
 
-## Windows target
-- Host: `192.168.100.102`
-- User: `sshuser`
-- Project path: `C:\Users\julia\OneDrive\ssr`
-- URL: `http://julia.love:4321`
+- `/mnt/ostree/podman/julia-shell`
 
-Mac-репозиторий считается рабочим зеркалом, финальная проверка — на Windows.
+See `apps/server/podman-compose.yml` for bind mounts and env vars.
+
+## Agent Status and Runtime Notes
+
+- Agent status API:
+  - `GET /api/agent/status`
+  - `POST /api/agent/status/retry`
+- Status enum:
+  - `connected`
+  - `connected_dev`
+  - `unauthorized`
+  - `disconnected`
+- `connected_dev` is controlled by server env:
+  - `JULIAAPP_AGENT_ENABLE_DEV=1`
+- Shell status badge is reactive and reloads shell modules on every status transition.
+- Transcribe ready/not-ready state is evaluated dynamically from widget `init()` on each modules read (not frozen in old registry cache).
+
+## Agent Healthcheck and Session Model
+
+- Live online/offline is memory-based (active gRPC connection), not DB fallback.
+- Heartbeat timeout is configurable:
+  - `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (default `60000` ms).
+- On timeout server marks connection as disconnected and closes stale stream.
+- Heartbeat events are not persisted into `agent_events` anymore.
+- DB is used for audit/state (`agent_sessions`, jobs/events) but not as source of truth for current online status.
+
+## Hostname in UI
+
+- Agent sends hostname in heartbeat (`Heartbeat.hostname` in proto).
+- Server includes hostname in `/api/agent/status`.
+- Header `AgentStatusBadge` shows hostname text after action button.
+- If no hostname is available from env (`HOSTNAME`/`COMPUTERNAME`), agent uses `unknown-host`.
+
+## Local Run (Server + Agent)
+
+From repository root:
+
+```bash
+# 1) server
+yarn dev
+
+# 2) agent (new terminal)
+cd apps/agent
+cargo run
+```
+
+Optional agent env vars:
+- `JULIA_AGENT_SERVER_URL` (default `http://127.0.0.1:4321`)
+- `JULIA_AGENT_GRPC_ENDPOINT` (default `http://127.0.0.1:50051`)
+- `JULIA_AGENT_ENROLLMENT_TOKEN` (only for first enroll or forced re-enroll)
+- `JULIA_AGENT_DISPLAY_NAME` (overrides hostname sent to server)
+- `JULIA_AGENT_REFRESH_TOKEN_PATH`
+
+## CI Container Publish
+
+GitHub Actions workflow:
+- `.github/workflows/container-publish.yml`
+
+Behavior:
+- triggers on `main` push and manual run (`workflow_dispatch`);
+- runs server validation (`typecheck` + `build`);
+- builds and pushes image to GHCR:
+  - `ghcr.io/<owner>/juliaapp-server:latest`
+  - `ghcr.io/<owner>/juliaapp-server:sha-<commit>`
+
+Container definition:
+- `apps/server/Containerfile`
+- build context root with `.dockerignore`.

@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  yulia-shell:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: yulia-shell:dev
+    container_name: yulia-shell
+    ports:
+      - "4321:4321"
+      - "50051:50051"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4321
+      - JULIAAPP_DATA_DIR=/app/data
+      - JULIA_AGENT_GRPC_PORT=50051
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - WIDGET_CHANNEL_TOKEN=${WIDGET_CHANNEL_TOKEN:-change-me}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-change-me}
+      - AGENT_ENROLL_TOKEN=${AGENT_ENROLL_TOKEN:-change-me}
+      - AGENT_JWT_SECRET=${AGENT_JWT_SECRET:-change-me}
+    volumes:
+      - /mnt/ostree/podman/julia-shell/data:/app/data
+      - /mnt/ostree/podman/julia-shell/tmp:/app/tools/tmp

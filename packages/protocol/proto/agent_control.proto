@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package julia.agent.v1;
+
+service AgentControlService {
+  rpc StreamConnect(stream AgentEnvelope) returns (stream ServerEnvelope);
+}
+
+message AgentEnvelope {
+  string protocol_version = 1;
+  string agent_id = 2;
+  string session_id = 3;
+  string job_id = 4;
+  int64 timestamp_unix_ms = 5;
+  string access_jwt = 6;
+
+  oneof payload {
+    Heartbeat heartbeat = 10;
+    TranscribeProgress progress = 11;
+    TranscribeToken token = 12;
+    TranscribeDone done = 13;
+    TranscribeError error = 14;
+  }
+}
+
+message ServerEnvelope {
+  string protocol_version = 1;
+  string session_id = 2;
+  string job_id = 3;
+  int64 timestamp_unix_ms = 4;
+
+  oneof payload {
+    HealthPing health_ping = 10;
+    TranscribeStart transcribe_start = 11;
+    TranscribeCancel transcribe_cancel = 12;
+    ErrorEnvelope error = 13;
+  }
+}
+
+message Heartbeat {
+  string agent_version = 1;
+  string status = 2;
+  string hostname = 3;
+}
+
+message HealthPing {
+  string nonce = 1;
+}
+
+message TranscribeStart {
+  string folder_path = 1;
+  repeated string file_paths = 2;
+}
+
+message TranscribeCancel {
+  string reason = 1;
+}
+
+message TranscribeProgress {
+  int32 percent = 1;
+  string stage = 2;
+}
+
+message TranscribeToken {
+  string text = 1;
+}
+
+message TranscribeDone {
+  string source_file = 1;
+  string save_path = 2;
+  string transcript = 3;
+}
+
+message TranscribeError {
+  string code = 1;
+  string message = 2;
+}
+
+message ErrorEnvelope {
+  string code = 1;
+  string message = 2;
+  bool retryable = 3;
+}

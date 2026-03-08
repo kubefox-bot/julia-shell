@@ -1,0 +1,13 @@
+{
+  "name": "@julia/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node ./scripts/check-proto.mjs",
+    "build": "yarn check"
+  },
+  "dependencies": {
+    "protobufjs": "^7.5.4"
+  }
+}
