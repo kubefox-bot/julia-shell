@@ -1,13 +1,6 @@
 name: Server Release
 
 on:
-  pull_request:
-    paths:
-      - 'apps/server/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - '.yarnrc.yml'
-      - '.github/workflows/server-release.yml'
   push:
     branches:
       - main

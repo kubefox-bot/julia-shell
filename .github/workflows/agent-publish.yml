@@ -1,11 +1,6 @@
 name: Agent Publish
 
 on:
-  pull_request:
-    paths:
-      - 'apps/agent/**'
-      - 'packages/protocol/**'
-      - '.github/workflows/agent-publish.yml'
   push:
     branches:
       - main
