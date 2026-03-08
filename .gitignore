@@ -33,3 +33,7 @@ data/
 .playwright-cli
 .stylelintcache
 .biome-cache
+
+# local ffmpeg artifacts (downloaded archives and windows binaries)
+tools/tmp/
+tools/ffmpeg/ffmpeg-8.0.1-essentials_build/bin/
