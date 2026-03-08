@@ -1,0 +1,58 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "tests/**/*.ts",
+      "scripts/**/*.mjs",
+      "astro.config.mjs",
+      "vitest.config.ts",
+      "package.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/core/secrets/**/*.ts"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noExcessiveClassesPerFile": {
+              "level": "error",
+              "options": {
+                "maxClasses": 1
+              }
+            },
+            "noExcessiveLinesPerFile": {
+              "level": "warn",
+              "options": {
+                "maxLines": 80
+              }
+            }
+          },
+          "performance": {
+            "noBarrelFile": "error"
+          }
+        }
+      }
+    }
+  ],
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5"
+    }
+  }
+}
