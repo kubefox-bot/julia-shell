@@ -18,5 +18,5 @@ uuid = { version = "1.11", features = ["v4"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 
 [build-dependencies]
-tonic-build = "0.12"
+tonic-build = "0.14"
 protoc-bin-vendored = "3"
