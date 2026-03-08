@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - codex/ci-clean-container
   workflow_dispatch:
 
 jobs:
@@ -61,7 +62,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/juliaapp-server
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=branch
             type=sha,format=long
 
       - name: Build and push image
