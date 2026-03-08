@@ -94,7 +94,10 @@ yarn dev
 
 # 2) agent (new terminal)
 cd apps/agent
-cargo run
+cp .env.example .env
+./start-agent.sh
+# or on Windows PowerShell:
+# ./start-agent.ps1
 ```
 
 Optional agent env vars:
@@ -103,6 +106,30 @@ Optional agent env vars:
 - `JULIA_AGENT_ENROLLMENT_TOKEN` (only for first enroll or forced re-enroll)
 - `JULIA_AGENT_DISPLAY_NAME` (overrides hostname sent to server)
 - `JULIA_AGENT_REFRESH_TOKEN_PATH`
+
+Agent start scripts:
+- `apps/agent/start-agent.sh` reads `apps/agent/.env`, exports vars, and starts:
+  - `./julia-agent`, then
+  - `./target/release/julia-agent`, then
+  - `./target/debug/julia-agent`,
+  - fallback to `cargo run` if binary is missing.
+- `apps/agent/start-agent.ps1` does the same flow for Windows (`.exe` paths).
+
+## Agent Release Artifacts
+
+GitHub Actions workflow:
+- `.github/workflows/agent-release.yml`
+
+Published assets:
+- `julia-agent-windows-x64.zip` (portable)
+- `julia-agent-windows-x64-installer.exe` (installer)
+- `julia-agent-macos-arm64.tar.gz` (portable)
+- `julia-agent-macos-arm64.zip` (portable)
+- `julia-agent-macos-arm64.pkg` (installer)
+- `julia-agent-linux-x64.tar.gz` (portable)
+- `julia-agent-linux-x64.zip` (portable)
+- `julia-agent-linux-x64.deb`
+- `julia-agent-linux-x64.rpm`
 
 ## CI Container Publish
 

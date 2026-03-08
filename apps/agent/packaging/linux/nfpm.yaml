@@ -1,0 +1,22 @@
+name: julia-agent
+arch: amd64
+platform: linux
+version: ${AGENT_VERSION}
+section: utils
+priority: optional
+maintainer: Yulia <noreply@julia.local>
+description: Julia shell desktop agent
+vendor: Yulia
+homepage: https://github.com/kubefox-bot/julia-shell
+license: MIT
+contents:
+  - src: ./apps/agent/dist-linux/julia-agent
+    dst: /usr/local/bin/julia-agent
+    file_info:
+      mode: 0755
+  - src: ./apps/agent/dist-linux/start-agent.sh
+    dst: /usr/local/bin/start-agent.sh
+    file_info:
+      mode: 0755
+  - src: ./apps/agent/dist-linux/.env.example
+    dst: /etc/julia-agent/.env.example
