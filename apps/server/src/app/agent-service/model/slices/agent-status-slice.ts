@@ -4,8 +4,11 @@ import { dispatchAgentStatusChanged } from '../../lib/agent-status-bus';
 import type { AgentStatusResponse, AgentStatusStoreActions, AgentStatusStoreState, AgentUiStatus } from '../types';
 import type { ShellStore } from '../../../shell/model/types';
 
-function isConnectedStatus(status: AgentUiStatus | null | undefined): boolean {
-  return status === 'connected' || status === 'connected_dev';
+function shouldReloadShellOnStatusTransition(
+  previous: AgentUiStatus | null | undefined,
+  next: AgentUiStatus | null | undefined
+) {
+  return previous !== next;
 }
 
 function hasAgentStatusChanged(previous: AgentStatusResponse | null, next: AgentStatusResponse | null): boolean {
@@ -39,7 +42,7 @@ export const createAgentStatusSlice: StateCreator<ShellStore, [], [], AgentStatu
         });
       }
 
-      if (isConnectedStatus(nextStatus.status) && !isConnectedStatus(previousStatus)) {
+      if (shouldReloadShellOnStatusTransition(previousStatus, nextStatus.status)) {
         await get().loadShell();
       }
     } catch {
@@ -63,7 +66,7 @@ export const createAgentStatusSlice: StateCreator<ShellStore, [], [], AgentStatu
         });
       }
 
-      if (isConnectedStatus(nextStatus.status) && !isConnectedStatus(previousStatus)) {
+      if (shouldReloadShellOnStatusTransition(previousStatus, nextStatus.status)) {
         await get().loadShell();
       }
     } catch {
