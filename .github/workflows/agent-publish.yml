@@ -25,6 +25,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache day key
+        id: cache-day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Resolve agent version
         id: version
         run: |
@@ -36,11 +40,16 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnu
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+      - name: Rust dependencies cache (1 day)
+        uses: actions/cache@v4
         with:
-          workspaces: |
-            apps/agent
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/agent/target
+          key: rust-agent-${{ runner.os }}-x86_64-unknown-linux-gnu-${{ steps.cache-day.outputs.day }}-${{ hashFiles('apps/agent/Cargo.lock') }}
+          restore-keys: |
+            rust-agent-${{ runner.os }}-x86_64-unknown-linux-gnu-
 
       - name: Build agent
         working-directory: apps/agent
@@ -91,6 +100,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache day key
+        id: cache-day
+        shell: bash
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Resolve agent version
         id: version
         shell: pwsh
@@ -103,11 +117,16 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+      - name: Rust dependencies cache (1 day)
+        uses: actions/cache@v4
         with:
-          workspaces: |
-            apps/agent
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/agent/target
+          key: rust-agent-${{ runner.os }}-x86_64-pc-windows-msvc-${{ steps.cache-day.outputs.day }}-${{ hashFiles('apps/agent/Cargo.lock') }}
+          restore-keys: |
+            rust-agent-${{ runner.os }}-x86_64-pc-windows-msvc-
 
       - name: Build agent
         working-directory: apps/agent
@@ -147,6 +166,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache day key
+        id: cache-day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Resolve agent version
         id: version
         run: |
@@ -158,11 +181,16 @@ jobs:
         with:
           targets: aarch64-apple-darwin
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+      - name: Rust dependencies cache (1 day)
+        uses: actions/cache@v4
         with:
-          workspaces: |
-            apps/agent
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/agent/target
+          key: rust-agent-${{ runner.os }}-aarch64-apple-darwin-${{ steps.cache-day.outputs.day }}-${{ hashFiles('apps/agent/Cargo.lock') }}
+          restore-keys: |
+            rust-agent-${{ runner.os }}-aarch64-apple-darwin-
 
       - name: Build agent
         working-directory: apps/agent

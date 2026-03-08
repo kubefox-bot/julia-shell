@@ -30,9 +30,9 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "dist\julia-agent.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\start-agent.ps1"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\.env.example"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dist\julia-agent.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dist\start-agent.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\dist\.env.example"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\Julia Agent"; Filename: "{app}\{#MyAppExeName}"
