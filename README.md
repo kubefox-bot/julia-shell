@@ -1,80 +1,30 @@
-# JuliaApp (Shell v1.2)
+# JuliaApp Monorepo
 
-Локальный Astro-проект для Юли. Основной target-хост: Windows `192.168.100.102`.
+Stage 1 monorepo layout:
 
-## Что сейчас внутри
-- `Astro host + React shell UI`
-- только 2 виджета:
-  - `com.yulia.transcribe`
-  - `com.yulia.weather`
-- extension-like widget registry (`manifest + handlers`)
-- единый namespace API: `/api/widget/:id/*`
-- shell settings (layout columns + modules table)
-- drag/edit/save/cancel для widget grid
-- channels:
-  - internal bus
-  - webhook (`/api/channel/webhook/:id/:event`)
-  - ws endpoint (`/api/channel/ws`, SSE fallback transport)
+- `apps/server` - Astro SSR shell + widget APIs + agent control core.
+- `apps/agent` - Rust agent runtime (Linux/macOS/Windows).
+- `packages/protocol` - gRPC/protobuf contracts.
 
-## SQLite
-Используются отдельные БД в `data/`:
-- `core.db` — shell layout/settings/module state
-- `weather.db` — cache погоды
-- `transcribe.db` — jobs/outbox транскрибации
+## Workspace commands
 
-## API
-- `GET /api/shell/settings`
-- `POST /api/shell/settings/layout`
-- `GET /api/shell/modules`
-- `POST /api/shell/modules/:id/enable`
-- `POST /api/shell/modules/:id/disable`
-- `GET|POST /api/widget/:id/*`
-- `POST /api/channel/webhook/:id/:event`
-- `GET|POST /api/channel/ws` (SSE fallback transport для channel stream)
-
-## Environment
-Нужны переменные:
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL` (опционально, default: `gemini-2.5-flash`)
-- `WIDGET_CHANNEL_TOKEN` (для webhook/ws)
-- для Infisical service account:
-  - `INFISICAL_CLIENT_ID`
-  - `INFISICAL_CLIENT_SECRET`
-  - `INFISICAL_PROJECT_ID`
-  - `INFISICAL_SITE_URL` (опционально, default SaaS URL)
-- пример: `.env.example`
-
-Для быстрой dev-настройки Infisical используй локальный файл `.env.infisical.local`.
-Он читается core secret layer автоматически на старте и не коммитится в git.
-Шаблон: `.env.infisical.example`
-
-## Команды
 ```bash
 yarn install
-yarn dev
-yarn test
-yarn build
-yarn start
+
+yarn dev            # server dev
+yarn build          # server build
+yarn test           # server tests
+
+yarn check:protocol # proto syntax/check
+
+yarn check:agent    # cargo check (agent)
+yarn build:agent    # cargo build (agent)
 ```
 
-`yarn build` теперь делает production-минификацию (Terser) и дополнительно генерирует precompressed ассеты (`.gz` и `.br`) для `dist/client`.
-Если нужен только чистый build без этапа сжатия, используй `yarn build:raw`.
+## Data path (Podman)
 
-## Podman scaffold
-Добавлены базовые файлы:
-- `Containerfile`
-- `podman-compose.yml`
+Server runtime data is expected under host path:
 
-Это scaffold-уровень, не production-ready runtime-контур.
+- `/mnt/ostree/podman/julia-shell`
 
-## Agent Architecture Plan
-- migration plan for dedicated server + Rust agent:
-  - `docs/agent-architecture-plan.md`
-
-## Windows target
-- Host: `192.168.100.102`
-- User: `sshuser`
-- Project path: `C:\Users\julia\OneDrive\ssr`
-- URL: `http://julia.love:4321`
-
-Mac-репозиторий считается рабочим зеркалом, финальная проверка — на Windows.
+See `apps/server/podman-compose.yml` for bind mounts and env vars.

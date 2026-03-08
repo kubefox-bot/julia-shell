@@ -1,4 +1,4 @@
-# Agent Architecture Plan (Server + Windows Agent)
+# Agent Architecture Plan (Server + Cross-Platform Rust Agent)
 
 Last updated: 2026-03-08  
 Status: Draft v2 (agent-first concept)
@@ -6,7 +6,7 @@ Status: Draft v2 (agent-first concept)
 ## 1) Summary
 
 Goal:
-- move local Windows operations (FS, ffmpeg, Gemini calls) to a dedicated Windows agent;
+- move local host operations (FS, ffmpeg, Gemini calls) to a dedicated Rust agent (Linux/macOS/Windows);
 - keep widget-facing API stable (`/api/widget/:id/*` + existing SSE behavior);
 - make agent availability mandatory for operational widget flows.
 
@@ -25,7 +25,7 @@ Core decisions for current implementation:
   - Astro UI + widget APIs;
   - Agent Control Core (sessions, jobs, bridge);
   - persistence in `core.db` + `agent.db`.
-- `apps/agent-windows` (Rust service):
+- `apps/agent` (Rust service):
   - connector runtime;
   - v1 connectors: `health`, `transcribe`;
   - local execution of `ffmpeg` and Gemini requests.
@@ -62,7 +62,7 @@ Use Yarn workspaces while preserving Yarn 4 setup.
 
 Proposed layout:
 - `apps/server` (current Astro project moved/adapted);
-- `apps/agent-windows` (Rust project);
+- `apps/agent` (Rust project);
 - `packages/protocol` (protobuf schemas + generated artifacts).
 
 Minimum workspace requirements:
@@ -231,7 +231,7 @@ Environment behavior:
 
 ### 7.1 Agent runtime
 
-- Windows service process;
+- cross-platform service process (Windows/Linux/macOS);
 - reconnect loop and heartbeat;
 - structured logs;
 - command dispatcher for one active transcribe job.
@@ -249,7 +249,7 @@ Environment behavior:
 
 ### 7.3 Safety constraints
 
-- hard path allowlist (e.g. `C:\Users\julia\OneDrive`);
+- hard path allowlist (platform-specific roots);
 - no arbitrary command execution;
 - cancellation must terminate child processes and cleanup temp artifacts.
 
@@ -258,10 +258,10 @@ Environment behavior:
 ### Phase A (current, implementation target)
 
 Single end-to-end delivery phase:
-- migrate to monorepo: `apps/server` + `apps/agent-windows` + `packages/protocol`;
+- migrate to monorepo: `apps/server` + `apps/agent` + `packages/protocol`;
 - implement server Agent Control Core with sessions/jobs/bridge;
 - implement separate `agent.db` and baseline JWT auth;
-- implement Windows agent runtime (`health` + `transcribe`);
+- implement cross-platform agent runtime (`health` + `transcribe`);
 - route transcribe widget flow through agent;
 - enforce environment-based policy:
   - production: `agent required`;

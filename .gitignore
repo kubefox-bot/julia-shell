@@ -33,6 +33,7 @@ data/
 .playwright-cli
 .stylelintcache
 .biome-cache
+apps/agent/target/
 
 # local ffmpeg artifacts (downloaded archives and windows binaries)
 tools/tmp/
