@@ -131,10 +131,10 @@ Published assets:
 - `julia-agent-linux-x64.deb`
 - `julia-agent-linux-x64.rpm`
 
-## CI Container Publish
+## CI Server Release
 
 GitHub Actions workflow:
-- `.github/workflows/container-publish.yml`
+- `.github/workflows/server-release.yml`
 
 Behavior:
 - triggers on `main` push and manual run (`workflow_dispatch`);

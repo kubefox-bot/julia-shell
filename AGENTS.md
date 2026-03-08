@@ -281,7 +281,7 @@ Container scaffold (not production-complete):
 - `podman-compose.yml`
 
 CI container publish:
-- GitHub workflow: `.github/workflows/container-publish.yml`.
+- GitHub workflow: `.github/workflows/server-release.yml`.
 - publishes `apps/server` container image to GHCR:
   - `ghcr.io/<owner>/juliaapp-server:latest`
   - `ghcr.io/<owner>/juliaapp-server:sha-<commit>`
