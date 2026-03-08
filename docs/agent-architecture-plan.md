@@ -65,6 +65,7 @@ One central server module handles:
 - **Signal Ingest**: receives agent events (`progress`, `done`, `error`, `log`, `health`);
 - **Session Manager**: `connected`, `heartbeat`, `expired`, `revoked`;
 - **Auth Manager**: enrollment, JWT validation, token rotation, replay defense;
+- **Idempotency Manager**: enforces `command_id` dedup and at-most-once command processing;
 - **Widget Event Bridge**: normalizes events and publishes them into internal bus for widget pipelines.
 - **Update State Manager**: tracks agent version drift and update-required signals.
 
@@ -95,11 +96,14 @@ Use two SQLite databases:
   - `job_id` (PK), `widget_id`, `agent_id`, `session_id`, `state`, `command_id`, `created_at`, `updated_at`.
 - `agent_update_state`
   - `agent_id` (PK), `current_version`, `target_version`, `update_required`, `reason`, `notified_at`, `acknowledged_at`, `updated_at`.
+- `agent_command_dedup`
+  - `command_id` (PK), `agent_id`, `job_id`, `first_seen_at`, `status`, `result_hash`.
 
 Notes:
 - timestamps in UTC ISO format;
 - `payload_json` stored as text JSON;
 - scheduled cleanup for expired `agent_jti_replay` rows;
+- scheduled cleanup for old `agent_command_dedup` rows;
 - indexes on `agent_id`, `session_id`, `job_id`, `received_at`, `expires_at`.
 
 ## 4.3 Event bridge contract
@@ -214,6 +218,21 @@ message ServerEnvelope {
 }
 ```
 
+## 5.5 Protocol version policy
+
+Compatibility rules:
+- every envelope must contain `protocol_version`;
+- server supports `current` and one `previous` protocol minor version;
+- incompatible major version mismatch:
+  - server responds with typed error (`UNSUPPORTED_PROTOCOL`),
+  - agent is marked `degraded`,
+  - update flow is triggered (`update_required=true`).
+
+Command safety rules:
+- every command from server includes unique `command_id`;
+- agent must deduplicate `command_id` within retention window and never execute same command twice;
+- repeated delivery for known `command_id` returns prior ack/result (idempotent replay response).
+
 ## 6) Authentication & Trust
 
 ## 6.1 Identity model
@@ -243,6 +262,12 @@ Refresh token policy:
 - stored hashed in `agent-auth.db` (`agent_refresh_tokens`),
 - rotated on refresh,
 - immediate revoke supported from server UI/API.
+
+Secret and token hygiene:
+- no raw refresh/access tokens are persisted in logs, DB, or event payloads;
+- token fingerprints only (hash + short prefix for diagnostics);
+- JWT signing keys are versioned (`kid`) and rotated on schedule;
+- per-agent `revoke-all` invalidates all active refresh token chains.
 
 ## 6.3 Replay protection
 
@@ -375,13 +400,16 @@ Security:
 - replay (`jti`) rejection.
 - refresh rotation and revoked-token rejection.
 - cross-DB consistency checks (`agent-auth.db` vs `core.db` mapping by `agent_id`).
+- no-plaintext-token persistence checks in audit/event logs.
 
 Session:
 - connect, heartbeat, reconnect, expiration, revocation.
 - update notification lifecycle: signal received -> persisted -> published -> acknowledged.
+- duplicate command delivery: same `command_id` does not execute twice.
 
 Integration:
 - transcribe job: command -> progress -> done/error -> widget SSE mapping.
+- idempotent replay: repeated `CommandDispatch` returns same ack/result semantics.
 
 Failure:
 - agent offline during active job;
@@ -390,6 +418,7 @@ Failure:
 - stale agent version: new jobs denied when `update_required=true` and policy is strict.
 - bad update artifact/signature mismatch: install denied and reported.
 - service restart failure after update: rollback executed and reported.
+- protocol major mismatch: explicit reject path + degraded mode + update-required state.
 
 ## 10) Operational Rollback
 
