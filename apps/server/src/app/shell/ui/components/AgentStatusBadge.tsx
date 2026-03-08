@@ -28,6 +28,7 @@ export function AgentStatusBadge() {
   const currentStatus: AgentUiStatus = agentStatus?.status ?? 'disconnected';
   const isConnected = currentStatus === 'connected' || currentStatus === 'connected_dev';
   const actionLabel = isConnected ? t('agentStatusRefresh') : t('agentStatusConnect');
+  const hostname = agentStatus?.hostname?.trim() || '';
 
   const statusLabel = useMemo(() => t(getStatusCopyKey(currentStatus)), [currentStatus, t]);
 
@@ -43,6 +44,7 @@ export function AgentStatusBadge() {
       >
         {actionLabel}
       </button>
+      {hostname ? <span className={styles.agentHostname}>{hostname}</span> : null}
     </div>
   );
 }

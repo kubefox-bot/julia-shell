@@ -72,8 +72,16 @@ async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
     let heartbeat_tx = tx.clone();
     let heartbeat_tokens = tokens.clone();
     let heartbeat_session_id = session_id.clone();
+    let heartbeat_hostname = config.agent_display_name.clone();
+    let heartbeat_agent_version = config.agent_version.clone();
     let heartbeat_task = tokio::spawn(async move {
-        let connected = build_heartbeat_envelope(&heartbeat_tokens, &heartbeat_session_id, "connected");
+        let connected = build_heartbeat_envelope(
+            &heartbeat_tokens,
+            &heartbeat_session_id,
+            "connected",
+            &heartbeat_hostname,
+            &heartbeat_agent_version,
+        );
         if heartbeat_tx.send(connected).await.is_err() {
             warn!(session_id = %heartbeat_session_id, "failed to send initial heartbeat");
             return;
@@ -81,7 +89,13 @@ async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
 
         loop {
             time::sleep(Duration::from_secs(15)).await;
-            let envelope = build_heartbeat_envelope(&heartbeat_tokens, &heartbeat_session_id, "alive");
+            let envelope = build_heartbeat_envelope(
+                &heartbeat_tokens,
+                &heartbeat_session_id,
+                "alive",
+                &heartbeat_hostname,
+                &heartbeat_agent_version,
+            );
             match time::timeout(Duration::from_secs(2), heartbeat_tx.send(envelope)).await {
                 Ok(Ok(())) => {
                     debug!(session_id = %heartbeat_session_id, "heartbeat queued");
@@ -274,7 +288,13 @@ async fn authorize(http_client: &Client, config: &AgentConfig) -> Result<Session
     .await
 }
 
-fn build_heartbeat_envelope(tokens: &SessionTokens, session_id: &str, status: &str) -> AgentEnvelope {
+fn build_heartbeat_envelope(
+    tokens: &SessionTokens,
+    session_id: &str,
+    status: &str,
+    hostname: &str,
+    agent_version: &str,
+) -> AgentEnvelope {
     AgentEnvelope {
         protocol_version: "1.0.0".to_string(),
         agent_id: tokens.agent_id.clone(),
@@ -283,8 +303,9 @@ fn build_heartbeat_envelope(tokens: &SessionTokens, session_id: &str, status: &s
         timestamp_unix_ms: chrono::Utc::now().timestamp_millis(),
         access_jwt: tokens.access_jwt.clone(),
         payload: Some(agent_envelope::Payload::Heartbeat(Heartbeat {
-            agent_version: "0.1.0".to_string(),
+            agent_version: agent_version.to_string(),
             status: status.to_string(),
+            hostname: hostname.to_string(),
         })),
     }
 }

@@ -381,6 +381,18 @@ export function getAnyOnlineAgentSession(input?: { minHeartbeatAt?: string }) {
   };
 }
 
+export function getAgentDisplayName(agentId: string) {
+  const db = getDb();
+  const row = db.prepare(`
+    SELECT display_name
+    FROM agent_registry
+    WHERE agent_id = ?
+    LIMIT 1
+  `).get(agentId) as { display_name: string | null } | undefined;
+
+  return row?.display_name?.trim() || null;
+}
+
 export function disconnectStaleOnlineSessions(input: {
   cutoffIso: string;
   reason?: string;

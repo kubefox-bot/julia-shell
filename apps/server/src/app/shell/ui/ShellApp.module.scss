@@ -102,6 +102,20 @@
   padding: 0.2rem 0.6rem;
 }
 
+.agentHostname {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shellRoot[data-theme='night'] .agentHostname {
+  color: #cbd5e1;
+}
+
 .agentStatusAction:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -757,6 +771,10 @@
 
   .agentStatusBadge {
     justify-content: flex-start;
+  }
+
+  .agentHostname {
+    max-width: 100%;
   }
 
   .headerActions {

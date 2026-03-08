@@ -28,7 +28,10 @@ impl AgentConfig {
         let agent_version = env::var("JULIA_AGENT_VERSION").unwrap_or_else(|_| "0.1.0".to_string());
 
         let agent_display_name = env::var("JULIA_AGENT_DISPLAY_NAME")
-            .unwrap_or_else(|_| format!("julia-agent-{}", current_platform()));
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(resolve_hostname_or_platform_name);
 
         Self {
             server_base_url,
@@ -48,6 +51,16 @@ fn current_platform() -> &'static str {
         "windows" => "windows",
         other => other,
     }
+}
+
+fn resolve_hostname_or_platform_name() -> String {
+    let hostname = env::var("HOSTNAME")
+        .ok()
+        .or_else(|| env::var("COMPUTERNAME").ok())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+
+    hostname.unwrap_or_else(|| format!("julia-agent-{}", current_platform()))
 }
 
 fn default_refresh_token_path() -> PathBuf {

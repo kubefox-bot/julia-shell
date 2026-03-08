@@ -5,6 +5,7 @@ export type AgentStatusResponse = {
   label: string;
   updatedAt: string;
   reason?: string | null;
+  hostname?: string | null;
 };
 
 export type AgentStatusStoreState = {

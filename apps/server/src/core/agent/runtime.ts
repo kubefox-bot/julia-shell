@@ -3,7 +3,7 @@ import path from 'node:path';
 import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import { moduleBus } from '../../shared/lib/module-bus';
-import { appendAgentEvent, upsertAgentSession } from './repository';
+import { appendAgentEvent, getAgentDisplayName, upsertAgentSession } from './repository';
 import { invalidateWidgetRegistryCache } from '../registry/registry';
 import { verifyAccessJwt } from './jwt';
 import { resolveAgentStatusSnapshot } from './status';
@@ -15,6 +15,7 @@ type AgentConnection = {
   sessionId: string;
   call: grpc.ServerDuplexStream<Record<string, unknown>, Record<string, unknown>>;
   lastSeenAtMs: number;
+  hostname: string | null;
 };
 
 type UnauthorizedState = {
@@ -185,7 +186,7 @@ class AgentRuntime {
         this.lastUnauthorized = null;
 
         if (!connection) {
-          connection = { agentId, sessionId, call, lastSeenAtMs: nowMs };
+          connection = { agentId, sessionId, call, lastSeenAtMs: nowMs, hostname: null };
           this.connections.set(agentId, connection);
           upsertAgentSession({
             sessionId,
@@ -219,6 +220,12 @@ class AgentRuntime {
         }
 
         if (envelope.heartbeat) {
+          const heartbeatHostname = typeof envelope.heartbeat === 'object' && envelope.heartbeat !== null && typeof envelope.heartbeat.hostname === 'string'
+            ? envelope.heartbeat.hostname.trim()
+            : '';
+          if (heartbeatHostname && connection.hostname !== heartbeatHostname) {
+            connection.hostname = heartbeatHostname;
+          }
           return;
         }
 
@@ -330,7 +337,8 @@ class AgentRuntime {
     if (fromMemory) {
       return {
         agentId: fromMemory.agentId,
-        sessionId: fromMemory.sessionId
+        sessionId: fromMemory.sessionId,
+        hostname: fromMemory.hostname
       };
     }
     return null;
@@ -341,10 +349,13 @@ class AgentRuntime {
   }
 
   getAgentStatusSnapshot() {
+    const onlineSession = this.getOnlineAgentSession();
     return resolveAgentStatusSnapshot({
       isDevMode: isAgentDevMode(),
-      hasOnlineSession: Boolean(this.getOnlineAgentSession()),
+      hasOnlineSession: Boolean(onlineSession),
       unauthorizedState: this.lastUnauthorized
+    }, {
+      hostname: onlineSession ? (onlineSession.hostname || getAgentDisplayName(onlineSession.agentId)) : null
     });
   }
 
