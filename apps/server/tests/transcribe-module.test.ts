@@ -40,6 +40,7 @@ printf 'stub-audio' > "$output"
   process.env.PATH = `${ffmpegStubDir}${path.delimiter}${originalPath}`
   process.env.JULIAAPP_DATA_DIR = tempDir
   process.env.GEMINI_MODEL = 'mock'
+  process.env.JULIAAPP_AGENT_ENABLE_DEV = '1'
   delete process.env.GEMINI_API_KEY
 })
 
@@ -49,6 +50,7 @@ afterEach(() => {
   process.env.PATH = originalPath
   delete process.env.JULIAAPP_DATA_DIR
   delete process.env.GEMINI_MODEL
+  delete process.env.JULIAAPP_AGENT_ENABLE_DEV
   delete process.env.GEMINI_API_KEY
 })
 

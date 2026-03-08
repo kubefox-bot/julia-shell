@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
+import { subscribeAgentStatusChanged } from '../../../../app/agent-service/lib/agent-status-bus'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,
@@ -161,6 +162,26 @@ export function useTranscribeController(props: WidgetRenderProps) {
       cancelled = true
     }
   }, [loadPathEntries, loadSpeakerAliases, setStatus, store])
+
+  useEffect(() => {
+    return subscribeAgentStatusChanged((event) => {
+      if (event.status !== 'connected' && event.status !== 'connected_dev') {
+        return
+      }
+
+      const state = store.getState()
+      const targetPath = (state.selectedFolderPath ?? state.browsePath ?? '').trim()
+      if (!targetPath) {
+        return
+      }
+
+      void loadPathEntries(targetPath, {
+        allowEmpty: true,
+        preserveSelection: state.selectedAudioFiles,
+        silent: true
+      })
+    })
+  }, [loadPathEntries, store])
 
   const openSetupView = useCallback(() => {
     typewriter.stop()

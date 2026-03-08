@@ -37,6 +37,7 @@ Exclude from sync:
 Safe approach:
 - sync source/config only,
 - run install/build on Windows.
+- monorepo sync target remains `C:\Users\julia\OneDrive\ssr`; keep `apps/*` and `packages/*` in sync together.
 
 ## Package Manager
 - package manager: `Yarn 4`
@@ -50,6 +51,25 @@ Useful commands:
 - `yarn build`
 - `yarn start`
 
+## Monorepo Usage
+- run commands from repository root (`JuliaApp`) unless explicitly required otherwise.
+- workspace layout:
+  - `apps/server` - Astro SSR shell + APIs + agent server runtime.
+  - `apps/agent` - Rust agent runtime (Windows/Linux/macOS).
+  - `packages/protocol` - shared protocol contract (`agent_control.proto`).
+- root scripts target `@julia/server` lifecycle by default:
+  - `yarn dev`, `yarn test`, `yarn build`, `yarn start`.
+- protocol/agent checks:
+  - `yarn check:protocol`
+  - `yarn check:agent`
+  - `yarn build:agent`
+- explicit workspace commands when needed:
+  - `yarn workspace @julia/server typecheck`
+  - `yarn workspace @julia/server test`
+  - `yarn workspace @julia/server build`
+- if wire contract changes, update all three together:
+  - `packages/protocol` + `apps/server` + `apps/agent`.
+
 ## Runtime Model
 - Astro server mode with `@astrojs/node` standalone adapter.
 - UI model: `Astro host + React shell`.
@@ -60,6 +80,9 @@ Useful commands:
   - the boot silhouette overlay is rendered outside the React island and removed only after client boot completes,
   - after hydration the silhouette state is kept for about 1 second, then live widgets are shown.
 - Production entrypoint: `node ./dist/server/entry.mjs`.
+
+Monorepo path note:
+- legacy references like `src/...` in this document map to `apps/server/src/...`.
 
 ## Current Architecture (v1.2)
 - Shell core with manifest-driven widget registry and validation.
@@ -230,9 +253,9 @@ The following legacy areas were removed from active architecture:
 
 ## Widget Local Context Files
 Widget-specific local instructions live here:
-- `src/widgets/transcribe/AGENTS.md`
-- `src/widgets/transcribe/ui/AGENTS.md`
-- `src/widgets/weather/AGENTS.md`
+- `apps/server/src/widgets/transcribe/AGENTS.md`
+- `apps/server/src/widgets/transcribe/ui/AGENTS.md`
+- `apps/server/src/widgets/weather/AGENTS.md`
 
 ## Operational Notes
 - after frontend/API changes, rebuild on Windows before production check,

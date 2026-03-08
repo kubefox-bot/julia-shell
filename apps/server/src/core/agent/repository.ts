@@ -348,15 +348,19 @@ export function upsertAgentSession(input: {
   `).run(input.sessionId, input.agentId, input.status, now, now, input.disconnectReason ?? null);
 }
 
-export function getAnyOnlineAgentSession() {
+export function getAnyOnlineAgentSession(input?: { minHeartbeatAt?: string }) {
   const db = getDb();
-  const row = db.prepare(`
+  const baseSql = `
     SELECT session_id, agent_id, status, connected_at, last_heartbeat_at
     FROM agent_sessions
     WHERE status = 'online'
-    ORDER BY last_heartbeat_at DESC
-    LIMIT 1
-  `).get() as {
+  `;
+  const withHeartbeatFilter = `${baseSql} AND last_heartbeat_at >= ? ORDER BY last_heartbeat_at DESC LIMIT 1`;
+  const withoutHeartbeatFilter = `${baseSql} ORDER BY last_heartbeat_at DESC LIMIT 1`;
+
+  const row = (input?.minHeartbeatAt
+    ? db.prepare(withHeartbeatFilter).get(input.minHeartbeatAt)
+    : db.prepare(withoutHeartbeatFilter).get()) as {
     session_id: string;
     agent_id: string;
     status: string;
@@ -375,6 +379,26 @@ export function getAnyOnlineAgentSession() {
     connectedAt: row.connected_at,
     lastHeartbeatAt: row.last_heartbeat_at
   };
+}
+
+export function disconnectStaleOnlineSessions(input: {
+  cutoffIso: string;
+  reason?: string;
+}) {
+  const db = getDb();
+  const now = nowIso();
+  const reason = input.reason ?? 'heartbeat_timeout';
+  const result = db.prepare(`
+    UPDATE agent_sessions
+    SET
+      status = 'disconnected',
+      disconnected_at = ?,
+      disconnect_reason = ?
+    WHERE status = 'online'
+      AND last_heartbeat_at < ?
+  `).run(now, reason, input.cutoffIso);
+
+  return result.changes;
 }
 
 export function appendAgentEvent(input: {

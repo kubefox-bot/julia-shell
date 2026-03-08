@@ -27,6 +27,7 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   const theme = useResolvedShellTheme();
   const hydrateShell = useShellStore((state) => state.hydrateShell);
   const loadShell = useShellStore((state) => state.loadShell);
+  const loadAgentStatus = useShellStore((state) => state.loadAgentStatus);
   const setBrowserLocale = useShellStore((state) => state.setBrowserLocale);
   const tickNow = useShellStore((state) => state.tickNow);
   const [isBootDelayComplete, setIsBootDelayComplete] = useState(false);
@@ -41,7 +42,19 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
     if (typeof navigator !== 'undefined') {
       setBrowserLocale(navigator.language);
     }
-  }, [hydrateShell, initialShellSettings, loadShell, setBrowserLocale]);
+
+    void loadAgentStatus();
+  }, [hydrateShell, initialShellSettings, loadAgentStatus, loadShell, setBrowserLocale]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadAgentStatus();
+    }, 15_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadAgentStatus]);
 
   useEffect(() => {
     tickNow();

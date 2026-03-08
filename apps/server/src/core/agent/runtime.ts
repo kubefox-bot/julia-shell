@@ -3,15 +3,28 @@ import path from 'node:path';
 import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import { moduleBus } from '../../shared/lib/module-bus';
-import { appendAgentEvent, getAnyOnlineAgentSession, upsertAgentSession } from './repository';
-import { secrets } from '../secrets/secrets';
+import { appendAgentEvent, disconnectStaleOnlineSessions, upsertAgentSession } from './repository';
+import { invalidateWidgetRegistryCache } from '../registry/registry';
 import { verifyAccessJwt } from './jwt';
+import { resolveAgentStatusSnapshot } from './status';
+import { resolveAgentJwtSecret } from './config';
+import { resolveAgentHeartbeatTimeoutMs } from './health';
 
 type AgentConnection = {
   agentId: string;
   sessionId: string;
   call: grpc.ServerDuplexStream<Record<string, unknown>, Record<string, unknown>>;
+  lastSeenAtMs: number;
 };
+
+type UnauthorizedState = {
+  reason: string;
+  updatedAt: string;
+} | null;
+
+function isAgentDevMode() {
+  return process.env.JULIAAPP_AGENT_ENABLE_DEV === '1';
+}
 
 function resolveProtoPath() {
   const fromEnv = process.env.JULIAAPP_PROTOCOL_PROTO_PATH?.trim();
@@ -35,6 +48,7 @@ class AgentRuntime {
   private _server: grpc.Server | null = null;
   private startPromise: Promise<void> | null = null;
   private readonly connections = new Map<string, AgentConnection>();
+  private lastUnauthorized: UnauthorizedState = null;
 
   async startOnce() {
     if (!this.startPromise) {
@@ -93,17 +107,53 @@ class AgentRuntime {
   }
 
   private async isEnvelopeAuthorized(envelope: Record<string, unknown>) {
-    const accessJwt = typeof envelope.accessJwt === 'string' ? envelope.accessJwt : '';
+    const accessJwt = typeof envelope.accessJwt === 'string'
+      ? envelope.accessJwt
+      : typeof envelope.access_jwt === 'string'
+        ? envelope.access_jwt
+        : '';
     if (!accessJwt) {
       return null;
     }
 
-    const secret = await secrets.get('AGENT_JWT_SECRET');
-    if (!secret?.value) {
-      return null;
+    const secret = await resolveAgentJwtSecret();
+    return verifyAccessJwt(secret, accessJwt);
+  }
+
+  private reconcileStaleSessions() {
+    const nowMs = Date.now();
+    const timeoutMs = resolveAgentHeartbeatTimeoutMs();
+    const cutoffIso = new Date(nowMs - timeoutMs).toISOString();
+    let shouldInvalidateRegistry = false;
+
+    for (const [agentId, connection] of this.connections) {
+      if (nowMs - connection.lastSeenAtMs <= timeoutMs) {
+        continue;
+      }
+
+      upsertAgentSession({
+        sessionId: connection.sessionId,
+        agentId: connection.agentId,
+        status: 'disconnected',
+        disconnectReason: 'heartbeat_timeout'
+      });
+      this.connections.delete(agentId);
+      shouldInvalidateRegistry = true;
     }
 
-    return verifyAccessJwt(secret.value, accessJwt);
+    const staleDisconnected = disconnectStaleOnlineSessions({
+      cutoffIso,
+      reason: 'heartbeat_timeout'
+    });
+    if (staleDisconnected > 0) {
+      shouldInvalidateRegistry = true;
+    }
+
+    if (shouldInvalidateRegistry) {
+      invalidateWidgetRegistryCache();
+    }
+
+    return { cutoffIso };
   }
 
   private handleConnect(
@@ -114,6 +164,10 @@ class AgentRuntime {
     call.on('data', async (envelope) => {
       const claims = await this.isEnvelopeAuthorized(envelope);
       if (!claims) {
+        this.lastUnauthorized = {
+          reason: 'Invalid access token.',
+          updatedAt: new Date().toISOString()
+        };
         call.write({
           protocolVersion: '1.0.0',
           sessionId: '',
@@ -131,10 +185,16 @@ class AgentRuntime {
       const agentId = typeof envelope.agentId === 'string' ? envelope.agentId : claims.sub;
       const sessionId = typeof envelope.sessionId === 'string' && envelope.sessionId ? envelope.sessionId : 'session';
       const jobId = typeof envelope.jobId === 'string' ? envelope.jobId : '';
+      const nowMs = Date.now();
+
+      this.lastUnauthorized = null;
 
       if (!connection) {
-        connection = { agentId, sessionId, call };
+        connection = { agentId, sessionId, call, lastSeenAtMs: nowMs };
         this.connections.set(agentId, connection);
+        invalidateWidgetRegistryCache();
+      } else {
+        connection.lastSeenAtMs = nowMs;
       }
 
       upsertAgentSession({
@@ -222,6 +282,7 @@ class AgentRuntime {
           disconnectReason: 'stream_end'
         });
         this.connections.delete(connection.agentId);
+        invalidateWidgetRegistryCache();
       }
 
       call.end();
@@ -236,11 +297,14 @@ class AgentRuntime {
           disconnectReason: 'stream_error'
         });
         this.connections.delete(connection.agentId);
+        invalidateWidgetRegistryCache();
       }
     });
   }
 
   getOnlineAgentSession() {
+    this.reconcileStaleSessions();
+
     const fromMemory = [...this.connections.values()][0];
     if (fromMemory) {
       return {
@@ -248,8 +312,23 @@ class AgentRuntime {
         sessionId: fromMemory.sessionId
       };
     }
+    return null;
+  }
 
-    return getAnyOnlineAgentSession();
+  getUnauthorizedState() {
+    return this.lastUnauthorized;
+  }
+
+  getAgentStatusSnapshot() {
+    return resolveAgentStatusSnapshot({
+      isDevMode: isAgentDevMode(),
+      hasOnlineSession: Boolean(this.getOnlineAgentSession()),
+      unauthorizedState: this.lastUnauthorized
+    });
+  }
+
+  retryStatusSnapshot() {
+    return this.getAgentStatusSnapshot();
   }
 
   dispatchTranscribeStart(input: {
@@ -259,6 +338,8 @@ class AgentRuntime {
     folderPath: string;
     filePaths: string[];
   }) {
+    this.reconcileStaleSessions();
+
     const connection = this.connections.get(input.agentId);
     if (!connection) {
       return false;
@@ -279,4 +360,17 @@ class AgentRuntime {
   }
 }
 
-export const agentRuntime = new AgentRuntime();
+declare global {
+  // eslint-disable-next-line no-var
+  var __juliaAgentRuntimeSingleton: AgentRuntime | undefined;
+}
+
+function getAgentRuntimeSingleton() {
+  if (!globalThis.__juliaAgentRuntimeSingleton) {
+    globalThis.__juliaAgentRuntimeSingleton = new AgentRuntime();
+  }
+
+  return globalThis.__juliaAgentRuntimeSingleton;
+}
+
+export const agentRuntime = getAgentRuntimeSingleton();

@@ -17,6 +17,7 @@ import { prepareAudioForTranscription } from './ffmpeg'
 import { startGeminiStream } from './gemini'
 import { runMockTranscription } from './mock'
 import { handleAgentTranscribeStream } from './agent-transcribe-stream'
+import { isTranscribeDevBypassMode } from './agent-mode'
 import { resolveApiKeyState } from './settings'
 import type { SsePayload, UploadedGeminiFile } from './types'
 import {
@@ -33,11 +34,10 @@ export async function handleTranscribeStream(body: {
   filePath?: string
   filePaths?: string[]
 }, request: Request) {
-  const agentRequired = process.env.NODE_ENV === 'production'
-  const useAgentInDev = process.env.JULIAAPP_AGENT_ENABLE_DEV === '1'
-  const allowMockFallback = process.env.NODE_ENV !== 'production' && process.env.JULIAAPP_AGENT_MOCK_MODE === '1'
+  const devBypassMode = isTranscribeDevBypassMode()
+  const allowMockFallback = devBypassMode && process.env.JULIAAPP_AGENT_MOCK_MODE === '1'
 
-  if (agentRequired || useAgentInDev) {
+  if (!devBypassMode) {
     const agentResponse = await handleAgentTranscribeStream(body, request)
     if (!(allowMockFallback && agentResponse.status === 503)) {
       return agentResponse

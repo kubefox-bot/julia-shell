@@ -1,5 +1,5 @@
-import { secrets } from '../secrets/secrets';
 import { issueAccessJwt } from './jwt';
+import { resolveAgentJwtSecret } from './config';
 import {
   consumeEnrollmentToken,
   issueRefreshToken,
@@ -16,16 +16,6 @@ function parseCapabilities(value: unknown) {
   return value
     .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
     .filter(Boolean);
-}
-
-async function getJwtSecret() {
-  const secret = await secrets.get('AGENT_JWT_SECRET');
-  const value = secret?.value?.trim() ?? '';
-  if (!value) {
-    throw new Error('AGENT_JWT_SECRET is not configured.');
-  }
-
-  return value;
 }
 
 export async function enrollAgent(input: {
@@ -46,7 +36,7 @@ export async function enrollAgent(input: {
   });
 
   const refresh = issueRefreshToken(agentId);
-  const secret = await getJwtSecret();
+  const secret = await resolveAgentJwtSecret();
   const access = issueAccessJwt(secret, agentId);
 
   return {
@@ -63,7 +53,7 @@ export async function refreshAgentSession(input: { agentId: string; refreshToken
     return null;
   }
 
-  const secret = await getJwtSecret();
+  const secret = await resolveAgentJwtSecret();
   const access = issueAccessJwt(secret, input.agentId);
 
   return {

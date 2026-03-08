@@ -11,6 +11,7 @@ import { agentRuntime } from '../../../core/agent/runtime';
 import { jsonResponse } from '../../../shared/lib/http';
 import { moduleBus } from '../../../shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
+import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';
 
 type AgentEventPayload = {
@@ -18,25 +19,59 @@ type AgentEventPayload = {
   payload?: Record<string, unknown>;
 };
 
+function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: string }) {
+  const explicit = input.folderPath.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const source = input.canonicalSourceFile.trim();
+  const separatorIndex = Math.max(source.lastIndexOf('/'), source.lastIndexOf('\\'));
+  if (separatorIndex <= 0) {
+    return '.';
+  }
+
+  return source.slice(0, separatorIndex);
+}
+
 export async function handleAgentTranscribeStream(
   body: { folderPath?: string; filePath?: string; filePaths?: string[] },
   request: Request,
 ) {
-  const folderPath = typeof body.folderPath === 'string' ? body.folderPath.trim() : '';
+  const folderPathRaw = typeof body.folderPath === 'string' ? body.folderPath.trim() : '';
   const filePath = typeof body.filePath === 'string' ? body.filePath.trim() : '';
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : [];
-
-  if (!folderPath && !filePath && filePaths.length === 0) {
-    return jsonResponse({ error: 'folderPath or filePaths is required.' }, 400);
-  }
+  const useServerSelection = isTranscribeDevBypassMode();
 
   const onlineAgent = agentRuntime.getOnlineAgentSession();
   if (!onlineAgent) {
     return jsonResponse({ error: 'agent_offline' }, 503);
   }
 
-  const selection = await resolveSelection(folderPath, filePath, filePaths);
-  const { filePaths: selectedFiles, canonicalSourceFile, resolvedFolderPath } = selection;
+  let selectedFiles: string[] = [];
+  let canonicalSourceFile = '';
+  let resolvedFolderPath = '';
+
+  if (useServerSelection) {
+    const selection = await resolveSelection(folderPathRaw, filePath, filePaths);
+    selectedFiles = selection.filePaths;
+    canonicalSourceFile = selection.canonicalSourceFile;
+    resolvedFolderPath = selection.resolvedFolderPath;
+  } else {
+    selectedFiles = (filePaths.length > 0 ? filePaths : filePath ? [filePath] : [])
+      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+      .filter(Boolean);
+
+    if (selectedFiles.length === 0) {
+      return jsonResponse({ error: 'filePath or filePaths is required for agent-side selection.' }, 400);
+    }
+
+    canonicalSourceFile = selectedFiles[0];
+    resolvedFolderPath = deriveFolderPath({
+      folderPath: folderPathRaw,
+      canonicalSourceFile,
+    });
+  }
 
   touchRecentFolder(WIDGET_ID, resolvedFolderPath);
 

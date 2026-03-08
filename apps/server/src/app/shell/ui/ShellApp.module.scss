@@ -45,6 +45,74 @@
   gap: 0.7rem;
 }
 
+.agentStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: inset 0 0 0 1px rgb(148 163 184 / 0.28);
+}
+
+.shellRoot[data-theme='night'] .agentStatusBadge {
+  background: rgb(15 23 42 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(100 116 139 / 0.3);
+}
+
+.agentLamp {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.82);
+}
+
+.agentLampGreen {
+  background: #22c55e;
+}
+
+.agentLampYellow {
+  background: #eab308;
+}
+
+.agentLampRed {
+  background: #ef4444;
+}
+
+.agentStatusText {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.shellRoot[data-theme='night'] .agentStatusText {
+  color: #e2e8f0;
+}
+
+.agentStatusAction {
+  border: 1px solid rgb(148 163 184 / 0.45);
+  background: rgb(248 250 252 / 0.95);
+  color: #0f172a;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+}
+
+.agentStatusAction:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.shellRoot[data-theme='night'] .agentStatusAction {
+  background: rgb(30 41 59 / 0.9);
+  border-color: rgb(100 116 139 / 0.5);
+  color: #e2e8f0;
+}
+
 .headerEyebrow {
   margin: 0;
   text-transform: uppercase;
@@ -685,6 +753,10 @@
 
   .headerAside {
     align-items: flex-start;
+  }
+
+  .agentStatusBadge {
+    justify-content: flex-start;
   }
 
   .headerActions {

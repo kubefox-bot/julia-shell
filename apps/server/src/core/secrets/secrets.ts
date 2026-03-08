@@ -3,14 +3,13 @@ import { InfisicalSecrets } from './InfisicalSecrets'
 export const secrets = new InfisicalSecrets()
 
 const STARTUP_SECRET_KEYS: Array<{ keyName: string; secretPath?: string }> = [
-  { keyName: 'WIDGET_CHANNEL_TOKEN' },
-  { keyName: 'ADMIN_TOKEN' },
-  { keyName: 'AGENT_ENROLL_TOKEN' },
-  { keyName: 'AGENT_JWT_SECRET' },
+  { keyName: 'WIDGET_CHANNEL_TOKEN', secretPath: '/' },
+  { keyName: 'ADMIN_TOKEN', secretPath: '/' },
+  { keyName: 'AGENT_ENROLL_TOKEN', secretPath: '/' },
   { keyName: 'GEMINI_API_KEY', secretPath: '/transcribe' },
 ]
 
-const REQUIRED_SECRET_KEYS = ['ADMIN_TOKEN', 'AGENT_ENROLL_TOKEN', 'AGENT_JWT_SECRET'] as const
+const REQUIRED_SECRET_KEYS = ['ADMIN_TOKEN', 'AGENT_ENROLL_TOKEN'] as const
 
 let preloadPromise: Promise<void> | null = null
 

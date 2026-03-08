@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { agentRuntime } from '../../../core/agent/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from '../../../core/db/transcribe-repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http'
+import { isAgentRequiredForTranscribe } from './agent-mode'
 import { WIDGET_ID } from './constants'
 import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
@@ -10,6 +12,12 @@ import { listPathEntries, resolveTranscriptPath } from './utils'
 
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST fs-list': async ({ request }) => {
+    if (isAgentRequiredForTranscribe() && !agentRuntime.getOnlineAgentSession()) {
+      return jsonResponse({
+        error: 'agent_offline'
+      }, 503)
+    }
+
     try {
       const body = await readJsonBody<{ path?: string }>(request)
       const payload = await listPathEntries(body.path ?? '')

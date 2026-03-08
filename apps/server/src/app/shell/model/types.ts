@@ -1,5 +1,6 @@
 import type { CSSProperties, ComponentType } from 'react';
 import type { HostPlatform, LayoutItem, LayoutSettings, ResolvedShellTheme, ShellLocale, ShellTheme, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
+import type { AgentStatusStoreActions, AgentStatusStoreState } from '../../agent-service/model/types';
 
 export type ShellSettingsResponse = {
   platform: HostPlatform;
@@ -35,7 +36,7 @@ export type ShellStoreState = {
   settingsDraft: ShellSettingsDraft;
   activeId: string | null;
   overId: string | null;
-};
+} & AgentStatusStoreState;
 
 export type ShellStoreActions = {
   hydrateShell: (response: ShellSettingsResponse) => void;
@@ -59,7 +60,7 @@ export type ShellStoreActions = {
   startDrag: (widgetId: string) => void;
   overDrag: (widgetId: string | null) => void;
   endDrag: () => void;
-};
+} & AgentStatusStoreActions;
 
 export type ShellStore = ShellStoreState & ShellStoreActions;
 

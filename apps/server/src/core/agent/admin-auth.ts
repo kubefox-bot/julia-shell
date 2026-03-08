@@ -2,10 +2,11 @@ import { secrets } from '../secrets/secrets';
 import { safeEqual } from './crypto';
 
 export async function isAdminAuthorized(request: Request) {
-  const expected = await secrets.get('ADMIN_TOKEN');
+  const expected = await secrets.get('ADMIN_TOKEN', '/');
   const provided = request.headers.get('X-Admin-Token')?.trim() ?? '';
 
-  if (!expected?.value || !provided) {
+  console.log("!!!!!!!!!!!!!!!", expected, provided);
+  if (!expected?.value || expected.source !== 'infisical' || !provided) {
     return false;
   }
 

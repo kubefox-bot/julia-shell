@@ -12,6 +12,7 @@ import {
 import { listDiscoveredWidgets } from '../registry/registry';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
+const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
 
 function resolveHostPlatform(): HostPlatform {
   if (process.platform === 'win32') {
@@ -76,10 +77,17 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
     let enabled = state?.enabled ?? descriptor.runtime.ready;
     const notReadyReasons = [...descriptor.runtime.notReadyReasons];
 
+    const wasAutoDisabled = Boolean(state?.disabledReason?.startsWith(AUTO_NOT_READY_REASON_PREFIX));
+
     if (!descriptor.runtime.ready && enabled) {
       const reason = notReadyReasons[0] ?? 'Widget is not ready.';
-      setModuleEnabled(widgetId, false, reason);
+      setModuleEnabled(widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
       enabled = false;
+    }
+
+    if (descriptor.runtime.ready && !enabled && wasAutoDisabled) {
+      setModuleEnabled(widgetId, true, null);
+      enabled = true;
     }
 
     modules.push({
