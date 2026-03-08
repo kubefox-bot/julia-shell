@@ -30,6 +30,11 @@ export type TranscribeWidgetSettings = {
   updatedAt: string | null
 }
 
+export type TranscribeSpeakerAlias = {
+  speakerKey: string
+  aliasName: string
+}
+
 let recentFolderTouchSequence = 0
 
 function nextRecentFolderTimestamp() {
@@ -101,10 +106,19 @@ function bootstrap() {
       PRIMARY KEY (widget_id, folder_path)
     );
 
+    CREATE TABLE IF NOT EXISTS transcribe_speaker_aliases (
+      widget_id TEXT NOT NULL,
+      speaker_key TEXT NOT NULL,
+      alias_name TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (widget_id, speaker_key)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_transcribe_jobs_created_at ON transcribe_jobs(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_transcribe_jobs_status ON transcribe_jobs(status);
     CREATE INDEX IF NOT EXISTS idx_transcribe_outbox_job_created ON transcribe_outbox(job_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_transcribe_recent_folders_rank ON transcribe_recent_folders(widget_id, last_used_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_transcribe_speaker_aliases_widget ON transcribe_speaker_aliases(widget_id);
   `)
 
   ensureTranscribeJobsColumns()
@@ -113,6 +127,10 @@ function bootstrap() {
 
 function getDb() {
   return bootstrap()
+}
+
+function normalizeSpeakerKey(rawSpeaker: string) {
+  return rawSpeaker.replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
 export function createTranscribeJob(input: CreateTranscribeJobInput) {
@@ -357,4 +375,53 @@ export function listRecentFolders(widgetId: string, limit = 5) {
     ORDER BY last_used_at DESC
     LIMIT ?
   `).all(widgetId, limit) as Array<{ folderPath: string }>
+}
+
+export function listSpeakerAliases(widgetId: string): TranscribeSpeakerAlias[] {
+  const db = getDb()
+  return db.prepare(`
+    SELECT
+      speaker_key as speakerKey,
+      alias_name as aliasName
+    FROM transcribe_speaker_aliases
+    WHERE widget_id = ?
+    ORDER BY speaker_key ASC
+  `).all(widgetId) as TranscribeSpeakerAlias[]
+}
+
+export function saveSpeakerAliases(widgetId: string, aliases: TranscribeSpeakerAlias[]) {
+  const db = getDb()
+  const transaction = db.transaction(() => {
+    for (const entry of aliases) {
+      const speakerKey = normalizeSpeakerKey(entry.speakerKey)
+      if (!speakerKey) {
+        continue
+      }
+
+      const aliasName = entry.aliasName.trim()
+      if (!aliasName) {
+        db.prepare(`
+          DELETE FROM transcribe_speaker_aliases
+          WHERE widget_id = ?
+            AND speaker_key = ?
+        `).run(widgetId, speakerKey)
+        continue
+      }
+
+      db.prepare(`
+        INSERT INTO transcribe_speaker_aliases (
+          widget_id,
+          speaker_key,
+          alias_name,
+          updated_at
+        ) VALUES (?, ?, ?, ?)
+        ON CONFLICT(widget_id, speaker_key) DO UPDATE SET
+          alias_name = excluded.alias_name,
+          updated_at = excluded.updated_at
+      `).run(widgetId, speakerKey, aliasName, nowIso())
+    }
+  })
+
+  transaction()
+  return listSpeakerAliases(widgetId)
 }

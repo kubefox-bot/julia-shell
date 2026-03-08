@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, touchRecentFolder } from '../../../core/db/transcribe-repository'
+import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from '../../../core/db/transcribe-repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http'
 import { WIDGET_ID } from './constants'
@@ -30,6 +30,27 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST settings': async ({ request }) => {
     const body = await readJsonBody<{ geminiModel?: string; apiKey?: string }>(request)
     return jsonResponse(await updateTranscribeSettings(body))
+  },
+  'GET speaker-aliases': async () => {
+    return jsonResponse({
+      aliases: listSpeakerAliases(WIDGET_ID)
+    })
+  },
+  'POST speaker-aliases': async ({ request }) => {
+    const body = await readJsonBody<{
+      aliases?: Array<{ speakerKey?: string; aliasName?: string }>
+    }>(request)
+
+    const aliases = Array.isArray(body.aliases)
+      ? body.aliases.map((entry) => ({
+          speakerKey: String(entry.speakerKey ?? ''),
+          aliasName: String(entry.aliasName ?? '')
+        }))
+      : []
+
+    return jsonResponse({
+      aliases: saveSpeakerAliases(WIDGET_ID, aliases)
+    })
   },
   'POST transcript-read': async ({ request }) => {
     const body = await readJsonBody<{ sourceFile?: string; txtPath?: string; folderPath?: string }>(request)
@@ -64,6 +85,40 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
           ? message
           : `Не найден файл стенограммы: ${path.basename(typeof body.txtPath === 'string' ? body.txtPath : body.sourceFile ?? 'transcript.txt')}`
       }, 404)
+    }
+  },
+  'POST transcript-save': async ({ request }) => {
+    const body = await readJsonBody<{
+      sourceFile?: string
+      txtPath?: string
+      folderPath?: string
+      transcript?: string
+    }>(request)
+
+    try {
+      if (typeof body.transcript !== 'string') {
+        throw new Error('transcript is required.')
+      }
+
+      const txtPath = await resolveTranscriptPath(body)
+      await fs.writeFile(txtPath, body.transcript, 'utf8')
+      appendTranscribeOutboxEvent({
+        widgetId: WIDGET_ID,
+        eventType: 'file_created',
+        state: 'updated',
+        payload: {
+          savePath: txtPath,
+          sourceFile: body.sourceFile ?? null
+        }
+      })
+
+      return jsonResponse({
+        txtPath
+      })
+    } catch (error) {
+      return jsonResponse({
+        error: error instanceof Error ? error.message : 'Transcript save failed.'
+      }, 400)
     }
   },
   'GET jobs': async () => {

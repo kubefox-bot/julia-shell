@@ -107,5 +107,98 @@ describe('transcribe server module', () => {
     expect(readPayload.txtPath.endsWith('clip-1.txt')).toBe(true)
     expect(readPayload.transcript).toContain('Mock transcription mode is active.')
     expect(readPayload.transcript).toContain('Prepared opus file:')
+
+    const saveResponse = await transcribeServerModule.handlers['POST transcript-save']({
+      request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcript-save', {
+        method: 'POST',
+        body: JSON.stringify({
+          txtPath: readPayload.txtPath,
+          transcript: '[01:45:06] Анна: Привет'
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }),
+      action: 'transcript-save',
+      actionSegments: ['transcript-save'],
+      params: {
+        id: 'com.yulia.transcribe'
+      }
+    })
+
+    expect(saveResponse.status).toBe(200)
+    const savePayload = await saveResponse.json() as { txtPath: string }
+    expect(savePayload.txtPath.endsWith('clip-1.txt')).toBe(true)
+    expect(fs.readFileSync(savePayload.txtPath, 'utf8')).toBe('[01:45:06] Анна: Привет')
+
+    const saveAliasesResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
+      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases', {
+        method: 'POST',
+        body: JSON.stringify({
+          aliases: [
+            { speakerKey: ' Спикер   2 ', aliasName: 'Анна' },
+            { speakerKey: 'Speaker 1', aliasName: 'John' }
+          ]
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }),
+      action: 'speaker-aliases',
+      actionSegments: ['speaker-aliases'],
+      params: {
+        id: 'com.yulia.transcribe'
+      }
+    })
+
+    expect(saveAliasesResponse.status).toBe(200)
+    const saveAliasesPayload = await saveAliasesResponse.json() as {
+      aliases: Array<{ speakerKey: string; aliasName: string }>
+    }
+    expect(saveAliasesPayload.aliases).toEqual([
+      { speakerKey: 'speaker 1', aliasName: 'John' },
+      { speakerKey: 'спикер 2', aliasName: 'Анна' }
+    ])
+
+    const deleteAliasResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
+      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases', {
+        method: 'POST',
+        body: JSON.stringify({
+          aliases: [{ speakerKey: 'speaker 1', aliasName: '' }]
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }),
+      action: 'speaker-aliases',
+      actionSegments: ['speaker-aliases'],
+      params: {
+        id: 'com.yulia.transcribe'
+      }
+    })
+
+    const deleteAliasPayload = await deleteAliasResponse.json() as {
+      aliases: Array<{ speakerKey: string; aliasName: string }>
+    }
+    expect(deleteAliasPayload.aliases).toEqual([
+      { speakerKey: 'спикер 2', aliasName: 'Анна' }
+    ])
+
+    const getAliasesResponse = await transcribeServerModule.handlers['GET speaker-aliases']({
+      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases'),
+      action: 'speaker-aliases',
+      actionSegments: ['speaker-aliases'],
+      params: {
+        id: 'com.yulia.transcribe'
+      }
+    })
+
+    expect(getAliasesResponse.status).toBe(200)
+    const getAliasesPayload = await getAliasesResponse.json() as {
+      aliases: Array<{ speakerKey: string; aliasName: string }>
+    }
+    expect(getAliasesPayload.aliases).toEqual([
+      { speakerKey: 'спикер 2', aliasName: 'Анна' }
+    ])
   })
 })

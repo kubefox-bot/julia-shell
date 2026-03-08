@@ -53,8 +53,14 @@ function TranscribeWidgetInner(props: WidgetRenderProps) {
           theme={props.theme}
           resultText={controller.result.resultText}
           actionsLocked={controller.result.actionsLocked}
+          isTranscribing={controller.view.isTranscribing}
+          speakerAliases={controller.result.speakerAliases}
+          speakerAliasesSaving={controller.result.speakerAliasesSaving}
           onBack={controller.result.onBack}
           onCopy={controller.result.onCopy}
+          onLoadSpeakerAliases={controller.result.onLoadSpeakerAliases}
+          onSaveSpeakerAliases={controller.result.onSaveSpeakerAliases}
+          onSaveResult={controller.result.onSaveResult}
         />
       )}
 

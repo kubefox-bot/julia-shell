@@ -9,6 +9,8 @@ import {
   getTranscribeWidgetSettings,
   listRecentFolders,
   listRecentTranscribeJobs,
+  listSpeakerAliases,
+  saveSpeakerAliases,
   saveTranscribeWidgetSettings,
   touchRecentFolder
 } from '../src/core/db/transcribe-repository'
@@ -92,5 +94,32 @@ describe('transcribe repository', () => {
     const db = openDb('transcribe.db')
     const outboxCount = db.prepare('SELECT COUNT(*) as count FROM transcribe_outbox').get() as { count: number }
     expect(outboxCount.count).toBe(1)
+  })
+
+  it('normalizes, upserts and deletes speaker aliases per widget', () => {
+    saveSpeakerAliases('com.yulia.transcribe', [
+      { speakerKey: '  Спикер   2 ', aliasName: 'Анна' },
+      { speakerKey: 'speaker 1', aliasName: 'John' }
+    ])
+
+    saveSpeakerAliases('com.yulia.weather', [
+      { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
+    ])
+
+    expect(listSpeakerAliases('com.yulia.transcribe')).toEqual([
+      { speakerKey: 'speaker 1', aliasName: 'John' },
+      { speakerKey: 'спикер 2', aliasName: 'Анна' }
+    ])
+
+    saveSpeakerAliases('com.yulia.transcribe', [
+      { speakerKey: 'Спикер 2', aliasName: '' }
+    ])
+
+    expect(listSpeakerAliases('com.yulia.transcribe')).toEqual([
+      { speakerKey: 'speaker 1', aliasName: 'John' }
+    ])
+    expect(listSpeakerAliases('com.yulia.weather')).toEqual([
+      { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
+    ])
   })
 })
