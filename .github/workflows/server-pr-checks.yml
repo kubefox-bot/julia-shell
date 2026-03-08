@@ -1,15 +1,21 @@
-name: PR Checks
+name: Server PR Checks
 
 on:
   pull_request:
+    paths:
+      - 'apps/server/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - '.github/workflows/server-pr-checks.yml'
   workflow_dispatch:
 
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  group: server-pr-checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  checks:
+  server-checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

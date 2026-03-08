@@ -3,9 +3,12 @@ FROM node:24-alpine
 WORKDIR /app
 
 RUN corepack enable
+RUN corepack prepare yarn@4.9.1 --activate
 
 COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn ./.yarn
+COPY apps/server/package.json ./apps/server/package.json
+COPY apps/agent/package.json ./apps/agent/package.json
+COPY packages/protocol/package.json ./packages/protocol/package.json
 
 RUN yarn install --immutable
 

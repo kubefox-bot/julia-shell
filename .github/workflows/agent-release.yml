@@ -1,0 +1,100 @@
+name: Agent Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/agent/**'
+      - 'packages/protocol/**'
+      - '.github/workflows/agent-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset: julia-agent-linux-x64.tar.gz
+            binary: julia-agent
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: julia-agent-windows-x64.zip
+            binary: julia-agent.exe
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset: julia-agent-macos-arm64.tar.gz
+            binary: julia-agent
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/agent
+
+      - name: Build agent
+        working-directory: apps/agent
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp "apps/agent/target/${{ matrix.target }}/release/${{ matrix.binary }}" "./${{ matrix.binary }}"
+          tar -czf "${{ matrix.asset }}" "${{ matrix.binary }}"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Copy-Item "apps/agent/target/${{ matrix.target }}/release/${{ matrix.binary }}" "${{ matrix.binary }}"
+          Compress-Archive -Path "${{ matrix.binary }}" -DestinationPath "${{ matrix.asset }}"
+
+      - name: Upload asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: agent-latest
+          name: Agent Latest
+          make_latest: true
+          prerelease: false
+          files: |
+            dist/julia-agent-linux-x64.tar.gz
+            dist/julia-agent-windows-x64.zip
+            dist/julia-agent-macos-arm64.tar.gz
+            dist/SHA256SUMS
+          overwrite_files: true

@@ -1,0 +1,51 @@
+name: Agent PR Checks
+
+on:
+  pull_request:
+    paths:
+      - 'apps/agent/**'
+      - 'packages/protocol/**'
+      - '.github/workflows/agent-release.yml'
+      - '.github/workflows/agent-pr-checks.yml'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: agent-pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agent-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/agent
+
+      - name: fmt
+        working-directory: apps/agent
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        working-directory: apps/agent
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: check
+        working-directory: apps/agent
+        run: cargo check --locked
+
+      - name: test
+        working-directory: apps/agent
+        run: cargo test --locked
