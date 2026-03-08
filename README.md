@@ -103,3 +103,19 @@ Optional agent env vars:
 - `JULIA_AGENT_ENROLLMENT_TOKEN` (only for first enroll or forced re-enroll)
 - `JULIA_AGENT_DISPLAY_NAME` (overrides hostname sent to server)
 - `JULIA_AGENT_REFRESH_TOKEN_PATH`
+
+## CI Container Publish
+
+GitHub Actions workflow:
+- `.github/workflows/container-publish.yml`
+
+Behavior:
+- triggers on `main` push and manual run (`workflow_dispatch`);
+- runs server validation (`typecheck` + `build`);
+- builds and pushes image to GHCR:
+  - `ghcr.io/<owner>/juliaapp-server:latest`
+  - `ghcr.io/<owner>/juliaapp-server:sha-<commit>`
+
+Container definition:
+- `apps/server/Containerfile`
+- build context root with `.dockerignore`.

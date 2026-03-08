@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+.DS_Store
+node_modules
+**/node_modules
+.astro
+**/.astro
+dist
+**/dist
+coverage
+**/coverage
+*.log
+*.swp
+apps/server/data
+apps/server/dev.stdout.log
+apps/server/dev.stderr.log

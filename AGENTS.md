@@ -280,6 +280,15 @@ Container scaffold (not production-complete):
 - `Containerfile`
 - `podman-compose.yml`
 
+CI container publish:
+- GitHub workflow: `.github/workflows/container-publish.yml`.
+- publishes `apps/server` container image to GHCR:
+  - `ghcr.io/<owner>/juliaapp-server:latest`
+  - `ghcr.io/<owner>/juliaapp-server:sha-<commit>`
+- workflow validates server before publish:
+  - `yarn workspace @julia/server typecheck`
+  - `yarn workspace @julia/server build`
+
 ## Removed Legacy Scope
 The following legacy areas were removed from active architecture:
 - chat card and `/api/chat*`
