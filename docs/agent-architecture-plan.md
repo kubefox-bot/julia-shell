@@ -1,21 +1,21 @@
-# Agent Architecture Plan (Server + Rust Agent)
+# Agent Architecture Plan (Server + Windows Agent)
 
 Last updated: 2026-03-08  
-Status: Draft v1 (implementation-oriented)
+Status: Draft v2 (agent-first concept)
 
 ## 1) Summary
 
 Goal:
-- move Astro host to a dedicated server behind Traefik/Podman;
-- keep Windows-local operations (FS access, ffmpeg, gemini-cli) on Yulia PC via a modular Rust agent;
-- keep widget-facing API stable (`/api/widget/:id/*` + existing SSE behavior).
+- move local Windows operations (FS, ffmpeg, Gemini calls) to a dedicated Windows agent;
+- keep widget-facing API stable (`/api/widget/:id/*` + existing SSE behavior);
+- make agent availability mandatory for operational widget flows.
 
-Core decisions:
-- add a single **Agent Control Core** in server-side `core` (signals, sessions, auth, bus bridge);
-- use **gRPC + Protobuf** for server-agent communication;
-- use **JWT-only agent auth** (enrollment + refresh/access + replay protection);
-- support autonomous **agent self-update** with signed artifacts and rollback;
-- use **Infisical only as secret provider**, not as identity provider.
+Core decisions for current implementation:
+- build a monorepo with three projects: `server`, `agent`, `protocol`;
+- implement one production phase first (`Phase A: Agent-first MVP`);
+- use gRPC + Protobuf for server-agent control channel;
+- use separate `agent.db` and baseline JWT auth from day one;
+- postpone command dedup/idempotency and autonomous self-update to later phases.
 
 ## 2) Target Architecture
 
@@ -23,16 +23,20 @@ Core decisions:
 
 - `apps/server`:
   - Astro UI + widget APIs;
-  - Agent Control Core;
-  - DB persistence and widget event bridge.
+  - Agent Control Core (sessions, jobs, bridge);
+  - persistence in `core.db` + `agent.db`.
 - `apps/agent-windows` (Rust service):
   - connector runtime;
-  - local connectors (`health`, `fs`, `transcribe`);
-  - local execution of `ffmpeg` and `gemini-cli`.
+  - v1 connectors: `health`, `transcribe`;
+  - local execution of `ffmpeg` and Gemini requests.
+- `packages/protocol`:
+  - protobuf schemas;
+  - generated TS/Rust artifacts;
+  - protocol versioning rules.
 - Traefik:
   - TLS termination;
   - HTTP/2 routing for gRPC;
-  - route isolation and TLS for `/api/agent/*`.
+  - route isolation for `/api/agent/*`.
 
 ### 2.2 Compatibility boundary
 
@@ -42,15 +46,24 @@ Core decisions:
 - no direct browser-to-agent calls.
 - transcribe widget handlers become orchestration layer over agent jobs.
 
+### 2.3 Operational policy (agent required)
+
+- server considers agent as required runtime dependency for transcribe flow;
+- production mode (`NODE_ENV=production`): when no online/authorized agent session exists:
+  - transcribe jobs are not started,
+  - API returns controlled `agent_offline` error,
+  - shell/widget can show non-operational state.
+- development mode (`NODE_ENV=development`): strict gate is disabled; site is available with a mock agent for developer workflows.
+- no local real transcribe fallback in production for Phase A.
+
 ## 3) Monorepo Structure
 
-Use Yarn workspaces while preserving existing package manager setup.
+Use Yarn workspaces while preserving Yarn 4 setup.
 
 Proposed layout:
-- `apps/server` (existing project moved/adapted);
+- `apps/server` (current Astro project moved/adapted);
 - `apps/agent-windows` (Rust project);
-- `packages/protocol` (protobuf schemas + generated artifacts);
-- `packages/security` (shared JWT/replay policy helpers for server).
+- `packages/protocol` (protobuf schemas + generated artifacts).
 
 Minimum workspace requirements:
 - root `package.json` contains workspaces;
@@ -59,54 +72,45 @@ Minimum workspace requirements:
 
 ## 4) Agent Control Core (Server)
 
-## 4.1 Responsibilities
+### 4.1 Responsibilities (Phase A scope)
 
 One central server module handles:
-- **Signal Ingest**: receives agent events (`progress`, `done`, `error`, `log`, `health`);
-- **Session Manager**: `connected`, `heartbeat`, `expired`, `revoked`;
-- **Auth Manager**: enrollment, JWT validation, token rotation, replay defense;
-- **Idempotency Manager**: enforces `command_id` dedup and at-most-once command processing;
-- **Widget Event Bridge**: normalizes events and publishes them into internal bus for widget pipelines.
-- **Update State Manager**: tracks agent version drift and update-required signals.
+- **Signal Ingest**: receives agent events (`progress`, `token`, `done`, `error`, `health`);
+- **Session Manager**: `connected`, `heartbeat`, `disconnected`, `expired`;
+- **Auth Manager**: enrollment, JWT validation, refresh token rotation;
+- **Job Manager**: `queued -> running -> done|error|timeout|canceled`;
+- **Widget Event Bridge**: maps agent events to existing widget SSE contract.
 
-## 4.2 Storage model (separate DBs)
+Explicitly out of scope in Phase A:
+- command dedup / replay-safe idempotency;
+- update state manager and rollout orchestration.
+
+### 4.2 Storage model (separate DBs)
 
 Use two SQLite databases:
-- `data/agent-auth.db` (security/session source of truth),
-- `data/core.db` (business/runtime source of truth).
+- `data/core.db` (business/widget runtime state),
+- `data/agent.db` (agent identity, sessions, auth, event log).
 
-`agent-auth.db` tables:
+`agent.db` minimum tables:
 - `agent_registry`
   - `agent_id` (PK), `display_name`, `status`, `capabilities_json`, `version`, `created_at`, `updated_at`.
-- `agent_refresh_tokens`
-  - `id` (PK), `agent_id`, `token_hash`, `issued_at`, `expires_at`, `rotated_from_id`, `revoked_at`, `revoke_reason`.
-- `agent_jti_replay`
-  - `jti` (PK), `agent_id`, `expires_at`, `seen_at`.
-- `agent_revocations`
-  - `id` (PK), `agent_id`, `subject_type` (`refresh`/`session`), `subject_id`, `reason`, `created_at`.
-- `agent_auth_audit`
-  - `id` (PK), `agent_id`, `event_type`, `payload_json`, `created_at`.
-
-`core.db` tables:
 - `agent_sessions`
-  - `session_id` (PK), `agent_id`, `status`, `connected_at`, `last_heartbeat_at`, `expired_at`, `revoked_at`, `disconnect_reason`.
+  - `session_id` (PK), `agent_id`, `status`, `connected_at`, `last_heartbeat_at`, `disconnected_at`, `disconnect_reason`.
+- `agent_tokens`
+  - `id` (PK), `agent_id`, `token_type` (`refresh`), `token_hash`, `issued_at`, `expires_at`, `revoked_at`.
 - `agent_events`
   - `id` (PK), `agent_id`, `session_id`, `job_id`, `event_type`, `payload_json`, `received_at`.
-- `agent_job_links`
-  - `job_id` (PK), `widget_id`, `agent_id`, `session_id`, `state`, `command_id`, `created_at`, `updated_at`.
-- `agent_update_state`
-  - `agent_id` (PK), `current_version`, `target_version`, `update_required`, `reason`, `notified_at`, `acknowledged_at`, `updated_at`.
-- `agent_command_dedup`
-  - `command_id` (PK), `agent_id`, `job_id`, `first_seen_at`, `status`, `result_hash`.
+
+`core.db` minimum tables:
+- `agent_jobs`
+  - `job_id` (PK), `widget_id`, `agent_id`, `session_id`, `state`, `error_code`, `error_message`, `created_at`, `updated_at`.
 
 Notes:
 - timestamps in UTC ISO format;
 - `payload_json` stored as text JSON;
-- scheduled cleanup for expired `agent_jti_replay` rows;
-- scheduled cleanup for old `agent_command_dedup` rows;
 - indexes on `agent_id`, `session_id`, `job_id`, `received_at`, `expires_at`.
 
-## 4.3 Event bridge contract
+### 4.3 Event bridge contract
 
 Internal normalized event shape:
 - `topic` (e.g. `agent:transcribe:{jobId}`),
@@ -117,315 +121,197 @@ Internal normalized event shape:
 
 Bridge behavior:
 - ingest event -> validate -> persist -> publish into `moduleBus`;
-- widget-facing SSE stays unchanged and receives mapped events.
-- update-related agent signals are published to dedicated topics (e.g. `agent:update:{agentId}`) so widgets/shell can show maintenance state.
+- widget-facing SSE stays unchanged and receives mapped events (`progress/token/done/error`).
 
 ## 5) Server ↔ Agent Protocol (gRPC + Protobuf)
 
-## 5.1 Why gRPC/protobuf here
-
-Benefits:
-- strict typed contract shared by Rust and TS;
-- compact payloads for progress-heavy flows;
-- native streaming for long-running jobs;
-- explicit schema evolution/versioning.
-
-Costs:
-- more setup (toolchain, observability, debugging);
-- not browser-facing (kept server-side only).
-
-Conclusion for v1:
-- use gRPC/protobuf for server-agent channel;
-- keep HTTP/SSE for browser APIs.
-
-## 5.2 Traefik compatibility
-
-Traefik can proxy gRPC over HTTP/2.  
-For internal plaintext gRPC, use h2c routing between Traefik and server container.
-
-Mandatory config outcomes:
-- TLS + HTTP/2 enabled on edge;
-- agent routes exposed only over TLS;
-- route isolation for `/api/agent/*`.
-
-## 5.3 Protobuf contracts (v1)
+### 5.1 Phase A protocol scope
 
 Define in `packages/protocol/proto/agent_control.proto`:
-- `AgentConnect` bi-directional stream;
-- `CommandDispatch`;
-- `AgentEvent`;
-- `EventAck`.
-- include update event/command messages:
-  - `AgentUpdateSignal` (agent -> server: update required/available),
-  - `AgentUpdateAcknowledge` (server -> agent: signal accepted),
-  - `AgentUpdateInstruction` (server -> agent: target version/check window),
-  - `AgentUpdateReady` (agent -> server: update package downloaded and verified),
-  - `AgentUpdateResult` (agent -> server: update success/rollback/failure).
+- `AgentControlService.Connect(stream AgentEnvelope) returns (stream ServerEnvelope)`;
+- command/event types only for:
+  - `health`,
+  - `transcribe.start`,
+  - `transcribe.cancel`,
+  - `progress/token/done/error`.
 
-Core message fields:
-- common envelope: `protocol_version`, `agent_id`, `session_id`, `command_id`, `job_id`, `timestamp`;
-- command/event payload as typed oneof;
-- error envelope: `code`, `message`, `retryable`, `details`.
-- update signal payload fields:
-  - `current_version`, `min_supported_version`, `target_version`, `update_required`, `reason`.
-  - update execution payload fields:
-    - `artifact_url`, `artifact_sha256`, `signature`, `signature_key_id`, `install_mode`, `rollback_supported`.
-
-## 5.4 Proto format (baseline)
-
-```proto
-syntax = "proto3";
-package julia.agent.v1;
-
-service AgentControlService {
-  rpc Connect(stream AgentEnvelope) returns (stream ServerEnvelope);
-}
-
-service AgentAuthService {
-  rpc Enroll(EnrollRequest) returns (EnrollResponse);
-  rpc Refresh(RefreshRequest) returns (RefreshResponse);
-  rpc Revoke(RevokeRequest) returns (RevokeResponse);
-}
-
-message AgentEnvelope {
-  string protocol_version = 1;
-  string agent_id = 2;
-  string session_id = 3;
-  string command_id = 4;
-  string job_id = 5;
-  int64 timestamp_unix_ms = 6;
-  string access_jwt = 7;
-  oneof payload {
-    AgentEvent event = 10;
-    EventAck ack = 11;
-    AgentUpdateSignal update_signal = 12;
-    AgentUpdateReady update_ready = 13;
-    AgentUpdateResult update_result = 14;
-  }
-}
-
-message ServerEnvelope {
-  string protocol_version = 1;
-  string session_id = 2;
-  string command_id = 3;
-  int64 timestamp_unix_ms = 4;
-  oneof payload {
-    CommandDispatch command = 10;
-    AgentUpdateInstruction update_instruction = 11;
-    AgentUpdateAcknowledge update_ack = 12;
-    ErrorEnvelope error = 13;
-  }
-}
-```
-
-## 5.5 Protocol version policy
-
-Compatibility rules:
-- every envelope must contain `protocol_version`;
-- server supports `current` and one `previous` protocol minor version;
-- incompatible major version mismatch:
-  - server responds with typed error (`UNSUPPORTED_PROTOCOL`),
-  - agent is marked `degraded`,
-  - update flow is triggered (`update_required=true`).
-
-Command safety rules:
-- every command from server includes unique `command_id`;
-- agent must deduplicate `command_id` within retention window and never execute same command twice;
-- repeated delivery for known `command_id` returns prior ack/result (idempotent replay response).
-
-## 6) Authentication & Trust
-
-## 6.1 Identity model
-
-- Agent identity starts from one-time **enrollment token**.
-- On successful enrollment server issues:
-  - `agent_id`,
-  - long-lived `refresh_token`,
-  - short-lived `access_jwt`.
-- All operational calls require `access_jwt`; refresh endpoint rotates tokens.
-
-## 6.2 JWT policy
-
-Short-lived JWT (60-300 sec) for command/event authorization with claims:
-- `iss`,
-- `aud=agent-control`,
+Core envelope fields:
+- `protocol_version`,
 - `agent_id`,
-- `scope`,
-- `exp`,
-- `jti`,
-- optional `job_id`.
+- `session_id`,
+- `job_id`,
+- `timestamp`.
 
-Validation is mandatory on each protected message.
+Reserved for future compatibility:
+- keep optional `command_id` field in schema, but no dedup enforcement in Phase A.
 
-Refresh token policy:
-- stored hashed in DB (`agent_sessions` or dedicated table),
-- stored hashed in `agent-auth.db` (`agent_refresh_tokens`),
-- rotated on refresh,
-- immediate revoke supported from server UI/API.
+### 5.2 Protocol version policy
 
-Secret and token hygiene:
-- no raw refresh/access tokens are persisted in logs, DB, or event payloads;
-- token fingerprints only (hash + short prefix for diagnostics);
-- JWT signing keys are versioned (`kid`) and rotated on schedule;
-- per-agent `revoke-all` invalidates all active refresh token chains.
+- every envelope must include `protocol_version`;
+- server supports one current protocol version in Phase A;
+- incompatible version returns typed error and session is rejected.
 
-## 6.3 Replay protection
+## 6) Authentication & Trust (Phase A)
 
-- keep `jti` cache with TTL >= token lifetime;
-- reject duplicate `jti`;
-- store security events in audit logs.
+### 6.1 Identity model
 
-## 6.4 Infisical role
+- agent identity starts from one-time enrollment token;
+- on successful enrollment server issues:
+  - `agent_id`,
+  - `refresh_token`,
+  - short-lived `access_jwt`.
+- operational control channel requires `access_jwt`;
+- refresh endpoint rotates refresh token.
 
-Infisical usage:
-- store/rotate server secrets (JWT signing key refs, enrollment secrets, refresh token pepper);
-- store agent bootstrap secrets if needed.
+### 6.2 Server API (HTTP, JSON)
 
-Infisical is **not** used as direct auth/identity provider.
-
-## 6.5 Server API (JWT-first)
-
-Public agent auth API (HTTP, JSON):
 - `POST /api/agent/enroll`
-  - request: `enrollment_token`, `device_info`, `agent_version`, `capabilities`.
+  - request: `enrollment_token`, `device_info`, `agent_version`, `capabilities`;
   - response: `agent_id`, `access_jwt`, `refresh_token`, `expires_in`.
 - `POST /api/agent/token/refresh`
-  - request: `agent_id`, `refresh_token`.
+  - request: `agent_id`, `refresh_token`;
   - response: rotated `access_jwt`, rotated `refresh_token`, `expires_in`.
 - `POST /api/agent/token/revoke`
-  - request: `agent_id`, `refresh_token` (or revoke-all flag).
+  - request: `agent_id`, `refresh_token`;
   - response: `revoked: true`.
 
-Agent control ingress (gRPC over HTTP/2):
+Agent control ingress:
 - `POST /api/agent/grpc` (Traefik route to gRPC service; browser never calls it).
 
-Operational API (server internal/admin):
-- `GET /api/agent/status/:agentId`
-- `POST /api/agent/update/:agentId/instruct`
-- `POST /api/agent/update/:agentId/ack`
+Security hygiene:
+- refresh tokens stored hashed only;
+- no plaintext auth tokens in logs/DB payloads.
 
-## 7) Rust Agent (Modular)
+### 6.3 Token storage policy
 
-## 7.1 Agent runtime
+- `access_jwt`:
+  - short-lived token for control channel;
+  - stored in agent process memory only;
+  - never persisted to disk.
+- `refresh_token`:
+  - persisted on agent host in secure Windows storage (DPAPI/Credential Manager);
+  - never written to plaintext config files;
+  - rotated on every refresh call.
+- server persistence:
+  - store only `hash(refresh_token)` and metadata in `agent.db`;
+  - never store raw refresh/access token values.
+
+### 6.4 Authorization lifecycle (install -> runtime)
+
+1. Agent starts with one-time `enrollment_token`.
+2. Agent calls `POST /api/agent/enroll`.
+3. Server returns `agent_id`, `access_jwt`, `refresh_token`, `expires_in`.
+4. Agent stores only `refresh_token` in secure Windows storage.
+5. Agent opens/maintains gRPC stream using `access_jwt`.
+6. Before access expiry agent calls `POST /api/agent/token/refresh`.
+7. Server rotates refresh token and returns new token pair.
+8. Agent updates secure storage with the new `refresh_token` and keeps working.
+
+Restart behavior:
+- on restart, agent loads stored `refresh_token`, requests fresh `access_jwt`, and reconnects;
+- if refresh is revoked/expired, agent cannot connect and must re-enroll.
+
+Environment behavior:
+- production: full JWT flow is mandatory;
+- development: mock-agent mode may bypass live token flow.
+
+## 7) Rust Agent (Phase A)
+
+### 7.1 Agent runtime
 
 - Windows service process;
-- connector registry trait with capability discovery;
-- command dispatcher with cancellation and retries;
-- structured logs and heartbeat loop.
-- version checker loop (local binary version vs server policy) with periodic update signaling.
+- reconnect loop and heartbeat;
+- structured logs;
+- command dispatcher for one active transcribe job.
 
-## 7.2 v1 connectors
+### 7.2 Connectors in Phase A
 
 - `connector.health`
   - `ping`, `version`, `capabilities`.
-- `connector.fs`
-  - list/read within allowed roots only.
 - `connector.transcribe`
   - validate selection;
-  - merge/convert by `ffmpeg`;
-  - run `gemini-cli`;
+  - merge/convert audio via `ffmpeg`;
+  - call Gemini;
   - save `.txt`;
   - cleanup temp files on success/failure/cancel.
 
-## 7.3 Safety constraints
+### 7.3 Safety constraints
 
 - hard path allowlist (e.g. `C:\Users\julia\OneDrive`);
 - no arbitrary command execution;
 - cancellation must terminate child processes and cleanup temp artifacts.
 
-## 7.4 Agent self-update flow
+## 8) Phases
 
-Goal:
-- agent updates itself automatically when a new approved version is published.
+### Phase A (current, implementation target)
 
-Mandatory flow:
-1. Agent sends `AgentUpdateSignal` with `current_version`.
-2. Server compares with rollout policy (`target_version`, `min_supported_version`).
-3. If update required, server sends `AgentUpdateInstruction`.
-4. Agent downloads artifact from server-approved source.
-5. Agent verifies checksum (`sha256`) and detached signature.
-6. Agent performs staged install:
-   - place new binary in versioned folder,
-   - update service pointer/config,
-   - restart service.
-7. Agent reconnects and reports `AgentUpdateResult`.
-8. On failed startup/health check, automatic rollback to previous binary.
+Single end-to-end delivery phase:
+- migrate to monorepo: `apps/server` + `apps/agent-windows` + `packages/protocol`;
+- implement server Agent Control Core with sessions/jobs/bridge;
+- implement separate `agent.db` and baseline JWT auth;
+- implement Windows agent runtime (`health` + `transcribe`);
+- route transcribe widget flow through agent;
+- enforce environment-based policy:
+  - production: `agent required`;
+  - development: mock-agent mode allowed.
 
-Safety rules:
-- no unsigned or hash-mismatched package can be installed;
-- update is blocked if agent is running active transcribe job;
-- rollout supports canary groups (`agent_id` allowlist);
-- server can set maintenance mode if version < `min_supported_version`.
+Definition of done:
+- transcribe E2E works via agent with existing widget SSE contract;
+- in production, when agent is offline, transcribe API returns controlled `agent_offline` error;
+- in development, site boots and widget flows can run with mock-agent mode;
+- temp file cleanup is preserved on success/failure/cancel;
+- CI passes for `server`, `protocol`, `agent`.
 
-## 8) Migration Phases
+### Phase B (planned next)
 
-Phase 0:
-- create protocol package and initial proto schema;
-- add Agent Control Core skeleton in server;
-- add DB migrations for `agent-auth.db` and `core.db`.
+- command dedup/idempotency (`command_id` enforcement);
+- richer reconnect semantics and replay handling;
+- multi-agent routing/scheduling.
 
-Phase 1:
-- implement enrollment + JWT session/auth manager;
-- implement Rust agent runtime + `health` connector;
-- verify heartbeat/session lifecycle;
-- add update signaling (`AgentUpdateSignal`) and persistence in `agent_update_state`.
+### Phase C (planned later)
 
-Phase 2:
-- implement `fs` connector and widget bridge for fs-related actions;
-- keep old local server paths as fallback.
-
-Phase 3:
-- implement `transcribe` connector end-to-end;
-- route transcribe widget flow through agent jobs.
-
-Phase 4:
-- disable legacy local transcribe execution on server by default;
-- keep explicit rollback flag.
-- add server-side policy gate: agents below `min_supported_version` are marked degraded and can be blocked from new jobs.
-
-Phase 5:
-- enable autonomous self-update in production:
-  - signed release artifacts,
-  - canary rollout,
-  - automatic rollback telemetry and alerting.
+- autonomous agent self-update;
+- signed artifacts, canary rollout, rollback automation;
+- version policy gates (`min_supported_version`, maintenance modes).
 
 ## 9) Testing Strategy
 
 Contract:
-- protobuf compatibility tests between TS and Rust generated code.
+- protobuf compatibility tests between TS and Rust artifacts.
 
 Security:
-- enrollment token validation tests;
+- enrollment token validation;
 - invalid/expired JWT rejection;
-- replay (`jti`) rejection.
-- refresh rotation and revoked-token rejection.
-- cross-DB consistency checks (`agent-auth.db` vs `core.db` mapping by `agent_id`).
-- no-plaintext-token persistence checks in audit/event logs.
+- refresh rotation and revoked-token rejection;
+- no-plaintext-token persistence checks.
 
-Session:
-- connect, heartbeat, reconnect, expiration, revocation.
-- update notification lifecycle: signal received -> persisted -> published -> acknowledged.
-- duplicate command delivery: same `command_id` does not execute twice.
+Session/job:
+- connect, heartbeat, reconnect;
+- transcribe lifecycle: `queued -> running -> done/error/timeout/canceled`.
 
 Integration:
-- transcribe job: command -> progress -> done/error -> widget SSE mapping.
-- idempotent replay: repeated `CommandDispatch` returns same ack/result semantics.
+- transcribe job path: command -> progress/token -> done/error -> widget SSE mapping.
 
 Failure:
-- agent offline during active job;
-- duplicate event delivery;
-- delayed ack and retry idempotency.
-- stale agent version: new jobs denied when `update_required=true` and policy is strict.
-- bad update artifact/signature mismatch: install denied and reported.
-- service restart failure after update: rollback executed and reported.
-- protocol major mismatch: explicit reject path + degraded mode + update-required state.
+- agent offline before job start (`agent_offline`);
+- agent disconnect during active job (`agent_disconnect`);
+- ffmpeg/gemini failures are mapped to stable error codes.
 
-## 10) Operational Rollback
+## 10) CI/CD Notes
 
-Rollback switch:
-- feature flag in server: `AGENT_TRANSCRIBE_ENABLED=false` (legacy local path active).
+CI (mandatory):
+- workspace checks for `server` (`lint`, `typecheck`, `test`, `build`);
+- protocol generation determinism check;
+- Rust agent build/test on Windows runner.
 
-Emergency procedure:
-- disable agent routing;
-- keep widget endpoints and UI stable;
-- restore local transcribe path without client changes.
+CD:
+- remains a next step after Phase A stabilization.
+
+## 11) Operational Rollback
+
+Emergency rollback target in this version:
+- temporary switch back to local transcribe path is implementation-defined and not default;
+- normal mode remains agent-required.
+
+Note:
+- once local fallback exists as an emergency path, it must be guarded by explicit runtime flag and disabled by default.
