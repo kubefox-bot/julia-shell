@@ -67,6 +67,10 @@ yarn start
 
 Это scaffold-уровень, не production-ready runtime-контур.
 
+## Agent Architecture Plan
+- migration plan for dedicated server + Rust agent:
+  - `docs/agent-architecture-plan.md`
+
 ## Windows target
 - Host: `192.168.100.102`
 - User: `sshuser`
