@@ -5,7 +5,7 @@ on:
     paths:
       - 'apps/agent/**'
       - 'packages/protocol/**'
-      - '.github/workflows/agent-release.yml'
+      - '.github/workflows/agent-publish.yml'
       - '.github/workflows/agent-pr-checks.yml'
       - 'package.json'
       - 'yarn.lock'

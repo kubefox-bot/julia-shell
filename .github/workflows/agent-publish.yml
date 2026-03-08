@@ -1,4 +1,4 @@
-name: Agent Release
+name: Agent Publish
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     paths:
       - 'apps/agent/**'
       - 'packages/protocol/**'
-      - '.github/workflows/agent-release.yml'
+      - '.github/workflows/agent-publish.yml'
   workflow_dispatch:
 
 permissions:

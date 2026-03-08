@@ -1,4 +1,4 @@
-name: Container Publish
+name: Server Publish
 
 on:
   push:
@@ -9,40 +9,11 @@ on:
       - 'package.json'
       - 'yarn.lock'
       - '.yarnrc.yml'
-      - '.github/workflows/container-publish.yml'
+      - '.github/workflows/server-publish.yml'
   workflow_dispatch:
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Activate Yarn 4.9.1
-        run: |
-          corepack prepare yarn@4.9.1 --activate
-          yarn --version
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Typecheck server
-        run: yarn workspace @julia/server typecheck
-
-      - name: Build server
-        run: yarn workspace @julia/server build
-
   publish:
-    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: read
