@@ -1,6 +1,16 @@
 import { getTranscribeText } from '../i18n'
 import type { BrowserEntry } from './model/types'
 
+const TRANSCRIPT_SPEAKER_LINE_PATTERN = /^(\s*\[\d{2}:\d{2}:\d{2}\]\s*)([^:\n—-]+?)(\s*(?::|—|-)\s*)(.*)$/u
+
+type TranscriptSpeakerMatch = {
+  prefix: string
+  speakerLabel: string
+  speakerKey: string
+  separator: string
+  rest: string
+}
+
 export function parseSseEventChunk(rawEvent: string) {
   const lines = rawEvent.split('\n')
   let eventName = 'message'
@@ -96,4 +106,74 @@ export function upsertEntry(entries: BrowserEntry[], nextEntry: BrowserEntry) {
     if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
     return a.name.localeCompare(b.name, 'ru')
   })
+}
+
+export function normalizeSpeakerKey(rawSpeaker: string) {
+  return rawSpeaker.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+export function normalizeTranscriptText(text: string) {
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]*((?:\[\d{2}:\d{2}:\d{2}\]))/g, '\n$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimStart()
+}
+
+function matchTranscriptSpeakerLine(line: string): TranscriptSpeakerMatch | null {
+  const match = line.match(TRANSCRIPT_SPEAKER_LINE_PATTERN)
+  if (!match) {
+    return null
+  }
+
+  const [, prefix, speakerLabel, separator, rest] = match
+  const normalizedSpeaker = speakerLabel.trim()
+  if (!normalizedSpeaker) {
+    return null
+  }
+
+  return {
+    prefix,
+    speakerLabel: normalizedSpeaker,
+    speakerKey: normalizeSpeakerKey(normalizedSpeaker),
+    separator,
+    rest
+  }
+}
+
+export function extractTranscriptSpeakers(text: string) {
+  const uniqueByKey = new Map<string, string>()
+  const lines = normalizeTranscriptText(text).split('\n')
+
+  for (const line of lines) {
+    const match = matchTranscriptSpeakerLine(line)
+    if (!match || uniqueByKey.has(match.speakerKey)) {
+      continue
+    }
+    uniqueByKey.set(match.speakerKey, match.speakerLabel)
+  }
+
+  return Array.from(uniqueByKey.entries()).map(([speakerKey, speakerLabel]) => ({
+    speakerKey,
+    speakerLabel
+  }))
+}
+
+export function applySpeakerAliasesToTranscript(text: string, aliases: Record<string, string>) {
+  const normalizedText = normalizeTranscriptText(text)
+  const lines = normalizedText.split('\n')
+
+  return lines.map((line) => {
+    const match = matchTranscriptSpeakerLine(line)
+    if (!match) {
+      return line
+    }
+
+    const alias = aliases[match.speakerKey]?.trim()
+    if (!alias) {
+      return line
+    }
+
+    return `${match.prefix}${alias}${match.separator}${match.rest}`
+  }).join('\n')
 }

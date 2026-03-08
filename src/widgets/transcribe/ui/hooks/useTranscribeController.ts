@@ -1,21 +1,28 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,
   findReadableAudioPath,
   formatSelectedAudioFiles,
-  isSupportedAudioEntry,
-  parseSseEventChunk
+  isSupportedAudioEntry
 } from '../helpers'
+import {
+  fetchSpeakerAliases,
+  fetchTranscribeFolder,
+  fetchTranscribeSettings,
+  openTranscribeStream,
+  readTranscript,
+  saveSpeakerAliases,
+  saveTranscript,
+  saveTranscribeSettings
+} from '../lib/transcribe-api'
+import { toSpeakerAliasPayload, toSpeakerAliasRecord } from '../lib/speaker-aliases'
+import { consumeTranscribeStream } from '../lib/transcribe-stream'
 import { useTranscribeStore, useTranscribeStoreApi } from '../model/store'
-import type { BrowserEntry, TranscribeSettingsPayload } from '../model/types'
-
-type LoadPathOptions = {
-  allowEmpty?: boolean
-  preserveSelection?: string[]
-  silent?: boolean
-}
+import type { BrowserEntry, SpeakerAliasEntry, StatusDescriptor } from '../model/types'
+import type { LoadPathOptions } from './types'
+import { useTypewriterReveal } from './useTypewriterReveal'
 
 export function useTranscribeController(props: WidgetRenderProps) {
   const store = useTranscribeStoreApi()
@@ -34,77 +41,32 @@ export function useTranscribeController(props: WidgetRenderProps) {
   const pathPickerOpen = useTranscribeStore((state) => state.pathPickerOpen)
   const resultText = useTranscribeStore((state) => state.resultText)
   const actionsLocked = useTranscribeStore((state) => state.actionsLocked)
+  const speakerAliases = useTranscribeStore((state) => state.speakerAliases)
+  const speakerAliasesSaving = useTranscribeStore((state) => state.speakerAliasesSaving)
   const settingsOpen = useTranscribeStore((state) => state.settingsOpen)
   const settingsSaving = useTranscribeStore((state) => state.settingsSaving)
   const geminiModel = useTranscribeStore((state) => state.geminiModel)
   const apiKeyValue = useTranscribeStore((state) => state.apiKeyValue)
   const apiKeyEditable = useTranscribeStore((state) => state.apiKeyEditable)
 
-  const typewriterQueueRef = useRef('')
-  const typewriterTimerRef = useRef<number | null>(null)
-  const resultTextRef = useRef('')
-  const entriesRef = useRef<BrowserEntry[]>([])
   const readableAudioPath = findReadableAudioPath(selectedAudioFiles, entries)
 
-  const setStatus = useCallback((key: typeof status.key, vars?: Record<string, string | number>) => {
+  const setStatus = useCallback((key: StatusDescriptor['key'], vars?: Record<string, string | number>) => {
     store.getState().setStatus({ key, vars })
   }, [store])
 
-  useEffect(() => {
-    resultTextRef.current = resultText
-  }, [resultText])
-
-  useEffect(() => {
-    entriesRef.current = entries
-  }, [entries])
-
-  useEffect(() => {
-    return () => {
-      if (typewriterTimerRef.current !== null) {
-        window.clearTimeout(typewriterTimerRef.current)
-        typewriterTimerRef.current = null
-      }
+  const typewriter = useTypewriterReveal({
+    onChunk: (chunk) => {
+      store.getState().setResultText((prev) => prev + chunk)
+    },
+    onComplete: () => {
+      store.getState().setActionsLocked(false)
     }
-  }, [])
+  })
 
   useEffect(() => {
     store.getState().setSelectedTranscriptPath(findMatchingTranscriptPath(readableAudioPath, entries))
   }, [entries, readableAudioPath, store])
-
-  const runTypewriter = useCallback(() => {
-    if (!typewriterQueueRef.current.length) {
-      typewriterTimerRef.current = null
-      store.getState().setActionsLocked(false)
-      return
-    }
-
-    const remaining = typewriterQueueRef.current.length
-    const batchSize = remaining > 220 ? 14 : remaining > 120 ? 10 : remaining > 40 ? 6 : 3
-    const chunk = typewriterQueueRef.current.slice(0, batchSize)
-    typewriterQueueRef.current = typewriterQueueRef.current.slice(batchSize)
-
-    store.getState().setResultText((prev) => {
-      const next = prev + chunk
-      resultTextRef.current = next
-      return next
-    })
-    typewriterTimerRef.current = window.setTimeout(runTypewriter, 22)
-  }, [store])
-
-  const ensureTypewriterRunning = useCallback(() => {
-    if (typewriterTimerRef.current !== null) {
-      return
-    }
-    typewriterTimerRef.current = window.setTimeout(runTypewriter, 22)
-  }, [runTypewriter])
-
-  const stopTypewriter = useCallback(() => {
-    if (typewriterTimerRef.current !== null) {
-      window.clearTimeout(typewriterTimerRef.current)
-      typewriterTimerRef.current = null
-    }
-    typewriterQueueRef.current = ''
-  }, [])
 
   const loadPathEntries = useCallback(async (inputPath: string, options?: LoadPathOptions) => {
     const value = inputPath.trim()
@@ -119,23 +81,13 @@ export function useTranscribeController(props: WidgetRenderProps) {
     }
 
     try {
-      const response = await fetch('/api/widget/com.yulia.transcribe/fs-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: value })
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to read path.')
-      }
-
-      const nextEntries = data.entries as BrowserEntry[]
+      const data = await fetchTranscribeFolder(value)
+      const nextEntries = data.entries
       store.setState({
         entries: nextEntries,
-        browsePath: data.path as string,
-        selectedFolderPath: data.path as string,
-        recentFolders: Array.isArray(data.recentFolders) ? data.recentFolders as string[] : [],
+        browsePath: data.path,
+        selectedFolderPath: data.path,
+        recentFolders: data.recentFolders,
         selectedAudioFiles: []
       })
 
@@ -165,6 +117,20 @@ export function useTranscribeController(props: WidgetRenderProps) {
     }
   }, [setStatus, store])
 
+  const loadSpeakerAliases = useCallback(async () => {
+    try {
+      const aliases = await fetchSpeakerAliases()
+      const nextAliases = toSpeakerAliasRecord(aliases)
+      store.getState().setSpeakerAliases(nextAliases)
+      return nextAliases
+    } catch (error) {
+      setStatus('statusError', {
+        message: error instanceof Error ? error.message : 'Speaker aliases load failed.'
+      })
+      return store.getState().speakerAliases
+    }
+  }, [setStatus, store])
+
   useEffect(() => {
     let cancelled = false
 
@@ -172,18 +138,14 @@ export function useTranscribeController(props: WidgetRenderProps) {
       setStatus('statusSettingsLoading')
 
       try {
-        const response = await fetch('/api/widget/com.yulia.transcribe/settings')
-        const data = await response.json()
-        if (!response.ok) {
-          throw new Error(data?.error || 'Failed to load settings.')
-        }
-
+        const settings = await fetchTranscribeSettings()
         if (cancelled) {
           return
         }
 
-        store.getState().applySettingsPayload(data as TranscribeSettingsPayload)
-        await loadPathEntries((data as TranscribeSettingsPayload).recentFolders[0] ?? '', { allowEmpty: true })
+        store.getState().applySettingsPayload(settings)
+        await loadSpeakerAliases()
+        await loadPathEntries(settings.recentFolders[0] ?? '', { allowEmpty: true })
       } catch (error) {
         if (!cancelled) {
           setStatus('statusError', {
@@ -198,18 +160,17 @@ export function useTranscribeController(props: WidgetRenderProps) {
     return () => {
       cancelled = true
     }
-  }, [loadPathEntries, setStatus, store])
+  }, [loadPathEntries, loadSpeakerAliases, setStatus, store])
 
   const openSetupView = useCallback(() => {
-    stopTypewriter()
+    typewriter.stop()
     store.getState().resetLoader()
     store.getState().setResultVisible(false)
     store.getState().setActionsLocked(false)
-  }, [stopTypewriter, store])
+  }, [store, typewriter])
 
   const openTranscriptResult = useCallback((transcript: string, fileName: string, skipAnimation: boolean) => {
-    stopTypewriter()
-    resultTextRef.current = transcript
+    typewriter.stop()
     store.getState().setResultText(skipAnimation ? transcript : '')
     store.getState().setLastTranscriptFileName(fileName)
     store.getState().setActionsLocked(!skipAnimation)
@@ -219,9 +180,8 @@ export function useTranscribeController(props: WidgetRenderProps) {
       return
     }
 
-    typewriterQueueRef.current = transcript
-    ensureTypewriterRunning()
-  }, [ensureTypewriterRunning, stopTypewriter, store])
+    typewriter.enqueue(transcript)
+  }, [store, typewriter])
 
   const onTranscribe = useCallback(async () => {
     if (!selectedFolderPath) {
@@ -234,7 +194,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
       return
     }
 
-    stopTypewriter()
+    typewriter.stop()
     store.setState({
       loading: true,
       isTranscribing: true,
@@ -245,114 +205,58 @@ export function useTranscribeController(props: WidgetRenderProps) {
       actionsLocked: true
     })
     setStatus('statusTranscribing')
-    resultTextRef.current = ''
 
     try {
-      const response = await fetch('/api/widget/com.yulia.transcribe/transcribe-stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          folderPath: selectedFolderPath,
-          filePaths: selectedAudioFiles
-        })
+      const stream = await openTranscribeStream({
+        folderPath: selectedFolderPath,
+        filePaths: selectedAudioFiles
       })
 
-      if (!response.ok || !response.body) {
-        const data = await response.json().catch(() => null)
-        throw new Error(data?.error || 'Transcription failed.')
-      }
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let finished = false
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) {
-          break
-        }
-
-        buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
-
-        while (true) {
-          const boundary = buffer.indexOf('\n\n')
-          if (boundary === -1) {
-            break
+      await consumeTranscribeStream(stream, {
+        onProgress: (percent, stage) => {
+          store.getState().updateProgress(Math.max(0, Math.min(100, Math.round(percent))), stage)
+        },
+        onToken: (text) => {
+          if (!text) {
+            return
           }
 
-          const chunk = buffer.slice(0, boundary)
-          buffer = buffer.slice(boundary + 2)
-          const parsed = parseSseEventChunk(chunk)
-          if (!parsed) {
-            continue
+          setStatus('statusTyping')
+          typewriter.enqueue(text)
+        },
+        onDone: async ({ transcript, savePath }) => {
+          if (transcript) {
+            typewriter.stop()
+            store.getState().setResultText(transcript)
           }
 
-          if (parsed.eventName === 'progress') {
-            const percent = typeof parsed.payload.percent === 'number' ? parsed.payload.percent : 0
-            const stage = typeof parsed.payload.stage === 'string' ? parsed.payload.stage : ''
-            store.getState().updateProgress(Math.max(0, Math.min(100, Math.round(percent))), stage)
-            continue
+          if (savePath) {
+            const fileName = savePath.split(/[\\/]/).pop() ?? savePath
+            store.setState({
+              lastTranscriptFileName: fileName,
+              selectedTranscriptPath: savePath
+            })
+            setStatus('statusTranscriptionDone', { file: fileName })
+          } else {
+            setStatus('statusTranscriptionDoneGeneric')
           }
 
-          if (parsed.eventName === 'token') {
-            const text = typeof parsed.payload.text === 'string' ? parsed.payload.text : ''
-            if (text) {
-              typewriterQueueRef.current += text
-              setStatus('statusTyping')
-              ensureTypewriterRunning()
-            }
-            continue
-          }
+          store.setState({
+            isTranscribing: false,
+            progress: 100,
+            progressStage: 'progressDone',
+            actionsLocked: false
+          })
 
-          if (parsed.eventName === 'done') {
-            finished = true
-            const finalTranscript = typeof parsed.payload.transcript === 'string' ? parsed.payload.transcript : ''
-            const savePath = typeof parsed.payload.savePath === 'string' ? parsed.payload.savePath : ''
-
-            if (finalTranscript) {
-              const known = resultTextRef.current + typewriterQueueRef.current
-              if (finalTranscript.startsWith(known)) {
-                typewriterQueueRef.current += finalTranscript.slice(known.length)
-              } else {
-                resultTextRef.current = ''
-                store.getState().setResultText('')
-                typewriterQueueRef.current = finalTranscript
-              }
-              ensureTypewriterRunning()
-            }
-
-            if (savePath) {
-              const fileName = savePath.split(/[\\/]/).pop() ?? savePath
-              store.setState({
-                lastTranscriptFileName: fileName,
-                selectedTranscriptPath: savePath
-              })
-              setStatus('statusTranscriptionDone', { file: fileName })
-            } else {
-              setStatus('statusTranscriptionDoneGeneric')
-            }
-
-            store.getState().updateProgress(100, 'progressDone')
-            if (selectedFolderPath) {
-              await loadPathEntries(selectedFolderPath, {
-                allowEmpty: true,
-                preserveSelection: selectedAudioFiles,
-                silent: true
-              })
-            }
-            continue
-          }
-
-          if (parsed.eventName === 'error') {
-            throw new Error(typeof parsed.payload.message === 'string' ? parsed.payload.message : 'Transcription error.')
+          if (selectedFolderPath) {
+            await loadPathEntries(selectedFolderPath, {
+              allowEmpty: true,
+              preserveSelection: selectedAudioFiles,
+              silent: true
+            })
           }
         }
-      }
-
-      if (!finished) {
-        throw new Error('Stream finished without a result.')
-      }
+      })
     } catch (error) {
       store.getState().setActionsLocked(false)
       setStatus('statusError', {
@@ -362,7 +266,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
       store.getState().setLoading(false)
       store.getState().resetLoader()
     }
-  }, [ensureTypewriterRunning, loadPathEntries, selectedAudioFiles, selectedFolderPath, setStatus, stopTypewriter, store])
+  }, [loadPathEntries, selectedAudioFiles, selectedFolderPath, setStatus, store, typewriter])
 
   const onOpenTxt = useCallback(async () => {
     const primarySelectedAudio = readableAudioPath
@@ -376,20 +280,11 @@ export function useTranscribeController(props: WidgetRenderProps) {
     setStatus('statusOpenTxt')
 
     try {
-      const response = await fetch('/api/widget/com.yulia.transcribe/transcript-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceFile: primarySelectedAudio,
-          folderPath: selectedFolderPath,
-          txtPath: selectedTranscriptPath
-        })
+      const data = await readTranscript({
+        sourceFile: primarySelectedAudio,
+        folderPath: selectedFolderPath,
+        txtPath: selectedTranscriptPath
       })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to open .txt file.')
-      }
 
       const txtPath = typeof data.txtPath === 'string' ? data.txtPath : selectedTranscriptPath
       const transcript = typeof data.transcript === 'string' ? data.transcript : ''
@@ -421,15 +316,17 @@ export function useTranscribeController(props: WidgetRenderProps) {
 
   const toggleSelectedAudioFile = useCallback((filePath: string) => {
     const current = store.getState().selectedAudioFiles
+    const currentEntries = store.getState().entries
     const currentIndex = current.findIndex((value) => value.toLowerCase() === filePath.toLowerCase())
+
     if (currentIndex >= 0) {
       const next = [...current]
       next.splice(currentIndex, 1)
-      store.getState().setSelectedAudioFiles(next, entriesRef.current)
+      store.getState().setSelectedAudioFiles(next, currentEntries)
       return false
     }
 
-    store.getState().setSelectedAudioFiles([...current, filePath], entriesRef.current)
+    store.getState().setSelectedAudioFiles([...current, filePath], currentEntries)
     return true
   }, [store])
 
@@ -475,21 +372,12 @@ export function useTranscribeController(props: WidgetRenderProps) {
     store.getState().setSettingsSaving(true)
 
     try {
-      const response = await fetch('/api/widget/com.yulia.transcribe/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          geminiModel,
-          apiKey: apiKeyEditable ? apiKeyValue : undefined
-        })
+      const settings = await saveTranscribeSettings({
+        geminiModel,
+        apiKey: apiKeyEditable ? apiKeyValue : undefined
       })
 
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || 'Failed to save settings.')
-      }
-
-      store.getState().applySettingsPayload(data as TranscribeSettingsPayload)
+      store.getState().applySettingsPayload(settings)
       store.getState().setSettingsOpen(false)
       setStatus('statusSettingsSaved')
     } catch (error) {
@@ -500,6 +388,69 @@ export function useTranscribeController(props: WidgetRenderProps) {
       store.getState().setSettingsSaving(false)
     }
   }, [apiKeyEditable, apiKeyValue, geminiModel, props.locale, setStatus, store])
+
+  const onSaveSpeakerAliases = useCallback(async (entries: SpeakerAliasEntry[]) => {
+    store.getState().setSpeakerAliasesSaving(true)
+
+    try {
+      const aliases = await saveSpeakerAliases(toSpeakerAliasPayload(entries))
+      store.getState().setSpeakerAliases(toSpeakerAliasRecord(aliases))
+      setStatus('statusSpeakerAliasesSaved')
+      return true
+    } catch {
+      setStatus('statusSpeakerAliasesSaveFailed')
+      return false
+    } finally {
+      store.getState().setSpeakerAliasesSaving(false)
+    }
+  }, [setStatus, store])
+
+  const onSaveResult = useCallback(async (transcript: string) => {
+    if (!transcript.trim()) {
+      return false
+    }
+
+    if (!selectedTranscriptPath && !readableAudioPath) {
+      setStatus('statusNoTxt')
+      return false
+    }
+
+    store.getState().setLoading(true)
+
+    try {
+      const data = await saveTranscript({
+        sourceFile: readableAudioPath,
+        folderPath: selectedFolderPath,
+        txtPath: selectedTranscriptPath,
+        transcript
+      })
+
+      const txtPath = typeof data.txtPath === 'string' ? data.txtPath : selectedTranscriptPath
+      if (txtPath) {
+        store.getState().setSelectedTranscriptPath(txtPath)
+        setStatus('statusResultSaved', { file: txtPath })
+      } else {
+        setStatus('statusTranscriptionDoneGeneric')
+      }
+
+      if (selectedFolderPath) {
+        await loadPathEntries(selectedFolderPath, {
+          allowEmpty: true,
+          preserveSelection: selectedAudioFiles,
+          silent: true
+        })
+      }
+
+      return true
+    } catch (error) {
+      setStatus('statusError', {
+        message: error instanceof Error ? error.message : getTranscribeText(props.locale, 'statusResultSaveFailed')
+      })
+      return false
+    } finally {
+      store.getState().setLoading(false)
+    }
+  }, [loadPathEntries, props.locale, readableAudioPath, selectedAudioFiles, selectedFolderPath, selectedTranscriptPath, setStatus, store])
 
   return {
     view: {
@@ -536,11 +487,16 @@ export function useTranscribeController(props: WidgetRenderProps) {
     result: {
       resultText,
       actionsLocked,
+      speakerAliases,
+      speakerAliasesSaving,
       onBack: () => {
         openSetupView()
         setStatus('statusBackToSetup')
       },
-      onCopy
+      onCopy,
+      onLoadSpeakerAliases: loadSpeakerAliases,
+      onSaveSpeakerAliases,
+      onSaveResult
     },
     settings: {
       open: settingsOpen,

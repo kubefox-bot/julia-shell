@@ -7,6 +7,11 @@ export type BrowserEntry = {
   type: 'dir' | 'file'
 }
 
+export type SpeakerAliasEntry = {
+  speakerKey: string
+  aliasName: string
+}
+
 export type TranscribeSettingsPayload = {
   widgetId: string
   envName: string
