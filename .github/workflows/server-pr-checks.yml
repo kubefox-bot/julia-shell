@@ -7,7 +7,17 @@ on:
       - 'package.json'
       - 'yarn.lock'
       - '.yarnrc.yml'
-      - '.github/workflows/server-publish.yml'
+      - '.github/workflows/server-release.yml'
+      - '.github/workflows/server-pr-checks.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/server/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - '.github/workflows/server-release.yml'
       - '.github/workflows/server-pr-checks.yml'
   workflow_dispatch:
 
@@ -22,10 +32,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache day key
+        id: cache-day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '24'
+
+      - name: Yarn/NPM dependencies cache (1 day)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn/berry/cache
+            .yarn/cache
+            .yarn/install-state.gz
+            node_modules
+          key: node-yarn-${{ runner.os }}-${{ steps.cache-day.outputs.day }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            node-yarn-${{ runner.os }}-
 
       - name: Enable Corepack
         run: corepack enable

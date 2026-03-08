@@ -1,4 +1,4 @@
-name: Server Publish
+name: Server Release
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - 'package.json'
       - 'yarn.lock'
       - '.yarnrc.yml'
-      - '.github/workflows/server-publish.yml'
+      - '.github/workflows/server-release.yml'
   workflow_dispatch:
 
 jobs:

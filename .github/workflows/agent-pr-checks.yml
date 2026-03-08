@@ -10,6 +10,17 @@ on:
       - 'package.json'
       - 'yarn.lock'
       - '.yarnrc.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/agent/**'
+      - 'packages/protocol/**'
+      - '.github/workflows/agent-publish.yml'
+      - '.github/workflows/agent-pr-checks.yml'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
   workflow_dispatch:
 
 concurrency:
@@ -23,16 +34,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache day key
+        id: cache-day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: cache
-        uses: Swatinem/rust-cache@v2
+      - name: Rust dependencies cache (1 day)
+        uses: actions/cache@v4
         with:
-          workspaces: |
-            apps/agent
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/agent/target
+          key: rust-agent-${{ runner.os }}-${{ steps.cache-day.outputs.day }}-${{ hashFiles('apps/agent/Cargo.lock') }}
+          restore-keys: |
+            rust-agent-${{ runner.os }}-
 
       - name: fmt
         working-directory: apps/agent
