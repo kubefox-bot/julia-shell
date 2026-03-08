@@ -240,6 +240,15 @@ Widget-specific local instructions live here:
 - if page looks stale, suspect browser cache or old `dist`,
 - for style staleness use hard refresh (`Ctrl+F5`).
 
+## Git / History Notes
+- keep local ffmpeg runtime artifacts out of git history:
+  - `tools/tmp/`
+  - `tools/ffmpeg/ffmpeg-8.0.1-essentials_build/bin/`
+- these artifacts are runtime/download outputs for local/Windows execution and can exceed GitHub limits; do not commit them.
+- commit signing is required:
+  - use global git signing (`commit.gpgSign=true`, `gpg.format=ssh`, configured `user.signingKey`).
+- when a feature branch has no shared history with `main`, use a bridge branch from `main` and merge via explicit `--no-ff` merge commit.
+
 ## Safety Rules
 - do not commit or expose real Gemini API key,
 - do not publish `data/*.db` contents,
