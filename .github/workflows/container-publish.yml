@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'apps/server/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.yarnrc.yml'
+      - '.github/workflows/container-publish.yml'
   workflow_dispatch:
 
 jobs:

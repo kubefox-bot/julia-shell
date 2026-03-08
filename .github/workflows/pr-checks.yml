@@ -9,7 +9,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      agent: ${{ steps.filter.outputs.agent }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed areas
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server:
+              - 'apps/server/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - '.yarnrc.yml'
+            agent:
+              - 'apps/agent/**'
+              - 'packages/protocol/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - '.yarnrc.yml'
+
+  server-checks:
+    needs: changes
+    if: needs.changes.outputs.server == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,3 +67,28 @@ jobs:
 
       - name: Tests
         run: yarn workspace @julia/server test
+
+  agent-checks:
+    needs: changes
+    if: needs.changes.outputs.agent == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            apps/agent
+
+      - name: Agent check
+        working-directory: apps/agent
+        run: cargo check --locked
+
+      - name: Agent test
+        working-directory: apps/agent
+        run: cargo test --locked
