@@ -118,7 +118,7 @@ Agent start scripts:
 ## Agent Release Artifacts
 
 GitHub Actions workflow:
-- `.github/workflows/agent-release.yml`
+- `.github/workflows/agent-publish.yml`
 
 Published assets:
 - `julia-agent-windows-x64.zip` (portable)

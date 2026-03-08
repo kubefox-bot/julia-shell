@@ -1,18 +1,18 @@
-name: Agent Release
+name: Agent Publish
 
 on:
   pull_request:
     paths:
       - 'apps/agent/**'
       - 'packages/protocol/**'
-      - '.github/workflows/agent-release.yml'
+      - '.github/workflows/agent-publish.yml'
   push:
     branches:
       - main
     paths:
       - 'apps/agent/**'
       - 'packages/protocol/**'
-      - '.github/workflows/agent-release.yml'
+      - '.github/workflows/agent-publish.yml'
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve agent version
         id: version
@@ -69,7 +69,7 @@ jobs:
           nfpm pkg --config apps/agent/packaging/linux/nfpm.yaml --packager rpm --target julia-agent-linux-x64.rpm
 
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-artifacts
           path: |
@@ -83,7 +83,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve agent version
         id: version
@@ -127,7 +127,7 @@ jobs:
           iscc "/DMyAppVersion=${{ steps.version.outputs.value }}" "packaging/windows/julia-agent.iss"
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-artifacts
           path: |
@@ -139,7 +139,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve agent version
         id: version
@@ -189,7 +189,7 @@ jobs:
             julia-agent-macos-arm64.pkg
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-artifacts
           path: |
@@ -206,7 +206,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
