@@ -36,7 +36,12 @@ resolve_binary() {
     candidates+=("$JULIA_AGENT_BIN")
   fi
 
+  if path_bin="$(command -v julia-agent 2>/dev/null)"; then
+    candidates+=("$path_bin")
+  fi
+
   candidates+=(
+    "/usr/local/bin/julia-agent"
     "$SCRIPT_DIR/julia-agent"
     "$SCRIPT_DIR/target/release/julia-agent"
     "$SCRIPT_DIR/target/debug/julia-agent"

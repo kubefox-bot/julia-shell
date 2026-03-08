@@ -56,10 +56,16 @@ jobs:
           tar -czf julia-agent-linux-x64.tar.gz -C apps/agent/dist-linux .
           (cd apps/agent/dist-linux && zip -r "../../../julia-agent-linux-x64.zip" .)
 
-      - name: Setup nfpm
-        uses: goreleaser/nfpm-action@v1
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          version: latest
+          go-version: '1.23'
+
+      - name: Install nfpm
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          "$(go env GOPATH)/bin/nfpm" --version
 
       - name: Build Linux deb/rpm
         env:
