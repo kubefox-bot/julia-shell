@@ -1,0 +1,54 @@
+.iconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background:
+    radial-gradient(circle at top, rgb(255 255 255 / 0.92), rgb(248 250 252 / 0.88));
+  color: var(--text-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 0.08);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.iconCircle :global(svg) {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+}
+
+.iconCircle:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background:
+    radial-gradient(circle at top, rgb(240 253 250 / 0.96), rgb(236 254 255 / 0.92));
+  border-color: rgb(20 184 166 / 0.35);
+  box-shadow: 0 12px 24px rgb(15 23 42 / 0.12);
+}
+
+.iconCircle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.night {
+  background:
+    radial-gradient(circle at top, rgb(22 78 99 / 0.72), rgb(15 23 42 / 0.92));
+  color: #e2e8f0;
+  border-color: rgb(51 65 85 / 0.95);
+  box-shadow: 0 10px 24px rgb(2 6 23 / 0.32);
+}
+
+.night:hover:not(:disabled) {
+  background:
+    radial-gradient(circle at top, rgb(15 118 110 / 0.76), rgb(15 23 42 / 0.96));
+  border-color: rgb(45 212 191 / 0.35);
+  color: #ccfbf1;
+}

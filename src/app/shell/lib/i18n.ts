@@ -1,0 +1,132 @@
+import type { DateTime } from 'luxon';
+import type { DisplayLocale } from '../../../entities/widget/model/types';
+
+const DAILY_QUOTES = {
+  ru: [
+    'Сегодня всё точно получится.',
+    'Маленький шаг тоже двигает день вперёд.',
+    'Спокойный ритм тоже может быть очень сильным.',
+    'Красивые системы собираются из ясных решений.',
+    'Когда есть фокус, всё становится мягче и проще.',
+    'Порядок в shell часто даёт порядок в голове.',
+    'Пусть сегодня всё складывается бережно и точно.',
+    'Даже сложная задача тает, если идти по шагам.',
+    'Тёплая энергия и строгая инженерия не мешают друг другу.',
+    'Сегодня хороший день, чтобы довести важное до конца.'
+  ],
+  en: [
+    'Today is a good day to ship something important.',
+    'Small, clean steps move complex work forward.',
+    'Calm focus beats noisy speed.',
+    'Well-shaped systems begin with clear decisions.',
+    'A steady rhythm can still be powerful.',
+    'A tidy shell makes the whole day feel lighter.',
+    'Even hard problems soften when you work step by step.',
+    'Warm energy and rigorous engineering fit together well.',
+    'Keep the signal clear and the work will follow.',
+    'Today is built for thoughtful progress.'
+  ]
+} as const;
+
+const SHELL_COPY = {
+  ru: {
+    loading: 'Загрузка shell...',
+    error: 'Ошибка',
+    greeting: 'Юля, привет! ❤️',
+    dashboardEmptyTitle: 'Юлечка, тут пока пусто ✨',
+    dashboardEmptyBody: 'Виджеты сейчас не доступны или ещё не включены 🫶 Попробуй зайти в settings и включить их.',
+    dashboardEmptyAction: 'Открыть settings 💖',
+    settings: 'Настройки',
+    closeSettings: 'Закрыть настройки',
+    editGrid: 'Редактировать сетку',
+    cancel: 'Отмена',
+    save: 'Сохранить',
+    saving: 'Сохраняю...',
+    switchToDay: 'Переключить на дневную тему',
+    switchToNight: 'Переключить на ночную тему',
+    switchToAutoTheme: 'Включить авто-тему',
+    switchToEnglish: 'Переключить на English',
+    switchToRussian: 'Переключить на русский',
+    settingsOverlayLabel: 'Настройки shell',
+    settingsTitle: 'Панель конфигурации',
+    settingsSubtitle: 'Сетка, тема, язык и состояние модулей поверх dashboard.',
+    layoutBlockTitle: 'Сетка layout',
+    desktopColumns: 'Колонки на desktop',
+    mobileColumns: 'Колонки на mobile',
+    locale: 'Язык',
+    localeSystem: 'Системный',
+    localeRu: 'Русский',
+    localeEn: 'English',
+    theme: 'Тема',
+    themeAuto: 'Авто',
+    themeDay: 'День',
+    themeNight: 'Ночь',
+    modulesBlockTitle: 'Модули',
+    modulesId: 'ID',
+    modulesName: 'Имя',
+    modulesVersion: 'Версия',
+    modulesState: 'Статус',
+    modulesToggle: 'Переключение',
+    ready: 'готов',
+    notReady: 'не готов',
+    enable: 'Включить',
+    disable: 'Выключить',
+    close: 'Закрыть'
+  },
+  en: {
+    loading: 'Loading shell...',
+    error: 'Error',
+    greeting: 'Hi, Yulia! ❤️',
+    dashboardEmptyTitle: 'Yulia, it is a little empty here ✨',
+    dashboardEmptyBody: 'Widgets are unavailable right now or not enabled yet 🫶 Try opening settings and turn them on there.',
+    dashboardEmptyAction: 'Open settings 💖',
+    settings: 'Settings',
+    closeSettings: 'Close settings',
+    editGrid: 'Edit grid',
+    cancel: 'Cancel',
+    save: 'Save',
+    saving: 'Saving...',
+    switchToDay: 'Switch to day theme',
+    switchToNight: 'Switch to night theme',
+    switchToAutoTheme: 'Enable auto theme',
+    switchToEnglish: 'Switch to English',
+    switchToRussian: 'Switch to Russian',
+    settingsOverlayLabel: 'Shell settings',
+    settingsTitle: 'Configuration panel',
+    settingsSubtitle: 'Grid, theme, language, and module state above the dashboard.',
+    layoutBlockTitle: 'Layout grid',
+    desktopColumns: 'Desktop columns',
+    mobileColumns: 'Mobile columns',
+    locale: 'Language',
+    localeSystem: 'System',
+    localeRu: 'Russian',
+    localeEn: 'English',
+    theme: 'Theme',
+    themeAuto: 'Auto',
+    themeDay: 'Day',
+    themeNight: 'Night',
+    modulesBlockTitle: 'Modules',
+    modulesId: 'ID',
+    modulesName: 'Name',
+    modulesVersion: 'Version',
+    modulesState: 'State',
+    modulesToggle: 'Toggle',
+    ready: 'ready',
+    notReady: 'not ready',
+    enable: 'Enable',
+    disable: 'Disable',
+    close: 'Close'
+  }
+} as const;
+
+export type ShellCopyKey = keyof typeof SHELL_COPY.ru;
+
+export function getShellText(locale: DisplayLocale, key: ShellCopyKey) {
+  return SHELL_COPY[locale][key];
+}
+
+export function getDailyQuote(locale: DisplayLocale, now: DateTime) {
+  const quotes = DAILY_QUOTES[locale];
+  const seed = now.ordinal + now.year * 17;
+  return quotes[Math.abs(seed) % quotes.length] ?? quotes[0];
+}

@@ -1,78 +1,76 @@
-# JuliaApp
+# JuliaApp (Shell v1.2)
 
-Локальный Astro-проект для Юли. Основной хост выполнения и использования проекта: Windows-машина `192.168.100.102`.
+Локальный Astro-проект для Юли. Основной target-хост: Windows `192.168.100.102`.
 
-## Назначение
-- чат с Gemini,
-- транскрибация `.m4a` через Gemini API,
-- выбор папок и файлов,
-- сохранение стенограммы в `.txt`,
-- персональные карточки: погода, Telegram, статус сервера.
+## Что сейчас внутри
+- `Astro host + React shell UI`
+- только 2 виджета:
+  - `com.yulia.transcribe`
+  - `com.yulia.weather`
+- extension-like widget registry (`manifest + handlers`)
+- единый namespace API: `/api/widget/:id/*`
+- shell settings (layout columns + modules table)
+- drag/edit/save/cancel для widget grid
+- channels:
+  - internal bus
+  - webhook (`/api/channel/webhook/:id/:event`)
+  - ws endpoint (`/api/channel/ws`, SSE fallback transport)
 
-## Основной Windows target
-- Host: `192.168.100.102`
-- User: `sshuser`
-- Project path: `C:\Users\julia\OneDrive\ssr`
-- Local URL on Windows: [http://julia.love:4321](http://julia.love:4321)
-- LAN URL: [http://192.168.100.102:4321](http://192.168.100.102:4321)
+## SQLite
+Используются отдельные БД в `data/`:
+- `core.db` — shell layout/settings/module state
+- `weather.db` — cache погоды
+- `transcribe.db` — jobs/outbox транскрибации
 
-Этот репозиторий на Mac считается рабочей копией. Финальный запуск и проверка происходят на Windows.
+## API
+- `GET /api/shell/settings`
+- `POST /api/shell/settings/layout`
+- `GET /api/shell/modules`
+- `POST /api/shell/modules/:id/enable`
+- `POST /api/shell/modules/:id/disable`
+- `GET|POST /api/widget/:id/*`
+- `POST /api/channel/webhook/:id/:event`
+- `GET|POST /api/channel/ws` (SSE fallback transport для channel stream)
 
-## Разработка
-Проект использует `Yarn 4`.
+## Environment
+Нужны переменные:
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (опционально, default: `gemini-2.5-flash`)
+- `WIDGET_CHANNEL_TOKEN` (для webhook/ws)
+- для Infisical service account:
+  - `INFISICAL_CLIENT_ID`
+  - `INFISICAL_CLIENT_SECRET`
+  - `INFISICAL_PROJECT_ID`
+  - `INFISICAL_SITE_URL` (опционально, default SaaS URL)
+- пример: `.env.example`
 
+Для быстрой dev-настройки Infisical используй локальный файл `.env.infisical.local`.
+Он читается core secret layer автоматически на старте и не коммитится в git.
+Шаблон: `.env.infisical.example`
+
+## Команды
 ```bash
 yarn install
 yarn dev
+yarn test
 yarn build
+yarn start
 ```
 
-## Транскрибация
-Текущая схема:
-- выбирается `.m4a` файл,
-- `ffmpeg` сжимает его во временный `mono Opus`,
-- backend отправляет аудио в Gemini API,
-- prompt берётся из `Transcript.md`,
-- ответ идёт по SSE,
-- текст печатается постепенно в финальном окне,
-- готовую стенограмму можно прочитать, скопировать и сохранить.
+`yarn build` теперь делает production-минификацию (Terser) и дополнительно генерирует precompressed ассеты (`.gz` и `.br`) для `dist/client`.
+Если нужен только чистый build без этапа сжатия, используй `yarn build:raw`.
 
-## Где хранятся Gemini settings
-Теперь ключ и выбранная модель хранятся на сервере, а не в cookie.
+## Podman scaffold
+Добавлены базовые файлы:
+- `Containerfile`
+- `podman-compose.yml`
 
-Файл настроек на проекте:
-- `data/gemini-settings.json`
+Это scaffold-уровень, не production-ready runtime-контур.
 
-UI:
-- шестерёнка в карточке транскрибации,
-- поле для `Gemini API Key`,
-- выбор модели,
-- по умолчанию `gemini-2.5-flash`.
+## Windows target
+- Host: `192.168.100.102`
+- User: `sshuser`
+- Project path: `C:\Users\julia\OneDrive\ssr`
+- URL: `http://julia.love:4321`
 
-## Заливка на Windows
-Если работа идёт из этой Mac-копии, заливать нужно в:
-- `sshuser@192.168.100.102:C:/Users/julia/OneDrive/ssr`
-
-При ручной синхронизации не нужно переносить:
-- `node_modules`
-- `.astro`
-- `dist`
-- временные логи `dev.stdout.log`, `dev.stderr.log`
-
-После заливки на Windows:
-```bash
-yarn build
-```
-или для проверки в dev:
-```bash
-yarn dev --host 0.0.0.0 --port 4321
-```
-
-## Ключевые файлы
-- `src/pages/index.astro`
-- `src/pages/api/transcribe-stream.ts`
-- `src/pages/api/transcribe-save.ts`
-- `src/pages/api/fs-list.ts`
-- `src/pages/api/gemini-settings.ts`
-- `src/lib/gemini-settings.ts`
-- `Transcript.md`
+Mac-репозиторий считается рабочим зеркалом, финальная проверка — на Windows.

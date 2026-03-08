@@ -1,5 +1,6 @@
 # build output
 dist/
+coverage/
 # generated types
 .astro/
 
@@ -16,10 +17,23 @@ pnpm-debug.log*
 
 # environment variables
 .env
+.env.local
+.env.infisical.local
 .env.production
+
+# local sqlite data
+data/
 
 # macOS-specific files
 .DS_Store
 
 # jetbrains setting folder
 .idea/
+
+.playwright-cli
+.stylelintcache
+.biome-cache
+
+# local ffmpeg artifacts (downloaded archives and windows binaries)
+tools/tmp/
+tools/ffmpeg/ffmpeg-8.0.1-essentials_build/bin/
