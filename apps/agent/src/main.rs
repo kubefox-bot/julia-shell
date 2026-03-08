@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::Channel;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 pub mod protocol {
@@ -69,38 +69,60 @@ async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<AgentEnvelope>(128);
 
-    tx.send(build_heartbeat_envelope(&tokens, &session_id, "connected"))
-        .await?;
+    let heartbeat_tx = tx.clone();
+    let heartbeat_tokens = tokens.clone();
+    let heartbeat_session_id = session_id.clone();
+    let heartbeat_task = tokio::spawn(async move {
+        let connected = build_heartbeat_envelope(&heartbeat_tokens, &heartbeat_session_id, "connected");
+        if heartbeat_tx.send(connected).await.is_err() {
+            warn!(session_id = %heartbeat_session_id, "failed to send initial heartbeat");
+            return;
+        }
 
-    let response = client.stream_connect(ReceiverStream::new(rx)).await?;
-    let mut inbound = response.into_inner();
-
-    let mut heartbeat_interval = time::interval(Duration::from_secs(15));
-
-    loop {
-        tokio::select! {
-            _ = heartbeat_interval.tick() => {
-                let envelope = build_heartbeat_envelope(&tokens, &session_id, "alive");
-                if tx.send(envelope).await.is_err() {
+        loop {
+            time::sleep(Duration::from_secs(15)).await;
+            let envelope = build_heartbeat_envelope(&heartbeat_tokens, &heartbeat_session_id, "alive");
+            match time::timeout(Duration::from_secs(2), heartbeat_tx.send(envelope)).await {
+                Ok(Ok(())) => {
+                    debug!(session_id = %heartbeat_session_id, "heartbeat queued");
+                }
+                Ok(Err(_)) => {
+                    warn!(session_id = %heartbeat_session_id, "heartbeat channel closed");
                     break;
                 }
-            }
-            inbound_message = inbound.message() => {
-                match inbound_message {
-                    Ok(Some(message)) => {
-                        handle_server_command(message, tx.clone(), tokens.clone(), session_id.clone()).await;
-                    }
-                    Ok(None) => {
-                        warn!(session_id = %session_id, "grpc stream closed by server");
-                        break;
-                    }
-                    Err(error) => {
-                        return Err(error.into());
-                    }
+                Err(_) => {
+                    warn!(session_id = %heartbeat_session_id, "heartbeat enqueue timeout");
                 }
             }
         }
+    });
+
+    let response = match client.stream_connect(ReceiverStream::new(rx)).await {
+        Ok(response) => response,
+        Err(error) => {
+            heartbeat_task.abort();
+            return Err(error.into());
+        }
+    };
+    let mut inbound = response.into_inner();
+
+    loop {
+        match inbound.message().await {
+            Ok(Some(message)) => {
+                handle_server_command(message, tx.clone(), tokens.clone(), session_id.clone()).await;
+            }
+            Ok(None) => {
+                warn!(session_id = %session_id, "grpc stream closed by server");
+                break;
+            }
+            Err(error) => {
+                heartbeat_task.abort();
+                return Err(error.into());
+            }
+        }
     }
+
+    heartbeat_task.abort();
 
     Ok(())
 }

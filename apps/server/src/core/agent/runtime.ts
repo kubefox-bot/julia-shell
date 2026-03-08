@@ -3,7 +3,7 @@ import path from 'node:path';
 import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import { moduleBus } from '../../shared/lib/module-bus';
-import { appendAgentEvent, disconnectStaleOnlineSessions, upsertAgentSession } from './repository';
+import { appendAgentEvent, upsertAgentSession } from './repository';
 import { invalidateWidgetRegistryCache } from '../registry/registry';
 import { verifyAccessJwt } from './jwt';
 import { resolveAgentStatusSnapshot } from './status';
@@ -123,7 +123,6 @@ class AgentRuntime {
   private reconcileStaleSessions() {
     const nowMs = Date.now();
     const timeoutMs = resolveAgentHeartbeatTimeoutMs();
-    const cutoffIso = new Date(nowMs - timeoutMs).toISOString();
     let shouldInvalidateRegistry = false;
 
     for (const [agentId, connection] of this.connections) {
@@ -137,23 +136,18 @@ class AgentRuntime {
         status: 'disconnected',
         disconnectReason: 'heartbeat_timeout'
       });
+      try {
+        connection.call.end();
+      } catch {
+        // ignored: stream may already be closed by transport
+      }
       this.connections.delete(agentId);
-      shouldInvalidateRegistry = true;
-    }
-
-    const staleDisconnected = disconnectStaleOnlineSessions({
-      cutoffIso,
-      reason: 'heartbeat_timeout'
-    });
-    if (staleDisconnected > 0) {
       shouldInvalidateRegistry = true;
     }
 
     if (shouldInvalidateRegistry) {
       invalidateWidgetRegistryCache();
     }
-
-    return { cutoffIso };
   }
 
   private handleConnect(
@@ -162,114 +156,141 @@ class AgentRuntime {
     let connection: AgentConnection | null = null;
 
     call.on('data', async (envelope) => {
-      const claims = await this.isEnvelopeAuthorized(envelope);
-      if (!claims) {
-        this.lastUnauthorized = {
-          reason: 'Invalid access token.',
-          updatedAt: new Date().toISOString()
-        };
-        call.write({
-          protocolVersion: '1.0.0',
-          sessionId: '',
+      try {
+        const claims = await this.isEnvelopeAuthorized(envelope);
+        if (!claims) {
+          this.lastUnauthorized = {
+            reason: 'Invalid access token.',
+            updatedAt: new Date().toISOString()
+          };
+          call.write({
+            protocolVersion: '1.0.0',
+            sessionId: '',
+            jobId: '',
+            timestampUnixMs: Date.now(),
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Invalid access token.',
+              retryable: false
+            }
+          });
+          return;
+        }
+
+        const agentId = typeof envelope.agentId === 'string' ? envelope.agentId : claims.sub;
+        const sessionId = typeof envelope.sessionId === 'string' && envelope.sessionId ? envelope.sessionId : 'session';
+        const jobId = typeof envelope.jobId === 'string' ? envelope.jobId : '';
+        const nowMs = Date.now();
+
+        this.lastUnauthorized = null;
+
+        if (!connection) {
+          connection = { agentId, sessionId, call, lastSeenAtMs: nowMs };
+          this.connections.set(agentId, connection);
+          upsertAgentSession({
+            sessionId,
+            agentId,
+            status: 'online'
+          });
+          call.write({
+            protocolVersion: '1.0.0',
+            sessionId,
           jobId: '',
           timestampUnixMs: Date.now(),
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Invalid access token.',
-            retryable: false
+          healthPing: {
+            nonce: `connected-${sessionId}`
           }
         });
-        return;
-      }
-
-      const agentId = typeof envelope.agentId === 'string' ? envelope.agentId : claims.sub;
-      const sessionId = typeof envelope.sessionId === 'string' && envelope.sessionId ? envelope.sessionId : 'session';
-      const jobId = typeof envelope.jobId === 'string' ? envelope.jobId : '';
-      const nowMs = Date.now();
-
-      this.lastUnauthorized = null;
-
-      if (!connection) {
-        connection = { agentId, sessionId, call, lastSeenAtMs: nowMs };
-        this.connections.set(agentId, connection);
         invalidateWidgetRegistryCache();
-      } else {
-        connection.lastSeenAtMs = nowMs;
-      }
+        } else {
+          connection.lastSeenAtMs = nowMs;
+          if (connection.sessionId !== sessionId) {
+            connection.sessionId = sessionId;
+            upsertAgentSession({
+              sessionId,
+              agentId,
+              status: 'online'
+            });
+          }
+          if (this.connections.get(agentId) !== connection) {
+            this.connections.set(agentId, connection);
+            invalidateWidgetRegistryCache();
+          }
+        }
 
-      upsertAgentSession({
-        sessionId,
-        agentId,
-        status: 'online'
-      });
+        if (envelope.heartbeat) {
+          return;
+        }
 
-      if (envelope.heartbeat) {
-        appendAgentEvent({
-          agentId,
-          sessionId,
-          eventType: 'heartbeat',
-          payload: envelope.heartbeat
-        });
-        return;
-      }
+        if (envelope.progress) {
+          appendAgentEvent({
+            agentId,
+            sessionId,
+            jobId,
+            eventType: 'progress',
+            payload: envelope.progress
+          });
+          moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
+            type: 'progress',
+            payload: envelope.progress
+          });
+          return;
+        }
 
-      if (envelope.progress) {
-        appendAgentEvent({
-          agentId,
-          sessionId,
-          jobId,
-          eventType: 'progress',
-          payload: envelope.progress
-        });
-        moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
-          type: 'progress',
-          payload: envelope.progress
-        });
-        return;
-      }
+        if (envelope.token) {
+          appendAgentEvent({
+            agentId,
+            sessionId,
+            jobId,
+            eventType: 'token',
+            payload: envelope.token
+          });
+          moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
+            type: 'token',
+            payload: envelope.token
+          });
+          return;
+        }
 
-      if (envelope.token) {
-        appendAgentEvent({
-          agentId,
-          sessionId,
-          jobId,
-          eventType: 'token',
-          payload: envelope.token
-        });
-        moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
-          type: 'token',
-          payload: envelope.token
-        });
-        return;
-      }
+        if (envelope.done) {
+          appendAgentEvent({
+            agentId,
+            sessionId,
+            jobId,
+            eventType: 'done',
+            payload: envelope.done
+          });
+          moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
+            type: 'done',
+            payload: envelope.done
+          });
+          return;
+        }
 
-      if (envelope.done) {
-        appendAgentEvent({
-          agentId,
-          sessionId,
-          jobId,
-          eventType: 'done',
-          payload: envelope.done
-        });
-        moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
-          type: 'done',
-          payload: envelope.done
-        });
-        return;
-      }
-
-      if (envelope.error) {
-        appendAgentEvent({
-          agentId,
-          sessionId,
-          jobId,
-          eventType: 'error',
-          payload: envelope.error
-        });
-        moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
-          type: 'error',
-          payload: envelope.error
-        });
+        if (envelope.error) {
+          appendAgentEvent({
+            agentId,
+            sessionId,
+            jobId,
+            eventType: 'error',
+            payload: envelope.error
+          });
+          moduleBus.publish(`agent:transcribe:${jobId}`, `agent/${agentId}`, {
+            type: 'error',
+            payload: envelope.error
+          });
+        }
+      } catch {
+        if (connection) {
+          upsertAgentSession({
+            sessionId: connection.sessionId,
+            agentId: connection.agentId,
+            status: 'disconnected',
+            disconnectReason: 'stream_error'
+          });
+          this.connections.delete(connection.agentId);
+          invalidateWidgetRegistryCache();
+        }
       }
     });
 

@@ -45,18 +45,6 @@ export async function discoverWidgets(): Promise<WidgetDescriptor[]> {
       reasons.push(`Duplicate widget id: ${registeredModule.manifest.id}`);
     }
 
-    try {
-      const serverModule = await registeredModule.loadServerModule();
-      if (serverModule.init) {
-        const initResult = await serverModule.init();
-        if (initResult && initResult.ready === false) {
-          reasons.push(initResult.reason?.trim() || 'init() returned not ready.');
-        }
-      }
-    } catch (error) {
-      reasons.push(error instanceof Error ? error.message : 'loadServerModule() failed.');
-    }
-
     const runtime: WidgetRuntimeState = {
       ready: reasons.length === 0,
       notReadyReasons: reasons

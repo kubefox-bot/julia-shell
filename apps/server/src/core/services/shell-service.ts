@@ -77,15 +77,29 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
     let enabled = state?.enabled ?? descriptor.runtime.ready;
     const notReadyReasons = [...descriptor.runtime.notReadyReasons];
 
+    try {
+      const serverModule = await descriptor.module.loadServerModule();
+      if (serverModule.init) {
+        const initResult = await serverModule.init();
+        if (initResult && initResult.ready === false) {
+          notReadyReasons.push(initResult.reason?.trim() || 'init() returned not ready.');
+        }
+      }
+    } catch (error) {
+      notReadyReasons.push(error instanceof Error ? error.message : 'loadServerModule() failed.');
+    }
+
+    const runtimeReady = notReadyReasons.length === 0;
+
     const wasAutoDisabled = Boolean(state?.disabledReason?.startsWith(AUTO_NOT_READY_REASON_PREFIX));
 
-    if (!descriptor.runtime.ready && enabled) {
+    if (!runtimeReady && enabled) {
       const reason = notReadyReasons[0] ?? 'Widget is not ready.';
       setModuleEnabled(widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
       enabled = false;
     }
 
-    if (descriptor.runtime.ready && !enabled && wasAutoDisabled) {
+    if (runtimeReady && !enabled && wasAutoDisabled) {
       setModuleEnabled(widgetId, true, null);
       enabled = true;
     }
@@ -97,7 +111,7 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
       description: descriptor.module.manifest.description,
       headerName: descriptor.module.manifest.headerName,
       normalizedIcon: descriptor.module.normalizedIcon,
-      ready: descriptor.runtime.ready,
+      ready: runtimeReady,
       enabled,
       notReadyReasons,
       defaultSize: descriptor.module.manifest.defaultSize,
