@@ -28,24 +28,24 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Rust cache
+      - name: cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             apps/agent
 
-      - name: Agent fmt
+      - name: fmt
         working-directory: apps/agent
         run: cargo fmt --all -- --check
 
-      - name: Agent clippy
+      - name: clippy
         working-directory: apps/agent
         run: cargo clippy --locked --all-targets -- -D warnings
 
-      - name: Agent check
+      - name: check
         working-directory: apps/agent
         run: cargo check --locked
 
-      - name: Agent test
+      - name: test
         working-directory: apps/agent
         run: cargo test --locked
