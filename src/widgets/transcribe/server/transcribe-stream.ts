@@ -12,7 +12,7 @@ import {
   updateTranscribeJobProgress
 } from '../../../core/db/transcribe-repository'
 import { jsonResponse } from '../../../shared/lib/http'
-import { DEFAULT_GEMINI_MODEL, GEMINI_UPLOAD_MIME, MOCK_GEMINI_MODEL, PROMPT_PATH, TMP_ROOT, TOOLS_ROOT, WIDGET_ID } from './constants'
+import { DEFAULT_GEMINI_MODEL, GEMINI_UPLOAD_MIME, MOCK_GEMINI_MODEL, PROMPT_PATH, TOOLS_ROOT, WIDGET_ID } from './constants'
 import { prepareAudioForTranscription } from './ffmpeg'
 import { startGeminiStream } from './gemini'
 import { runMockTranscription } from './mock'
@@ -115,7 +115,6 @@ export async function handleTranscribeStream(body: {
           const selection = await resolveSelection(folderPath, filePath, filePaths)
           const { filePaths: selectedFiles, canonicalSourceFile, resolvedFolderPath } = selection
           const primaryBaseName = path.parse(canonicalSourceFile).name
-          let inputFilePath = canonicalSourceFile
 
           touchRecentFolder(WIDGET_ID, resolvedFolderPath)
           appendTranscribeOutboxEvent({

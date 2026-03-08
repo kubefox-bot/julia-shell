@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { GoogleGenAI, createPartFromUri } from '@google/genai';
 import { buildGeminiModelCandidates, readGeminiSettings } from '../../lib/gemini-settings';
 
@@ -198,7 +198,7 @@ export const POST: APIRoute = async ({ request }) => {
 		});
 	}
 
-	let activeChild: ChildProcessWithoutNullStreams | null = null;
+	let activeChild: ChildProcess | null = null;
 	let closed = false;
 	let aborted = false;
 	let lastProgress = -1;

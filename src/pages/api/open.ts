@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { exec } from 'child_process';
-import os from 'os';
-import path from 'path';
+import { exec } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
 
 export const POST: APIRoute = async () => {
     const DOWNLOADS_DIR = path.join(os.homedir(), 'Downloads');

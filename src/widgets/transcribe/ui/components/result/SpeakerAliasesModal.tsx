@@ -34,10 +34,10 @@ export function SpeakerAliasesModal(props: SpeakerAliasesModalProps) {
           <div className={styles.speakerAliasList}>
             {props.speakerTargets.map((target) => (
               <div key={target.speakerKey} className={styles.speakerAliasRow}>
-                <label className={styles.speakerAliasLabel}>
+                <div className={styles.speakerAliasLabel}>
                   <span>{getTranscribeText(props.locale, 'labelSpeakerOriginal')}</span>
                   <strong>{target.speakerLabel}</strong>
-                </label>
+                </div>
                 <label className={styles.speakerAliasLabel}>
                   <span>{getTranscribeText(props.locale, 'labelSpeakerAlias')}</span>
                   <input

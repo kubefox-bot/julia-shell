@@ -15,10 +15,10 @@ export async function prepareAudioForTranscription(input: {
   setActiveChild: ChildSetter
 }) {
   const { ffmpegExe, selectedFiles, primaryBaseName, sendProgress, setActiveChild } = input
-  let mergedAudioPath = ''
+  const mergedAudioPath = ''
   let concatListPath = ''
   let convertedAudioPath = ''
-  let inputFilePath = selectedFiles[0]
+  const inputFilePath = selectedFiles[0]
 
   await fs.mkdir(TMP_ROOT, { recursive: true })
 

@@ -11,6 +11,15 @@ function readErrorMessage(data: unknown, fallback: string) {
   return fallback
 }
 
+function readAliases(data: unknown) {
+  if (typeof data !== 'object' || data === null || !('aliases' in data)) {
+    return [] as SpeakerAliasEntry[]
+  }
+
+  const { aliases } = data as { aliases?: unknown }
+  return Array.isArray(aliases) ? aliases as SpeakerAliasEntry[] : []
+}
+
 async function readJson<T>(response: Response) {
   return await response.json() as T
 }
@@ -65,7 +74,7 @@ export async function fetchSpeakerAliases() {
     throw new Error(readErrorMessage(data, 'Failed to load speaker aliases.'))
   }
 
-  return Array.isArray(data.aliases) ? data.aliases : []
+  return readAliases(data)
 }
 
 export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
@@ -79,7 +88,7 @@ export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
     throw new Error(readErrorMessage(data, 'Failed to save speaker aliases.'))
   }
 
-  return Array.isArray(data.aliases) ? data.aliases : []
+  return readAliases(data)
 }
 
 export async function readTranscript(payload: {

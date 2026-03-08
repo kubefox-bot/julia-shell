@@ -11,6 +11,7 @@
     "media-feature-range-notation": null,
     "scss/load-partial-extension": null,
     "selector-class-pattern": null,
+    "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
     "no-descending-specificity": null
   }
 }

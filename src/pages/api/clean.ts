@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 
 export const POST: APIRoute = async () => {
     const DOWNLOADS_DIR = path.join(os.homedir(), 'Downloads');
@@ -29,7 +29,7 @@ export const POST: APIRoute = async () => {
             let targetFolder = '';
 
             // Проверка на резюме (по ключевым словам)
-            if (CATEGORIES['Резюме'].some(key => lowFile.includes(key))) {
+            if (CATEGORIES.Резюме.some(key => lowFile.includes(key))) {
                 targetFolder = 'Резюме';
             } else {
                 // Проверка по расширениям
@@ -61,7 +61,7 @@ export const POST: APIRoute = async () => {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
-    } catch (e) {
+    } catch (_e) {
         return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
     }
 };

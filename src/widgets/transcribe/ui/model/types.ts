@@ -1,4 +1,3 @@
-import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import type { TranscribeTextKey } from '../../i18n'
 
 export type BrowserEntry = {

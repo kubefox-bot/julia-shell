@@ -66,22 +66,16 @@ export function PathCombobox(props: PathComboboxProps) {
       </div>
 
       {props.open && menuItems.length > 0 ? (
-        <div
-          onMouseDown={(event) => {
-            event.preventDefault()
+        <OptionMenu
+          theme={props.theme}
+          items={menuItems}
+          selectedValue={props.value}
+          onSelect={(option) => {
+            props.onChange(option)
+            props.onOpenChange(false)
+            window.setTimeout(() => props.onSubmit(option), 0)
           }}
-        >
-          <OptionMenu
-            theme={props.theme}
-            items={menuItems}
-            selectedValue={props.value}
-            onSelect={(option) => {
-              props.onChange(option)
-              props.onOpenChange(false)
-              window.setTimeout(() => props.onSubmit(option), 0)
-            }}
-          />
-        </div>
+        />
       ) : null}
     </div>
   )

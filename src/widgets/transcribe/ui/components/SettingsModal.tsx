@@ -45,7 +45,7 @@ export function SettingsModal({ locale, platform, theme, onSave }: SettingsModal
           </IconCircle>
         </div>
 
-        <label className={styles.field}>
+        <div className={styles.field}>
           <span className={styles.fieldLabel}>{getTranscribeText(locale, 'helperGeminiModel')}</span>
           <OptionSelect
             theme={theme}
@@ -56,7 +56,7 @@ export function SettingsModal({ locale, platform, theme, onSave }: SettingsModal
             emptyLabel={getTranscribeText(locale, 'helperGeminiModel')}
             onChange={setGeminiModel}
           />
-        </label>
+        </div>
 
         <label className={styles.field}>
           <span className={styles.fieldLabel}>{getTranscribeText(locale, 'helperApiKey')}</span>

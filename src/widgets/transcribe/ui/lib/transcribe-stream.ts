@@ -5,7 +5,7 @@ function toNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function toString(value: unknown) {
+function toText(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
 
@@ -40,26 +40,26 @@ export async function consumeTranscribeStream(
       }
 
       if (parsed.eventName === 'progress') {
-        await handlers.onProgress(toNumber(parsed.payload.percent), toString(parsed.payload.stage))
+        await handlers.onProgress(toNumber(parsed.payload.percent), toText(parsed.payload.stage))
         continue
       }
 
       if (parsed.eventName === 'token') {
-        await handlers.onToken(toString(parsed.payload.text))
+        await handlers.onToken(toText(parsed.payload.text))
         continue
       }
 
       if (parsed.eventName === 'done') {
         finished = true
         await handlers.onDone({
-          transcript: toString(parsed.payload.transcript),
-          savePath: toString(parsed.payload.savePath)
+          transcript: toText(parsed.payload.transcript),
+          savePath: toText(parsed.payload.savePath)
         })
         continue
       }
 
       if (parsed.eventName === 'error') {
-        throw new Error(toString(parsed.payload.message) || 'Transcription error.')
+        throw new Error(toText(parsed.payload.message) || 'Transcription error.')
       }
     }
   }

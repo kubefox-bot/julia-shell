@@ -1,4 +1,4 @@
-import { GoogleGenAI, createPartFromUri } from '@google/genai'
+import { createPartFromUri, type GoogleGenAI } from '@google/genai'
 import { GEMINI_TRANSCRIBE_MESSAGE, GEMINI_UPLOAD_MIME } from './constants'
 import type { UploadedGeminiFile } from './types'
 

@@ -9,12 +9,14 @@ type ResultTranscriptPanelProps = {
 
 export function ResultTranscriptPanel(props: ResultTranscriptPanelProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const { text } = props
 
   useEffect(() => {
+    void text
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [props.text])
+  }, [text])
 
   return (
     <div ref={scrollRef} className={props.className ?? styles.resultText} aria-live="polite">
