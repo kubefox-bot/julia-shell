@@ -64,7 +64,9 @@ async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
     let session_id = Uuid::new_v4().to_string();
     info!(agent_id = %tokens.agent_id, session_id = %session_id, "agent authorized");
 
-    let channel = Channel::from_shared(config.grpc_endpoint.clone())?.connect().await?;
+    let channel = Channel::from_shared(config.grpc_endpoint.clone())?
+        .connect()
+        .await?;
     let mut client = AgentControlServiceClient::new(channel);
 
     let (tx, rx) = mpsc::channel::<AgentEnvelope>(128);
@@ -123,7 +125,8 @@ async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
     loop {
         match inbound.message().await {
             Ok(Some(message)) => {
-                handle_server_command(message, tx.clone(), tokens.clone(), session_id.clone()).await;
+                handle_server_command(message, tx.clone(), tokens.clone(), session_id.clone())
+                    .await;
             }
             Ok(None) => {
                 warn!(session_id = %session_id, "grpc stream closed by server");
@@ -154,7 +157,10 @@ async fn handle_server_command(
     if let server_envelope::Payload::TranscribeStart(start) = payload {
         let job_id = message.job_id;
         tokio::spawn(async move {
-            if let Err(error) = execute_transcribe_start(start, job_id.clone(), tx.clone(), &tokens, &session_id).await {
+            if let Err(error) =
+                execute_transcribe_start(start, job_id.clone(), tx.clone(), &tokens, &session_id)
+                    .await
+            {
                 let _ = tx
                     .send(AgentEnvelope {
                         protocol_version: "1.0.0".to_string(),
@@ -181,7 +187,15 @@ async fn execute_transcribe_start(
     tokens: &SessionTokens,
     session_id: &str,
 ) -> Result<()> {
-    send_progress(&tx, tokens, session_id, &job_id, 8, "progressCheckingSelection").await?;
+    send_progress(
+        &tx,
+        tokens,
+        session_id,
+        &job_id,
+        8,
+        "progressCheckingSelection",
+    )
+    .await?;
 
     let first_file = start
         .file_paths
@@ -189,9 +203,7 @@ async fn execute_transcribe_start(
         .cloned()
         .ok_or_else(|| anyhow::anyhow!("No file paths provided"))?;
 
-    let save_path = first_file
-        .replace(".m4a", ".txt")
-        .replace(".opus", ".txt");
+    let save_path = first_file.replace(".m4a", ".txt").replace(".opus", ".txt");
 
     send_progress(&tx, tokens, session_id, &job_id, 35, "progressPreparing").await?;
 
