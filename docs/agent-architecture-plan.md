@@ -165,6 +165,17 @@ Reserved for future compatibility:
 
 ### 6.2 Server API (HTTP, JSON)
 
+- `POST /api/agent/enroll-token/create`
+  - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
+  - request: `ttl_minutes`, `uses` (default `1`), `label`;
+  - response: `token_id`, `enrollment_token`, `expires_at`, `uses`.
+- `GET /api/agent/enroll-token/list`
+  - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
+  - response: token metadata only (`token_id`, `label`, `expires_at`, `uses_left`, `used_at`, `revoked_at`), no raw token values.
+- `POST /api/agent/enroll-token/revoke`
+  - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
+  - request: `token_id`;
+  - response: `revoked: true`.
 - `POST /api/agent/enroll`
   - request: `enrollment_token`, `device_info`, `agent_version`, `capabilities`;
   - response: `agent_id`, `access_jwt`, `refresh_token`, `expires_in`.
@@ -181,6 +192,7 @@ Agent control ingress:
 Security hygiene:
 - refresh tokens stored hashed only;
 - no plaintext auth tokens in logs/DB payloads.
+- `ADMIN_TOKEN` (from Infisical root project) is accepted via `X-Admin-Token` header (including `GET /list`), not via query parameters.
 
 ### 6.3 Token storage policy
 
