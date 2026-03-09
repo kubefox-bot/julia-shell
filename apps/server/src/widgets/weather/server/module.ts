@@ -1,11 +1,31 @@
-import { getWeatherCache, upsertWeatherCache } from '../../../core/db/weather-repository';
+import { getWeatherCache, upsertWeatherCache } from '@core/db/weather-repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '../../../shared/lib/http';
 
 const BATUMI_LATITUDE = 41.65;
 const BATUMI_LONGITUDE = 41.64;
 const LOCATION_KEY = 'batumi';
-const CACHE_TTL_MS = 30 * 60 * 1000;
+const WEATHER_FORECAST_DAYS = 3;
+const WEATHER_CACHE_TTL_MINUTES = 30;
+const MILLISECONDS_PER_SECOND = 1000;
+const CACHE_TTL_MS = WEATHER_CACHE_TTL_MINUTES * 60 * MILLISECONDS_PER_SECOND;
+const STATUS_INTERNAL_SERVER_ERROR = 500;
+const DEFAULT_WEATHER_VALUE = 0;
+const WEATHER_CODE_SHOWERS_LIGHT = 80;
+const WEATHER_CODE_SHOWERS_MODERATE = 81;
+const WEATHER_CODE_SHOWERS_HEAVY = 82;
+const WEATHER_CODE_RAIN_LIGHT = 61;
+const WEATHER_CODE_RAIN_MODERATE = 63;
+const WEATHER_CODE_RAIN_HEAVY = 65;
+const RAINY_WEATHER_CODES = [
+  WEATHER_CODE_SHOWERS_LIGHT,
+  WEATHER_CODE_SHOWERS_MODERATE,
+  WEATHER_CODE_SHOWERS_HEAVY,
+  WEATHER_CODE_RAIN_LIGHT,
+  WEATHER_CODE_RAIN_MODERATE,
+  WEATHER_CODE_RAIN_HEAVY,
+] as const;
+const SUNNY_WEATHER_CODES = [0, 1] as const;
 
 type ForecastDay = {
   date: string;
@@ -53,11 +73,11 @@ function describeWeatherCode(code: number) {
 }
 
 function getWeatherMood(code: number) {
-  if ([80, 81, 82, 61, 63, 65].includes(code)) {
+  if (RAINY_WEATHER_CODES.includes(code as (typeof RAINY_WEATHER_CODES)[number])) {
     return '☔ Придется дома сидеть';
   }
 
-  if ([0, 1].includes(code)) {
+  if (SUNNY_WEATHER_CODES.includes(code as (typeof SUNNY_WEATHER_CODES)[number])) {
     return '☀️ Можно погулять';
   }
 
@@ -86,7 +106,7 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
   weatherUrl.searchParams.set('latitude', String(BATUMI_LATITUDE));
   weatherUrl.searchParams.set('longitude', String(BATUMI_LONGITUDE));
   weatherUrl.searchParams.set('timezone', 'auto');
-  weatherUrl.searchParams.set('forecast_days', '3');
+  weatherUrl.searchParams.set('forecast_days', String(WEATHER_FORECAST_DAYS));
   weatherUrl.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min');
 
   const response = await fetch(weatherUrl, {
@@ -114,11 +134,11 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
     throw new Error('Weather payload is incomplete.');
   }
 
-  return daily.time.slice(0, 3).map((date, index) => ({
+  return daily.time.slice(0, WEATHER_FORECAST_DAYS).map((date, index) => ({
     date,
-    tempMax: daily.temperature_2m_max?.[index] ?? 0,
-    tempMin: daily.temperature_2m_min?.[index] ?? 0,
-    weatherCode: daily.weather_code?.[index] ?? 0
+    tempMax: daily.temperature_2m_max?.[index] ?? DEFAULT_WEATHER_VALUE,
+    tempMin: daily.temperature_2m_min?.[index] ?? DEFAULT_WEATHER_VALUE,
+    weatherCode: daily.weather_code?.[index] ?? DEFAULT_WEATHER_VALUE
   }));
 }
 
@@ -158,7 +178,7 @@ export const weatherServerModule: WidgetServerModule = {
       } catch (error) {
         return jsonResponse({
           error: error instanceof Error ? error.message : 'Failed to load forecast.'
-        }, 500);
+        }, STATUS_INTERNAL_SERVER_ERROR);
       }
     },
     'POST refresh': async () => {
@@ -168,7 +188,7 @@ export const weatherServerModule: WidgetServerModule = {
       } catch (error) {
         return jsonResponse({
           error: error instanceof Error ? error.message : 'Failed to refresh forecast.'
-        }, 500);
+        }, STATUS_INTERNAL_SERVER_ERROR);
       }
     }
   }

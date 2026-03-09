@@ -11,7 +11,7 @@ import type {
   PassportSliceState,
   PassportStatusResponse
 } from './types';
-import type { ShellStore } from '../../../app/shell/model/types';
+import type { ShellStore } from '@app/shell/model/types';
 import { nowIso } from '@/shared/lib/time';
 
 function shouldReloadShellOnStatusTransition(

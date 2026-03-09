@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useShellI18n } from '../../../app/shell/model/selectors'
-import { useShellStore } from '../../../app/shell/model/store'
+import { useShellI18n } from '@app/shell/model/selectors'
+import { useShellStore } from '@app/shell/model/store'
 import { Button } from '@/shared/ui/Button'
 import type { PassportAuthStatus } from '../client/types'
 import styles from './PassportStatusBadge.module.scss'

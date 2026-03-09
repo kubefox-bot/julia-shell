@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import { z } from 'zod'
-import { agentEnrollmentTokensTable, agentRegistryTable } from '@/core/db/passport-schema'
+import { agentEnrollmentTokensTable, agentRegistryTable } from '@core/db/passport-schema'
 
 const passportAgentRegistrySelectSchema = createSelectSchema(agentRegistryTable)
 const passportEnrollmentTokenSelectSchema = createSelectSchema(agentEnrollmentTokensTable)

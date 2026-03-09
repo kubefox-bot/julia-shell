@@ -5,6 +5,9 @@ import styles from '../TranscribeWidget.module.scss'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { FolderGlyph } from './TranscribeIcons'
 
+const CLOSE_DELAY_MS = 120
+const SUBMIT_DELAY_MS = 0
+
 type PathComboboxProps = {
   locale: DisplayLocale
   theme: 'day' | 'night'
@@ -41,7 +44,7 @@ export function PathCombobox(props: PathComboboxProps) {
             }
           }}
           onBlur={() => {
-            window.setTimeout(() => props.onOpenChange(false), 120)
+            window.setTimeout(() => props.onOpenChange(false), CLOSE_DELAY_MS)
           }}
           placeholder={getTranscribeText(props.locale, 'statusEnterPath')}
           disabled={props.loading}
@@ -73,7 +76,7 @@ export function PathCombobox(props: PathComboboxProps) {
           onSelect={(option) => {
             props.onChange(option)
             props.onOpenChange(false)
-            window.setTimeout(() => props.onSubmit(option), 0)
+            window.setTimeout(() => props.onSubmit(option), SUBMIT_DELAY_MS)
           }}
         />
       ) : null}

@@ -11,6 +11,10 @@ export const SERVER_URL = `http://julia.love:${SERVER_PORT}`;
 const SCRIPTS_ROOT = path.join(process.cwd(), 'scripts', 'windows');
 const CONTROL_SCRIPT = path.join(SCRIPTS_ROOT, 'astro-prod-control.ps1');
 const REGISTER_SCRIPT = path.join(SCRIPTS_ROOT, 'astro-prod-register-task.ps1');
+const KIBIBYTE = 1024;
+const POWERSHELL_DEFAULT_TIMEOUT_MS = 120_000;
+const POWERSHELL_STATUS_TIMEOUT_MS = 30_000;
+const POWERSHELL_STDIO_MAX_BUFFER_BYTES = 2 * KIBIBYTE * KIBIBYTE;
 
 export type ServerAction = 'start' | 'restart' | 'stop';
 
@@ -29,7 +33,7 @@ function assertWindows() {
     }
 }
 
-async function runPowerShell(args: string[], timeout = 120_000) {
+async function runPowerShell(args: string[], timeout = POWERSHELL_DEFAULT_TIMEOUT_MS) {
     assertWindows();
     const result = await execFileAsync(
         'powershell.exe',
@@ -37,7 +41,7 @@ async function runPowerShell(args: string[], timeout = 120_000) {
         {
             cwd: process.cwd(),
             windowsHide: true,
-            maxBuffer: 2 * 1024 * 1024,
+            maxBuffer: POWERSHELL_STDIO_MAX_BUFFER_BYTES,
             timeout
         }
     );
@@ -57,7 +61,10 @@ async function ensureTaskRegistered() {
 
 export async function getServerStatus(): Promise<ServerStatusPayload> {
     try {
-        const { stdout } = await runPowerShell(['-File', CONTROL_SCRIPT, '-Action', 'status'], 30_000);
+        const { stdout } = await runPowerShell(
+            ['-File', CONTROL_SCRIPT, '-Action', 'status'],
+            POWERSHELL_STATUS_TIMEOUT_MS
+        );
         const parsed = JSON.parse(stdout) as Partial<ServerStatusPayload>;
 
         return {
@@ -85,7 +92,10 @@ export async function controlServer(action: ServerAction) {
     await ensureTaskRegistered();
 
     if (action === 'start') {
-        const { stdout } = await runPowerShell(['-File', CONTROL_SCRIPT, '-Action', 'start'], 30_000);
+        const { stdout } = await runPowerShell(
+            ['-File', CONTROL_SCRIPT, '-Action', 'start'],
+            POWERSHELL_STATUS_TIMEOUT_MS
+        );
         let message = 'Production start requested.';
 
         try {

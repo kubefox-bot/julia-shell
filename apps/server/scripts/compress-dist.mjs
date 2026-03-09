@@ -24,7 +24,8 @@ const DEFAULT_MIN_SIZE_BYTES = 1024;
 const DEFAULT_GZIP_LEVEL = 8;
 const DEFAULT_BROTLI_QUALITY = 9;
 const DEFAULT_BROTLI_WINDOW = 22;
-const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, 8));
+const MAX_DEFAULT_CONCURRENCY = 8;
+const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, MAX_DEFAULT_CONCURRENCY));
 
 function parseNumericEnv(name, fallback) {
   const rawValue = process.env[name];

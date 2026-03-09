@@ -4,6 +4,12 @@ import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus, type EventPayload } from '../../../shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http';
 
+const STATUS_OK = 200;
+const STATUS_ACCEPTED = 202;
+const STATUS_BAD_REQUEST = 400;
+const STATUS_UNAUTHORIZED = 401;
+const HEARTBEAT_INTERVAL_MS = 15_000;
+
 function formatSseEvent(event: string, payload: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
@@ -13,7 +19,7 @@ export const GET: APIRoute = async ({ request }) => {
     allowBootstrapFromOnlineAgent: true
   });
   if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
+    return jsonResponse({ error: 'Unauthorized channel access.' }, STATUS_UNAUTHORIZED);
   }
 
   const url = new URL(request.url);
@@ -35,7 +41,7 @@ export const GET: APIRoute = async ({ request }) => {
           timestamp: new Date().toISOString(),
           topic
         });
-      }, 15_000);
+      }, HEARTBEAT_INTERVAL_MS);
 
       send('open', {
         transport: 'sse-fallback',
@@ -56,7 +62,7 @@ export const GET: APIRoute = async ({ request }) => {
   });
 
   const response = new Response(stream, {
-    status: 200,
+    status: STATUS_OK,
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
@@ -73,7 +79,7 @@ export const POST: APIRoute = async ({ request }) => {
     allowBootstrapFromOnlineAgent: true
   });
   if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
+    return jsonResponse({ error: 'Unauthorized channel access.' }, STATUS_UNAUTHORIZED);
   }
 
   const body = await readJsonBody<{
@@ -86,10 +92,13 @@ export const POST: APIRoute = async ({ request }) => {
   const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'api/channel/ws';
 
   if (!topic) {
-    return jsonResponse({ error: 'topic is required.' }, 400);
+    return jsonResponse({ error: 'topic is required.' }, STATUS_BAD_REQUEST);
   }
 
   moduleBus.publish(topic, source, body.payload ?? null);
 
-  return withSetCookie(jsonResponse({ accepted: true, topic }, 202), resolvedAuth.context.setCookieHeader);
+  return withSetCookie(
+    jsonResponse({ accepted: true, topic }, STATUS_ACCEPTED),
+    resolvedAuth.context.setCookieHeader
+  );
 };

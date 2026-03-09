@@ -1,4 +1,4 @@
-import { readRuntimeEnv } from '@/core/env'
+import { readRuntimeEnv } from '@core/env'
 import { PASSPORT_WIDGET_ID_TRANSCRIBE } from '../config/consts'
 import type { PassportRequestContext } from '../context'
 import { passportRuntime } from '../runtime/runtime'

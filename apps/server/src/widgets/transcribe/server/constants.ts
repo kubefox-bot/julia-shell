@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { getDataDir } from '../../../core/db/shared'
+import { getDataDir } from '@core/db/shared'
 import { transcribeManifest } from '../manifest'
 
 export const TOOLS_ROOT = path.join(process.cwd(), 'tools')

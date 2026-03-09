@@ -2,6 +2,8 @@ import { getTranscribeText } from '../i18n'
 import type { BrowserEntry } from './model/types'
 
 const TRANSCRIPT_SPEAKER_LINE_PATTERN = /^(\s*\[\d{2}:\d{2}:\d{2}\]\s*)([^:\n—-]+?)(\s*(?::|—|-)\s*)(.*)$/u
+const SSE_EVENT_PREFIX_LENGTH = 6
+const SSE_DATA_PREFIX_LENGTH = 5
 
 type TranscriptSpeakerMatch = {
   prefix: string
@@ -19,9 +21,9 @@ export function parseSseEventChunk(rawEvent: string) {
   for (const rawLine of lines) {
     const line = rawLine.trimEnd()
     if (line.startsWith('event:')) {
-      eventName = line.slice(6).trim()
+      eventName = line.slice(SSE_EVENT_PREFIX_LENGTH).trim()
     } else if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trimStart())
+      dataLines.push(line.slice(SSE_DATA_PREFIX_LENGTH).trimStart())
     }
   }
 

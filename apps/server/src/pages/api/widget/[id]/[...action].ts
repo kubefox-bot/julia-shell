@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { resolveWidgetHandler } from '../../../../core/registry/registry';
-import { listShellModules } from '../../../../core/services/shell-service';
+import { resolveWidgetHandler } from '@core/registry/registry';
+import { listShellModules } from '@core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';

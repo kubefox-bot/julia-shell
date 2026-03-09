@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { HostPlatform } from '../../entities/widget/model/types';
 import { nowIso } from '../../shared/lib/time';
 import { openDb } from './shared';
+import { nextRecentFolderTimestamp, normalizeSpeakerKey } from './transcribe-helpers';
 
 export type TranscribeJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
@@ -37,13 +38,7 @@ export type TranscribeSpeakerAlias = {
   aliasName: string;
 };
 
-let recentFolderTouchSequence = 0;
-
-function nextRecentFolderTimestamp() {
-  const value = new Date(Date.now() + recentFolderTouchSequence).toISOString();
-  recentFolderTouchSequence += 1;
-  return value;
-}
+const MAX_PROGRESS_PERCENT = 100;
 
 function hasColumn(db: ReturnType<typeof openDb>, tableName: string, columnName: string) {
   const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
@@ -149,10 +144,6 @@ function getDb() {
   return bootstrap();
 }
 
-function normalizeSpeakerKey(rawSpeaker: string) {
-  return rawSpeaker.replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
 export function createTranscribeJob(input: CreateTranscribeJobInput) {
   const db = getDb();
   const id = randomUUID();
@@ -199,7 +190,7 @@ export function updateTranscribeJobProgress(id: string, progress: number, status
         progress = ?,
         updated_at = ?
     WHERE id = ?
-  `).run(status, Math.max(0, Math.min(100, Math.round(progress))), nowIso(), id);
+  `).run(status, Math.max(0, Math.min(MAX_PROGRESS_PERCENT, Math.round(progress))), nowIso(), id);
 }
 
 export function completeTranscribeJob(id: string, savePath: string) {

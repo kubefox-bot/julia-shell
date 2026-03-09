@@ -3,6 +3,8 @@ import styles from '../TranscribeWidget.module.scss'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { useTranscribeStore } from '../model/store'
 
+const MAX_PROGRESS_PERCENT = 100
+
 type LoaderStripProps = {
   locale: DisplayLocale
   visible: boolean
@@ -17,7 +19,7 @@ export function LoaderStrip(props: LoaderStripProps) {
     return null
   }
 
-  const normalizedProgress = Math.max(0, Math.min(100, props.progress))
+  const normalizedProgress = Math.max(0, Math.min(MAX_PROGRESS_PERCENT, props.progress))
   const stageText = isTranscribeTextKey(props.progressStage)
     ? getTranscribeText(props.locale, props.progressStage)
     : ''

@@ -14,7 +14,7 @@ vi.mock('../server/runtime/runtime', () => ({
   }
 }))
 
-vi.mock('@/core/env', () => ({
+vi.mock('@core/env', () => ({
   readRuntimeEnv: readRuntimeEnvMock
 }))
 
