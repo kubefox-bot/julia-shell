@@ -32,7 +32,7 @@ describe('core repository', () => {
     const agentId = 'agent-a';
     const initial = getLayoutSettings(agentId);
     expect(initial.desktopColumns).toBe(12);
-    expect(initial.locale).toBe('system');
+    expect(initial.locale).toBe('ru');
     expect(initial.theme).toBe('auto');
 
     saveLayoutSettings(agentId, { desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });

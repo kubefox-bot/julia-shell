@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { useShellRegistry } from '../../lib/registry';
-import { buildShellSkeletonLayout } from '../../model/skeleton';
-import { useShellStore } from '../../model/store';
-import type { ShellSettingsResponse } from '../../model/types';
+import { useShellRegistry } from '../../../lib/registry';
+import { buildShellSkeletonLayout } from '../../../model/skeleton';
+import { useShellStore } from '../../../model/store';
+import type { ShellSettingsResponse } from '../../../model/types';
 import { ShellSilhouetteGrid } from './ShellSilhouetteGrid';
 
 type ShellBootSkeletonProps = {

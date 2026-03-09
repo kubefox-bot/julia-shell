@@ -6,11 +6,11 @@ import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from '.
 import { openDb } from './shared';
 
 function sanitizeLocale(value: string | null | undefined): ShellLocale {
-  if (value === 'ru' || value === 'en' || value === 'system') {
+  if (value === 'ru' || value === 'en') {
     return value;
   }
 
-  return 'system';
+  return 'ru';
 }
 
 function sanitizeTheme(value: string | null | undefined): ShellTheme {
@@ -53,7 +53,7 @@ function bootstrapCoreSchema() {
       agent_id TEXT PRIMARY KEY,
       desktop_columns INTEGER NOT NULL DEFAULT 12,
       mobile_columns INTEGER NOT NULL DEFAULT 1,
-      locale TEXT NOT NULL DEFAULT 'system',
+      locale TEXT NOT NULL DEFAULT 'ru',
       theme TEXT NOT NULL DEFAULT 'auto',
       updated_at TEXT NOT NULL
     );
@@ -90,6 +90,8 @@ function bootstrapCoreSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_agent_jobs_state ON agent_jobs(state, updated_at DESC);
   `);
+
+  sqlite.exec(`UPDATE shell_layout_settings SET locale = 'ru' WHERE locale = 'system';`);
 }
 
 function getDb(agentId: string) {
@@ -101,7 +103,7 @@ function getDb(agentId: string) {
       agentId,
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system',
+      locale: 'ru',
       theme: 'auto',
       updatedAt: nowIso()
     })
@@ -131,7 +133,7 @@ export function getLayoutSettings(agentId: string): LayoutSettings {
         locale: sanitizeLocale(row.locale),
         theme: sanitizeTheme(row.theme)
       }
-    : { desktopColumns: 12, mobileColumns: 1, locale: 'system', theme: 'auto' };
+    : { desktopColumns: 12, mobileColumns: 1, locale: 'ru', theme: 'auto' };
 }
 
 export function saveLayoutSettings(agentId: string, next: LayoutSettings) {

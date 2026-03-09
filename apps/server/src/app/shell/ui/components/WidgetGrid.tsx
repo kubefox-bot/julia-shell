@@ -14,6 +14,7 @@ import { useShellRegistry } from '../../lib/registry';
 import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import styles from '../ShellApp.module.scss';
+import skeletonStyles from './skeleton/Skeleton.module.scss';
 import { ShellDragPreview } from './ShellDragPreview';
 import { ShellWidgetCard } from './ShellWidgetCard';
 
@@ -79,7 +80,7 @@ export function WidgetGrid() {
                   className={styles.dropShadowSlot}
                   style={{ gridColumn: `span ${SIZE_SPAN[entry.item.size]}` }}
                 >
-                  <article className={[styles.widgetCard, styles.widgetSilhouetteCard, styles.widgetSilhouetteCardAnimated].join(' ')}>
+                  <article className={[styles.widgetCard, skeletonStyles.widgetSilhouetteCard, skeletonStyles.widgetSilhouetteCardAnimated].join(' ')}>
                   </article>
                 </div>
               );

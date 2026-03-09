@@ -15,7 +15,7 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
     layoutSettings: {
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system',
+      locale: 'ru',
       theme: 'auto',
     },
     layout: [
@@ -67,7 +67,7 @@ describe('shell store', () => {
 
     expect(store.getState().layout).toEqual(createResponse().layout)
     expect(store.getState().draftLayout).toEqual(createResponse().layout)
-    expect(store.getState().layoutSettings.locale).toBe('system')
+    expect(store.getState().layoutSettings.locale).toBe('ru')
     expect(store.getState().layoutSettings.theme).toBe('auto')
   })
 
@@ -154,7 +154,7 @@ describe('shell store', () => {
         layoutSettings: {
           desktopColumns: 12,
           mobileColumns: 1,
-          locale: 'system',
+          locale: 'ru',
           theme: 'day',
         },
       })

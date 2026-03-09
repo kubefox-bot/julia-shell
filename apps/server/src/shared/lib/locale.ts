@@ -17,12 +17,8 @@ export function coerceBrowserLocale(locale: string | null | undefined): DisplayL
   return 'ru';
 }
 
-export function resolveDisplayLocale(shellLocale: ShellLocale, browserLocale?: string | null): DisplayLocale {
-  if (shellLocale === 'ru' || shellLocale === 'en') {
-    return shellLocale;
-  }
-
-  return coerceBrowserLocale(browserLocale);
+export function resolveDisplayLocale(shellLocale: ShellLocale): DisplayLocale {
+  return shellLocale;
 }
 
 export function getLocalizedHeader(headerName: WidgetHeaderName, locale: DisplayLocale) {

@@ -24,7 +24,7 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
     layoutSettings: {
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system',
+      locale: 'ru',
       theme: 'auto',
     },
     layout: [],

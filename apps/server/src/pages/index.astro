@@ -1,11 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { ShellApp } from '../app/shell/ui/ShellApp';
-import { ShellSilhouetteGrid } from '../app/shell/ui/components/ShellSilhouetteGrid';
+import { DateTime } from 'luxon';
+import JuliaHeader from '../app/shell/ui/astro/julia-header/JuliaHeader.astro';
+import { Meta } from '../app/shell/ui/astro/meta/Meta';
+import { ShellSilhouetteGrid } from '../app/shell/ui/components';
 import { buildShellSkeletonLayout } from '../app/shell/model/skeleton';
+import { getDailyQuote, getShellText } from '../app/shell/lib/i18n';
 import { getShellSettings } from '../core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
+import { resolveDisplayLocale } from '../shared/lib/locale';
 import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from '../app/shell/model/constants';
 import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
@@ -20,6 +25,11 @@ const hasPassportAccess = Boolean(passportContext.context);
 const initialAgentId = passportContext.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;
 const initialShellSettings = await getShellSettings(initialAgentId, { hasPassportAccess });
 const initialNowIso = new Date().toISOString();
+const initialDisplayLocale = resolveDisplayLocale(initialShellSettings.layoutSettings.locale);
+const initialNow = new Date(initialNowIso);
+const initialNowLocale = DateTime.fromJSDate(initialNow).setLocale(initialDisplayLocale === 'ru' ? 'ru' : 'en');
+const initialQuote = getDailyQuote(initialDisplayLocale, initialNowLocale);
+const initialGreeting = getShellText(initialDisplayLocale, 'greeting');
 const initialSilhouetteLayout = buildShellSkeletonLayout(initialShellSettings.layout, initialShellSettings.modules, []);
 const currentHour = new Date().getHours();
 const resolvedShellTheme: ResolvedShellTheme =
@@ -45,7 +55,15 @@ const resolvedShellTheme: ResolvedShellTheme =
         />
       </div>
     </div>
-    <ShellApp client:load initialShellSettings={initialShellSettings} initialNowIso={initialNowIso} />
+    <JuliaHeader quote={initialQuote} greeting={initialGreeting}>
+      <Meta slot="meta" client:load initialNowIso={initialNowIso} initialLocale={initialDisplayLocale} />
+    </JuliaHeader>
+    <ShellApp
+      client:load
+      initialShellSettings={initialShellSettings}
+      initialNowIso={initialNowIso}
+      initialBrowserLocale={initialDisplayLocale}
+    />
   </div>
 </Layout>
 
@@ -53,10 +71,29 @@ const resolvedShellTheme: ResolvedShellTheme =
   (() => {
     const overlay = document.getElementById('shell-boot-overlay');
     if (!overlay) return;
+    const stage = overlay.closest('.shellBootStage');
+
+    const syncBootHeaderHeight = () => {
+      if (!stage) return;
+      const header = document.getElementById('shell-header');
+      if (!header) return;
+      const height = Math.ceil(header.getBoundingClientRect().height);
+      if (height > 0) {
+        stage.style.setProperty('--shell-boot-header-height', `${height}px`);
+      }
+    };
+
+    syncBootHeaderHeight();
+    window.requestAnimationFrame(() => {
+      syncBootHeaderHeight();
+      window.requestAnimationFrame(syncBootHeaderHeight);
+    });
+    window.addEventListener('resize', syncBootHeaderHeight);
 
     window.addEventListener(
       'yulia-shell-hydrated',
       () => {
+        window.removeEventListener('resize', syncBootHeaderHeight);
         overlay.classList.add('shellBootOverlayHidden');
         window.setTimeout(() => {
           overlay.remove();
@@ -70,12 +107,13 @@ const resolvedShellTheme: ResolvedShellTheme =
 <style>
   .shellBootStage {
     position: relative;
+    --shell-boot-header-height: 5.6rem;
   }
 
   .shellBootOverlay {
     position: absolute;
     inset: 0;
-    z-index: 30;
+    z-index: 80;
     pointer-events: none;
     transition: opacity 220ms ease, visibility 220ms ease;
   }
@@ -87,7 +125,8 @@ const resolvedShellTheme: ResolvedShellTheme =
   }
 
   .shellBootHeaderSpacer {
-    min-height: 5.3rem;
+    height: var(--shell-boot-header-height);
+    min-height: var(--shell-boot-header-height);
   }
 
   .shellBootOverlayHidden {
@@ -95,9 +134,4 @@ const resolvedShellTheme: ResolvedShellTheme =
     visibility: hidden;
   }
 
-  @media (max-width: 768px) {
-    .shellBootHeaderSpacer {
-      min-height: 7.1rem;
-    }
-  }
 </style>

@@ -7,7 +7,7 @@ export const shellLayoutSettingsTable = sqliteTable('shell_layout_settings', {
   agentId: text('agent_id').notNull(),
   desktopColumns: integer('desktop_columns').notNull().default(DEFAULT_DESKTOP_COLUMNS),
   mobileColumns: integer('mobile_columns').notNull().default(DEFAULT_MOBILE_COLUMNS),
-  locale: text('locale').notNull().default('system'),
+  locale: text('locale').notNull().default('ru'),
   theme: text('theme').notNull().default('auto'),
   updatedAt: text('updated_at').notNull()
 }, (table) => [

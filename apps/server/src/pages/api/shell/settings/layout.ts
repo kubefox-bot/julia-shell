@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
   const body = await readJsonBody<{
     desktopColumns?: number;
     mobileColumns?: number;
-    locale?: 'system' | 'ru' | 'en';
+    locale?: 'ru' | 'en';
     theme?: 'auto' | 'day' | 'night';
     layout?: Array<{ widgetId: string; order: number; size: 'small' | 'medium' | 'large' }>;
   }>(request);

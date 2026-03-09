@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
-import type { LayoutItem, LayoutSettings, WidgetSize } from '../../../../entities/widget/model/types';
-import styles from '../ShellApp.module.scss';
+import type { LayoutItem, LayoutSettings, WidgetSize } from '../../../../../entities/widget/model/types';
+import shellStyles from '../../ShellApp.module.scss';
+import skeletonStyles from './Skeleton.module.scss';
 
 const SIZE_SPAN: Record<WidgetSize, number> = {
   small: 3,
@@ -21,11 +22,17 @@ export function ShellSilhouetteGrid({ items, layoutSettings, animate }: ShellSil
   } as CSSProperties;
 
   return (
-    <section className={styles.grid} style={columnsStyle} aria-hidden="true">
+    <section className={shellStyles.grid} style={columnsStyle} aria-hidden="true">
       {items.map((item) => (
         <article
           key={`skeleton-${item.widgetId}`}
-          className={[styles.widgetCard, styles.widgetSilhouetteCard, animate ? styles.widgetSilhouetteCardAnimated : ''].filter(Boolean).join(' ')}
+          className={[
+            shellStyles.widgetCard,
+            skeletonStyles.widgetSilhouetteCard,
+            animate ? skeletonStyles.widgetSilhouetteCardAnimated : ''
+          ]
+            .filter(Boolean)
+            .join(' ')}
           style={{ gridColumn: `span ${SIZE_SPAN[item.size]}` }}
         />
       ))}

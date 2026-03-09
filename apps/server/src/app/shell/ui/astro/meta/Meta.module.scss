@@ -1,0 +1,40 @@
+.clock {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.56rem 0.82rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgb(219 234 254 / 92%), rgb(245 243 255 / 95%));
+  box-shadow: 0 2px 8px rgb(15 23 42 / 8%), inset 0 0 0 1px rgb(191 219 254 / 85%);
+}
+
+.time {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1e3a8a;
+}
+
+.date {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #5b21b6;
+  text-transform: capitalize;
+}
+
+:global(html[data-shell-theme='night']) .clock,
+:global(body[data-shell-theme='night']) .clock {
+  background: linear-gradient(135deg, rgb(30 41 59 / 92%), rgb(49 46 129 / 88%));
+  box-shadow: 0 2px 8px rgb(2 6 23 / 28%), inset 0 0 0 1px rgb(99 102 241 / 28%);
+}
+
+:global(html[data-shell-theme='night']) .time,
+:global(body[data-shell-theme='night']) .time {
+  color: #e0f2fe;
+}
+
+:global(html[data-shell-theme='night']) .date,
+:global(body[data-shell-theme='night']) .date {
+  color: #c4b5fd;
+}

@@ -39,7 +39,7 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
   layoutSettings: {
     desktopColumns: 12,
     mobileColumns: 1,
-    locale: 'system',
+    locale: 'ru',
     theme: 'auto',
   },
   statusPollIntervalMs: SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS,

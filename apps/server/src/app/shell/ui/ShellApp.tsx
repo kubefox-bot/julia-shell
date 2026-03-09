@@ -2,24 +2,37 @@ import { useEffect, useRef, useState } from 'react'
 import { CLOCK_TICK_INTERVAL_MS, SHELL_BOOT_DELAY_MS } from '../model/constants'
 import { useResolvedShellTheme, useShellI18n, useShellLoadingState } from '../model/selectors'
 import { useShellStore } from '../model/store'
+import { buildShellStatePatch } from '../model/store-helpers'
 import type { ShellSettingsResponse } from '../model/types'
-import { ShellBootSkeleton } from './components/ShellBootSkeleton'
-import { ShellHeader } from './components/ShellHeader'
-import { ShellSettingsOverlay } from './components/ShellSettingsOverlay'
-import { WidgetGrid } from './components/WidgetGrid'
+import { ShellBootSkeleton, ShellHeaderActions, ShellSettingsOverlay, WidgetGrid } from './components'
 import styles from './ShellApp.module.scss'
 
 type ShellAppProps = {
   initialShellSettings?: ShellSettingsResponse
   initialNowIso?: string
+  initialBrowserLocale?: string
 }
 
-export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps) {
+export function ShellApp({ initialShellSettings, initialNowIso, initialBrowserLocale }: ShellAppProps) {
   const hasSeededClockRef = useRef(false)
+  const hasSeededBrowserLocaleRef = useRef(false)
+  const hasSeededShellStateRef = useRef(false)
 
   if (!hasSeededClockRef.current && initialNowIso) {
     useShellStore.setState({ nowIso: initialNowIso })
     hasSeededClockRef.current = true
+  }
+
+  if (!hasSeededBrowserLocaleRef.current && initialBrowserLocale) {
+    useShellStore.setState((state) =>
+      state.browserLocale ? {} : { browserLocale: initialBrowserLocale }
+    )
+    hasSeededBrowserLocaleRef.current = true
+  }
+
+  if (!hasSeededShellStateRef.current && initialShellSettings) {
+    useShellStore.setState((state) => buildShellStatePatch(state, initialShellSettings))
+    hasSeededShellStateRef.current = true
   }
 
   const { loading, error } = useShellLoadingState()
@@ -29,23 +42,20 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   const loadShell = useShellStore((state) => state.loadShell)
   const syncFromStatus = useShellStore((state) => state.syncFromStatus)
   const statusPollIntervalMs = useShellStore((state) => state.statusPollIntervalMs)
-  const setBrowserLocale = useShellStore((state) => state.setBrowserLocale)
   const tickNow = useShellStore((state) => state.tickNow)
   const [isBootDelayComplete, setIsBootDelayComplete] = useState(false)
 
   useEffect(() => {
     if (initialShellSettings) {
-      hydrateShell(initialShellSettings)
+      if (!hasSeededShellStateRef.current) {
+        hydrateShell(initialShellSettings)
+      }
     } else {
       void loadShell()
     }
 
-    if (typeof navigator !== 'undefined') {
-      setBrowserLocale(navigator.language)
-    }
-
     void syncFromStatus()
-  }, [hydrateShell, initialShellSettings, loadShell, setBrowserLocale, syncFromStatus])
+  }, [hydrateShell, initialShellSettings, loadShell, syncFromStatus])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -110,7 +120,7 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
 
   return (
     <div className={styles.shellRoot} data-theme={theme}>
-      <ShellHeader />
+      <ShellHeaderActions />
       {!showBootSkeleton && error ? (
         <p className={styles.error}>
           {t('error')}: {error}
