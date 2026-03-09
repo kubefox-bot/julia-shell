@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getShellSettings } from '../../../core/services/shell-service';
+import { PASSPORT_ANONYMOUS_AGENT_ID } from '../../../domains/passport/server/consts';
 import { resolvePassportRequestContext } from '../../../domains/passport/server/context';
 import { withSetCookie } from '../../../domains/passport/server/cookie';
 import { jsonResponse } from '../../../shared/lib/http';
@@ -8,10 +9,9 @@ export const GET: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
     allowBootstrapFromOnlineAgent: true
   });
-  if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized.' }, 401);
-  }
+  const hasPassportAccess = Boolean(resolvedAuth.context);
+  const agentId = resolvedAuth.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;
 
-  const settings = await getShellSettings(resolvedAuth.context.agentId);
-  return withSetCookie(jsonResponse(settings), resolvedAuth.context.setCookieHeader);
+  const settings = await getShellSettings(agentId, { hasPassportAccess });
+  return withSetCookie(jsonResponse(settings), resolvedAuth.context?.setCookieHeader ?? null);
 };

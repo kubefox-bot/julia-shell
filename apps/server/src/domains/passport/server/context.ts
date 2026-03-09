@@ -28,21 +28,23 @@ export async function resolvePassportRequestContext(
   if (extracted.token) {
     const secret = await resolvePassportJwtSecret();
     const claims = verifyAccessJwt(secret, extracted.token);
-    if (!claims) {
+    if (claims) {
+      return {
+        context: {
+          agentId: claims.sub,
+          accessJwt: extracted.token,
+          setCookieHeader: null
+        },
+        reason: 'missing'
+      };
+    }
+
+    if (!options?.allowBootstrapFromOnlineAgent) {
       return {
         context: null,
         reason: 'invalid'
       };
     }
-
-    return {
-      context: {
-        agentId: claims.sub,
-        accessJwt: extracted.token,
-        setCookieHeader: null
-      },
-      reason: 'missing'
-    };
   }
 
   if (!options?.allowBootstrapFromOnlineAgent) {

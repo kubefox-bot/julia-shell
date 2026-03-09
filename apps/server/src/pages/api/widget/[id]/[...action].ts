@@ -1,21 +1,27 @@
 import type { APIRoute } from 'astro';
 import { resolveWidgetHandler } from '../../../../core/registry/registry';
 import { listShellModules } from '../../../../core/services/shell-service';
+import { PASSPORT_ANONYMOUS_AGENT_ID } from '../../../../domains/passport/server/consts';
 import { resolvePassportRequestContext } from '../../../../domains/passport/server/context';
 import { withSetCookie } from '../../../../domains/passport/server/cookie';
+import { PASSPORT_HTTP_STATUS } from '../../../../domains/passport/server/http';
+import { isPassportProtectedWidget } from '../../../../domains/passport/server/widget-policy';
 import { jsonResponse } from '../../../../shared/lib/http';
 
 async function handleRequest(method: string, request: Request, id: string | undefined, actionRaw: string | undefined) {
-  const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
-  });
-
-  if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized.' }, 401);
+  if (!id) {
+    return jsonResponse({ error: 'Missing widget id.' }, PASSPORT_HTTP_STATUS.badRequest);
   }
 
-  if (!id) {
-    return jsonResponse({ error: 'Missing widget id.' }, 400);
+  const requiresPassport = isPassportProtectedWidget(id);
+  const resolvedAuth = await resolvePassportRequestContext(request, {
+    allowBootstrapFromOnlineAgent: !requiresPassport
+  });
+  const hasPassportAccess = Boolean(resolvedAuth.context);
+  const agentId = resolvedAuth.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;
+
+  if (requiresPassport && !hasPassportAccess) {
+    return jsonResponse({ error: 'Unauthorized.' }, PASSPORT_HTTP_STATUS.unauthorized);
   }
 
   const action = typeof actionRaw === 'string' ? actionRaw : '';
@@ -23,32 +29,32 @@ async function handleRequest(method: string, request: Request, id: string | unde
 
   const resolved = await resolveWidgetHandler(id, method, action);
   if (!resolved) {
-    return jsonResponse({ error: `Route not found for widget ${id}.` }, 404);
+    return jsonResponse({ error: `Route not found for widget ${id}.` }, PASSPORT_HTTP_STATUS.notFound);
   }
 
-  const modules = await listShellModules(resolvedAuth.context.agentId);
+  const modules = await listShellModules(agentId, { hasPassportAccess });
   const moduleInfo = modules.find((entry) => entry.id === id);
 
   if (!moduleInfo) {
-    return jsonResponse({ error: `Unknown widget: ${id}` }, 404);
+    return jsonResponse({ error: `Unknown widget: ${id}` }, PASSPORT_HTTP_STATUS.notFound);
   }
 
   if (!moduleInfo.ready) {
     return jsonResponse({
       error: 'Widget is not ready.',
       notReadyReasons: moduleInfo.notReadyReasons
-    }, 409);
+    }, PASSPORT_HTTP_STATUS.conflict);
   }
 
   if (!moduleInfo.enabled) {
     return jsonResponse({
       error: 'Widget is disabled in shell settings.'
-    }, 423);
+    }, PASSPORT_HTTP_STATUS.locked);
   }
 
   const response = await resolved.handler({
     request,
-    agentId: resolvedAuth.context.agentId,
+    agentId,
     action,
     actionSegments,
     params: {
@@ -56,7 +62,7 @@ async function handleRequest(method: string, request: Request, id: string | unde
     }
   });
 
-  return withSetCookie(response, resolvedAuth.context.setCookieHeader);
+  return withSetCookie(response, resolvedAuth.context?.setCookieHeader ?? null);
 }
 
 export const GET: APIRoute = async ({ request, params }) => {

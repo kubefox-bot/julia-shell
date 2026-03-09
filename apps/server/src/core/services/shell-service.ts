@@ -1,7 +1,9 @@
+// biome-ignore lint/nursery/noExcessiveLinesPerFile: Shell policy and layout orchestration are temporarily colocated.
 import type {
   HostPlatform,
   LayoutItem,
   LayoutSettings,
+  WidgetDescriptor,
   WidgetModuleInfo,
   WidgetSize
 } from '../../entities/widget/model/types';
@@ -20,6 +22,14 @@ import { listDiscoveredWidgets } from '../registry/registry';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
 const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
+const PASSPORT_REQUIRED_WIDGET_IDS = new Set(['com.yulia.transcribe']);
+const PASSPORT_NOT_READY_REASON = 'Passport access token is required for this widget.';
+const MIN_SHELL_COLUMNS = 1;
+const MAX_SHELL_COLUMNS = 12;
+
+type ShellAccessPolicy = {
+  hasPassportAccess?: boolean;
+};
 
 function resolveHostPlatform(): HostPlatform {
   if (process.platform === 'win32') {
@@ -36,7 +46,7 @@ function resolveHostPlatform(): HostPlatform {
 function sanitizeColumns(value: number, fallback: number) {
   if (!Number.isFinite(value)) return fallback;
   const rounded = Math.round(value);
-  return Math.max(1, Math.min(12, rounded));
+  return Math.max(MIN_SHELL_COLUMNS, Math.min(MAX_SHELL_COLUMNS, rounded));
 }
 
 function normalizeLayoutItems(items: LayoutItem[]) {
@@ -70,46 +80,88 @@ export async function ensureCoreDefaults(agentId: string) {
   });
 }
 
-export async function listShellModules(agentId: string): Promise<WidgetModuleInfo[]> {
+function buildPassportNotReadyReasons(widgetId: string, hasPassportAccess: boolean) {
+  if (PASSPORT_REQUIRED_WIDGET_IDS.has(widgetId) && !hasPassportAccess) {
+    return [PASSPORT_NOT_READY_REASON];
+  }
+
+  return [];
+}
+
+async function collectRuntimeNotReadyReasons(descriptor: WidgetDescriptor) {
+  try {
+    const serverModule = await descriptor.module.loadServerModule();
+    if (!serverModule.init) {
+      return [];
+    }
+
+    const initResult = await serverModule.init();
+    if (!initResult || initResult.ready !== false) {
+      return [];
+    }
+
+    return [initResult.reason?.trim() || 'init() returned not ready.'];
+  } catch (error) {
+    return [error instanceof Error ? error.message : 'loadServerModule() failed.'];
+  }
+}
+
+function resolveModuleEnabledState(input: {
+  agentId: string;
+  widgetId: string;
+  enabled: boolean;
+  notReadyReasons: string[];
+  wasAutoDisabled: boolean;
+}) {
+  const runtimeReady = input.notReadyReasons.length === 0;
+  let enabled = input.enabled;
+
+  if (!runtimeReady && enabled) {
+    const reason = input.notReadyReasons[0] ?? 'Widget is not ready.';
+    setModuleEnabled(input.agentId, input.widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
+    enabled = false;
+  }
+
+  if (runtimeReady && !enabled && input.wasAutoDisabled) {
+    setModuleEnabled(input.agentId, input.widgetId, true, null);
+    enabled = true;
+  }
+
+  return {
+    runtimeReady,
+    enabled
+  };
+}
+
+export async function listShellModules(
+  agentId: string,
+  policy: ShellAccessPolicy = {}
+): Promise<WidgetModuleInfo[]> {
   await ensureCoreDefaults(agentId);
   const widgets = await listDiscoveredWidgets();
   const states = getModuleStates(agentId);
   const stateMap = new Map(states.map((state) => [state.widgetId, state]));
+  const hasPassportAccess = policy.hasPassportAccess ?? true;
 
   const modules: WidgetModuleInfo[] = [];
 
   for (const descriptor of widgets) {
     const widgetId = descriptor.module.manifest.id;
     const state = stateMap.get(widgetId);
-    let enabled = state?.enabled ?? descriptor.runtime.ready;
-    const notReadyReasons = [...descriptor.runtime.notReadyReasons];
-
-    try {
-      const serverModule = await descriptor.module.loadServerModule();
-      if (serverModule.init) {
-        const initResult = await serverModule.init();
-        if (initResult && initResult.ready === false) {
-          notReadyReasons.push(initResult.reason?.trim() || 'init() returned not ready.');
-        }
-      }
-    } catch (error) {
-      notReadyReasons.push(error instanceof Error ? error.message : 'loadServerModule() failed.');
-    }
-
-    const runtimeReady = notReadyReasons.length === 0;
-
+    const notReadyReasons = [
+      ...descriptor.runtime.notReadyReasons,
+      ...buildPassportNotReadyReasons(widgetId, hasPassportAccess),
+      ...(await collectRuntimeNotReadyReasons(descriptor))
+    ];
     const wasAutoDisabled = Boolean(state?.disabledReason?.startsWith(AUTO_NOT_READY_REASON_PREFIX));
-
-    if (!runtimeReady && enabled) {
-      const reason = notReadyReasons[0] ?? 'Widget is not ready.';
-      setModuleEnabled(agentId, widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
-      enabled = false;
-    }
-
-    if (runtimeReady && !enabled && wasAutoDisabled) {
-      setModuleEnabled(agentId, widgetId, true, null);
-      enabled = true;
-    }
+    const enabledByState = state?.enabled ?? descriptor.runtime.ready;
+    const moduleState = resolveModuleEnabledState({
+      agentId,
+      widgetId,
+      enabled: enabledByState,
+      notReadyReasons,
+      wasAutoDisabled
+    });
 
     modules.push({
       id: widgetId,
@@ -118,8 +170,8 @@ export async function listShellModules(agentId: string): Promise<WidgetModuleInf
       description: descriptor.module.manifest.description,
       headerName: descriptor.module.manifest.headerName,
       normalizedIcon: descriptor.module.normalizedIcon,
-      ready: runtimeReady,
-      enabled,
+      ready: moduleState.runtimeReady,
+      enabled: moduleState.enabled,
       notReadyReasons,
       defaultSize: descriptor.module.manifest.defaultSize,
       supportedSizes: descriptor.module.manifest.supportedSizes
@@ -129,9 +181,9 @@ export async function listShellModules(agentId: string): Promise<WidgetModuleInf
   return modules.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 }
 
-export async function getShellSettings(agentId: string) {
+export async function getShellSettings(agentId: string, policy: ShellAccessPolicy = {}) {
   await ensureCoreDefaults(agentId);
-  const modules = await listShellModules(agentId);
+  const modules = await listShellModules(agentId, policy);
   const settings = getLayoutSettings(agentId);
   const layout = getLayoutItems(agentId);
   const runtimeEnv = readRuntimeEnv();
@@ -172,8 +224,13 @@ export async function updateLayoutSettings(input: {
   return getShellSettings(input.agentId);
 }
 
-export async function setShellModuleEnabled(agentId: string, widgetId: string, enabled: boolean) {
-  const modules = await listShellModules(agentId);
+export async function setShellModuleEnabled(
+  agentId: string,
+  widgetId: string,
+  enabled: boolean,
+  policy: ShellAccessPolicy = {}
+) {
+  const modules = await listShellModules(agentId, policy);
   const moduleInfo = modules.find((module) => module.id === widgetId);
 
   if (!moduleInfo) {
@@ -198,11 +255,11 @@ export async function setShellModuleEnabled(agentId: string, widgetId: string, e
   return {
     ok: true,
     status: 200,
-    module: (await listShellModules(agentId)).find((module) => module.id === widgetId)
+    module: (await listShellModules(agentId, policy)).find((module) => module.id === widgetId)
   };
 }
 
-export async function getEnabledWidgetIds(agentId: string) {
-  const modules = await listShellModules(agentId);
+export async function getEnabledWidgetIds(agentId: string, policy: ShellAccessPolicy = {}) {
+  const modules = await listShellModules(agentId, policy);
   return new Set(modules.filter((module) => module.ready && module.enabled).map((module) => module.id));
 }
