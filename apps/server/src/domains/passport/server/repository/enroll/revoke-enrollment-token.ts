@@ -1,5 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import { agentEnrollmentTokensTable } from '@/core/db/passport-schema';
+import { agentEnrollmentTokensTable } from '@passport/server/repository/shared/passport-schema';
 import { nowIso } from '@shared/lib/time';
 import { getPassportDb } from '@passport/server/repository/shared';
 

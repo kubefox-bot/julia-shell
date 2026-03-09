@@ -641,11 +641,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
         {messages.map((entry) => (
           <article key={entry.id} className={[styles.bubble, entry.role === 'user' ? styles.user : styles.assistant].join(' ')}>
             {entry.text ? entry.text : entry.role === 'assistant' && sending ? (
-              <span className={styles.typingIndicator} aria-label={t.sending}>
+              <output className={styles.typingIndicator} aria-live="polite" aria-label={t.sending}>
                 <span />
                 <span />
                 <span />
-              </span>
+              </output>
             ) : ''}
           </article>
         ))}

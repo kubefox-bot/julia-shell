@@ -1,4 +1,4 @@
-import { openPassportDatabase, openPassportSqlite } from '@/core/db/passport-drizzle';
+import { openPassportDatabase, openPassportSqlite } from '@passport/server/repository/shared/passport-drizzle';
 
 function bootstrapPassportSchema() {
   const sqlite = openPassportSqlite();
