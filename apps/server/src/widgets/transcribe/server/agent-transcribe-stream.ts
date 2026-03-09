@@ -100,7 +100,7 @@ export async function handleAgentTranscribeStream(
     },
   });
 
-  const topic = `agent:transcribe:${jobId}`;
+  const topic = `agent:widget:${WIDGET_ID}:${jobId}`;
   let closed = false;
 
   const stream = new ReadableStream<Uint8Array>({

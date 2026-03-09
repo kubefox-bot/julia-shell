@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package julia.agent.v1;
+
+enum TerminalAgentProvider {
+  TERMINAL_AGENT_PROVIDER_UNSPECIFIED = 0;
+  TERMINAL_AGENT_PROVIDER_CODEX = 1;
+  TERMINAL_AGENT_PROVIDER_GEMINI = 2;
+}
+
+message TerminalAgentSendMessageCommand {
+  TerminalAgentProvider provider = 1;
+  string message = 2;
+  string resume_ref = 3;
+  string api_key = 4;
+  string command_path = 5;
+  repeated string command_args = 6;
+  bool use_shell_fallback = 7;
+  string shell_override = 8;
+}
+
+message TerminalAgentResetDialogCommand {
+  string reason = 1;
+}
+
+message TerminalAgentStatusEvent {
+  string status = 1;
+  string detail = 2;
+}
+
+message TerminalAgentAssistantChunkEvent {
+  string text = 1;
+}
+
+message TerminalAgentAssistantDoneEvent {
+  string provider_ref = 1;
+  string finish_reason = 2;
+}
+
+message TerminalAgentResumeFailedEvent {
+  string reason = 1;
+}
+
+message TerminalAgentErrorEvent {
+  string code = 1;
+  string message = 2;
+}

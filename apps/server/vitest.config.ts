@@ -14,13 +14,18 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/domains/passport/**/*.{ts,tsx}'],
+      include: [
+        'src/domains/passport/**/*.{ts,tsx}',
+        'src/widgets/terminal-agent/server/**/*.ts',
+        'src/core/db/terminal-agent-repository.ts'
+      ],
       exclude: [
         'src/domains/passport/**/*.d.ts',
         'src/domains/passport/**/index.ts',
         'src/domains/passport/server/runtime/**',
         'src/domains/passport/client/types.ts',
-        'src/domains/passport/ui/**'
+        'src/domains/passport/ui/**',
+        'src/widgets/terminal-agent/server/types.ts'
       ],
       thresholds: {
         lines: 80,
