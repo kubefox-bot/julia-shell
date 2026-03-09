@@ -30,3 +30,17 @@ export type TerminalAgentDialogRefItemPayload = {
   updatedAt: string
   lastStatus: string
 }
+
+export type TerminalAgentLlmModelItemPayload = {
+  value: string
+  label: string
+}
+
+export type TerminalAgentLlmModelsPayload = {
+  widgetId: string
+  provider: TerminalAgentProvider
+  source: 'db' | 'remote'
+  stale: boolean
+  updatedAt: string | null
+  items: TerminalAgentLlmModelItemPayload[]
+}

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getTerminalAgentSettings } from '../../../core/db/terminal-agent-repository'
 import { getLlmModelCatalog } from '../../../domains/llm-catalog/server'
 import { WIDGET_ID } from './constants'
+import { toTerminalAgentLlmModelsHttpError, toTerminalAgentLlmModelsPayload } from './llm-models-mapping'
 import { handleTerminalAgentMessageStream } from './message-stream'
 import {
   buildTerminalAgentSettingsPayload,
@@ -94,19 +95,10 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       forceRefresh,
     })
     if (catalogResult.isErr()) {
-      const status = catalogResult.error.retryable ? 503 : 502
-      return jsonResponse({ error: catalogResult.error.message, code: catalogResult.error.code }, status)
+      const mappedError = toTerminalAgentLlmModelsHttpError(catalogResult.error)
+      return jsonResponse(mappedError.payload, mappedError.status)
     }
-    const catalog = catalogResult.value
-
-    return jsonResponse({
-      widgetId: WIDGET_ID,
-      provider,
-      source: catalog.source,
-      stale: catalog.stale,
-      updatedAt: catalog.updatedAt,
-      items: catalog.models.map((model) => ({ value: model, label: model })),
-    })
+    return jsonResponse(toTerminalAgentLlmModelsPayload(catalogResult.value))
   },
   'POST dialog/select': async ({ request, agentId }) => {
     const body = await readJsonBody<Record<string, unknown>>(request)
