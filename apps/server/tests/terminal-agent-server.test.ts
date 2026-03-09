@@ -421,6 +421,74 @@ describe('terminal-agent server handlers', () => {
     expect(state.lastError).toBe('provider_exit_error');
   });
 
+  it('maps gemini quota noise to single domain-level message', async () => {
+    saveTerminalAgentSettings({
+      agentId: 'agent-a',
+      widgetId: WIDGET_ID,
+      activeProvider: 'gemini',
+      codexApiKey: '',
+      geminiApiKey: 'gemini-key',
+      codexCommand: 'codex',
+      codexArgs: [],
+      codexModel: 'gpt-5-codex',
+      geminiCommand: 'gemini',
+      geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
+      useShellFallback: false,
+      shellOverride: ''
+    });
+
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
+      agentId: 'runtime-agent',
+      sessionId: 'runtime-session',
+      hostname: 'host',
+      accessJwt: 'token'
+    });
+    const dispatchSpy = vi
+      .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
+      .mockReturnValue(true);
+
+    const response = await terminalAgentHandlers['POST message-stream'](
+      createContext({
+        url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream',
+        method: 'POST',
+        action: 'message-stream',
+        body: { provider: 'gemini', message: 'Ping quota mapping' }
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await vi.waitFor(() => {
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const dialogId = String((dispatchSpy.mock.calls[0]?.[0] as { dialogId?: string } | undefined)?.dialogId ?? '');
+    const streamEventsPromise = collectSseEventsWithTimeout(response);
+
+    moduleBus.publish(`agent:widget:${WIDGET_ID}:${dialogId}`, 'test', {
+      type: 'status',
+      payload: { status: 'tool_call', detail: 'at classifyGoogleError (file:///path/googleQuotaErrors.js:206:24)' }
+    });
+    moduleBus.publish(`agent:widget:${WIDGET_ID}:${dialogId}`, 'test', {
+      type: 'status',
+      payload: { status: 'tool_call', detail: 'TerminalQuotaError: You have exhausted your daily quota on this model.' }
+    });
+    moduleBus.publish(`agent:widget:${WIDGET_ID}:${dialogId}`, 'test', {
+      type: 'error',
+      payload: { message: 'Provider exited with code: 1' }
+    });
+
+    const events = await streamEventsPromise;
+    expect(events.map((item) => item.event)).toEqual(['status', 'status', 'error']);
+    expect(events[1]?.payload).toEqual({
+      status: 'tool_call',
+      detail: 'Gemini quota exceeded. Check billing/limits and retry later.',
+    });
+    expect(events[2]?.payload).toEqual({
+      message: 'Gemini quota exceeded. Check billing/limits and retry later.',
+    });
+  });
+
   it('returns validation/offline errors for message stream entry point', async () => {
     vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(null);
 

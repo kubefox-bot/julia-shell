@@ -37,6 +37,7 @@ export type LlmRuntimeDialogState = {
   consumer: string
   provider: LlmRuntimeProvider
   providerSessionRef: string
+  dialogTitle: string
   status: string
   lastError: string | null
   updatedAt: string | null
@@ -47,6 +48,7 @@ export type LlmRuntimeDialogRef = {
   consumer: string
   provider: LlmRuntimeProvider
   providerSessionRef: string
+  dialogTitle: string
   createdAt: string
   updatedAt: string
   lastStatus: string
@@ -200,6 +202,7 @@ export function getLlmRuntimeDialogState(input: {
       consumer: input.consumer,
       provider: input.provider,
       providerSessionRef: toText(row?.providerSessionRef),
+      dialogTitle: toText(row?.dialogTitle),
       status: toText(row?.status) || 'idle',
       lastError: row?.lastError ?? null,
       updatedAt: row?.updatedAt ?? null,
@@ -217,11 +220,25 @@ export function upsertLlmRuntimeDialogState(input: {
   consumer: string
   provider: LlmRuntimeProvider
   providerSessionRef: string
+  dialogTitle?: string
   status: string
   lastError: string | null
 }): Result<void, LlmRuntimeError> {
   try {
     const db = openLlmRuntimeDatabase()
+    const existing = db
+      .select()
+      .from(llmConsumerDialogStateTable)
+      .where(and(
+        eq(llmConsumerDialogStateTable.agentId, input.agentId),
+        eq(llmConsumerDialogStateTable.consumer, input.consumer),
+        eq(llmConsumerDialogStateTable.provider, input.provider),
+      ))
+      .get()
+    const dialogTitle = typeof input.dialogTitle === 'string'
+      ? toText(input.dialogTitle)
+      : toText(existing?.dialogTitle)
+
     db
       .insert(llmConsumerDialogStateTable)
       .values({
@@ -229,6 +246,7 @@ export function upsertLlmRuntimeDialogState(input: {
         consumer: input.consumer,
         provider: input.provider,
         providerSessionRef: toText(input.providerSessionRef),
+        dialogTitle,
         status: toText(input.status) || 'idle',
         lastError: input.lastError,
         updatedAt: nowIso(),
@@ -241,6 +259,7 @@ export function upsertLlmRuntimeDialogState(input: {
         ],
         set: {
           providerSessionRef: toText(input.providerSessionRef),
+          dialogTitle,
           status: toText(input.status) || 'idle',
           lastError: input.lastError,
           updatedAt: nowIso(),
@@ -267,6 +286,7 @@ export function clearLlmRuntimeDialogState(input: {
     consumer: input.consumer,
     provider: input.provider,
     providerSessionRef: '',
+    dialogTitle: '',
     status: 'idle',
     lastError: null,
   })
@@ -277,6 +297,7 @@ export function upsertLlmRuntimeDialogRef(input: {
   consumer: string
   provider: LlmRuntimeProvider
   providerSessionRef: string
+  dialogTitle?: string
   lastStatus: string
 }): Result<void, LlmRuntimeError> {
   try {
@@ -285,6 +306,19 @@ export function upsertLlmRuntimeDialogRef(input: {
       return ok(undefined)
     }
     const db = openLlmRuntimeDatabase()
+    const existing = db
+      .select()
+      .from(llmConsumerDialogRefsTable)
+      .where(and(
+        eq(llmConsumerDialogRefsTable.agentId, input.agentId),
+        eq(llmConsumerDialogRefsTable.consumer, input.consumer),
+        eq(llmConsumerDialogRefsTable.provider, input.provider),
+        eq(llmConsumerDialogRefsTable.providerSessionRef, providerSessionRef),
+      ))
+      .get()
+    const dialogTitle = typeof input.dialogTitle === 'string'
+      ? toText(input.dialogTitle)
+      : toText(existing?.dialogTitle)
     const now = nowIso()
     db
       .insert(llmConsumerDialogRefsTable)
@@ -293,6 +327,7 @@ export function upsertLlmRuntimeDialogRef(input: {
         consumer: input.consumer,
         provider: input.provider,
         providerSessionRef,
+        dialogTitle,
         createdAt: now,
         updatedAt: now,
         lastStatus: toText(input.lastStatus) || 'done',
@@ -305,6 +340,7 @@ export function upsertLlmRuntimeDialogRef(input: {
           llmConsumerDialogRefsTable.providerSessionRef,
         ],
         set: {
+          dialogTitle,
           updatedAt: now,
           lastStatus: toText(input.lastStatus) || 'done',
         },
@@ -343,6 +379,7 @@ export function listLlmRuntimeDialogRefs(input: {
       consumer: row.consumer,
       provider: toProvider(row.provider, input.provider),
       providerSessionRef: toText(row.providerSessionRef),
+      dialogTitle: toText(row.dialogTitle),
       createdAt: toText(row.createdAt),
       updatedAt: toText(row.updatedAt),
       lastStatus: toText(row.lastStatus) || 'done',

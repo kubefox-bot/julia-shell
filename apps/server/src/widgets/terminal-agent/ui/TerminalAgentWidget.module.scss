@@ -91,6 +91,7 @@
   line-height: 1.35;
   white-space: pre-wrap;
   word-break: break-word;
+  position: relative;
 }
 
 .user {
@@ -137,6 +138,60 @@
 .night .assistant {
   background: linear-gradient(135deg, rgb(15 118 110 / 0.58), rgb(13 148 136 / 0.48));
   color: #ccfbf1;
+}
+
+.retryInlineButton {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.52rem;
+  height: 1.52rem;
+  border-radius: 999px;
+  border: 1px solid rgb(59 130 246 / 30%);
+  background: rgb(255 255 255 / 92%);
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+  transform: translateY(0) scale(0.98);
+  pointer-events: auto;
+  z-index: 2;
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.retryInlineButton:disabled {
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+}
+
+.retryTarget:hover .retryInlineButton,
+.retryTarget:focus-within .retryInlineButton {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: terminal-agent-retry-pop 0.24s ease;
+}
+
+.retryInlineButton:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgb(37 99 235 / 24%);
+  border-color: rgb(37 99 235 / 48%);
+  background: #fff;
+}
+
+.night .retryInlineButton {
+  background: rgb(15 23 42 / 90%);
+  color: #93c5fd;
+  border-color: rgb(96 165 250 / 34%);
+}
+
+.night .retryInlineButton:hover:not(:disabled) {
+  border-color: rgb(147 197 253 / 48%);
+  box-shadow: 0 6px 16px rgb(59 130 246 / 30%);
 }
 
 .composer {
@@ -423,5 +478,19 @@
   40% {
     transform: translateY(-2px);
     opacity: 0.9;
+  }
+}
+
+@keyframes terminal-agent-retry-pop {
+  0% {
+    transform: translateY(4px) scale(0.88) rotate(-8deg);
+  }
+
+  60% {
+    transform: translateY(0) scale(1.04) rotate(2deg);
+  }
+
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
   }
 }

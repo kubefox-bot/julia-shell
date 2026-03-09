@@ -39,6 +39,49 @@ function withModelArgs(baseArgs: string[], model: string) {
 }
 
 const STREAM_IDLE_TIMEOUT_MS = 20_000
+const DIALOG_TITLE_MAX = 120
+const TOOL_DETAIL_MAX = 320
+const GEMINI_QUOTA_MESSAGE = 'Gemini quota exceeded. Check billing/limits and retry later.'
+
+function toDialogTitle(message: string) {
+  const compact = message.trim().replace(/\s+/g, ' ')
+  if (!compact) {
+    return ''
+  }
+  return compact.length > DIALOG_TITLE_MAX
+    ? `${compact.slice(0, DIALOG_TITLE_MAX - 1)}…`
+    : compact
+}
+
+function truncateDetail(value: string) {
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  if (normalized.length <= TOOL_DETAIL_MAX) {
+    return normalized
+  }
+  return `${normalized.slice(0, TOOL_DETAIL_MAX - 1)}…`
+}
+
+function isGeminiQuotaDetail(value: string) {
+  const text = value.toLowerCase()
+  return text.includes('quota exceeded')
+    || text.includes('exhausted your daily quota')
+    || text.includes('exceeded your current quota')
+    || text.includes('terminalquotaerror')
+    || text.includes('code: 429')
+}
+
+function shouldHideToolDetail(value: string) {
+  const text = value.trim()
+  if (!text) {
+    return true
+  }
+  const lower = text.toLowerCase()
+  return lower.startsWith('at ')
+    || lower.includes('node:internal')
+    || lower.includes('file:///')
+    || lower.includes('googlequotaerrors.js')
+    || lower.includes('geminichat.')
+}
 
 export async function handleTerminalAgentMessageStream(input: {
   request: Request
@@ -74,12 +117,15 @@ export async function handleTerminalAgentMessageStream(input: {
     status: currentState.providerSessionRef ? 'resuming' : 'running',
     lastError: null,
   })
+  const dialogTitle = toDialogTitle(input.message)
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const encoder = new TextEncoder()
       let closed = false
       let idleTimer: ReturnType<typeof setTimeout> | null = null
+      let quotaHintReported = false
+      let quotaDetected = false
 
       const send = (event: string, payload: Record<string, unknown>) => {
         if (closed) {
@@ -147,13 +193,42 @@ export async function handleTerminalAgentMessageStream(input: {
 
         if (eventType === 'status') {
           const status = toText(payload.status) || 'running'
+          const rawDetail = toText(payload.detail)
+          if (status === 'tool_call') {
+            if (isGeminiQuotaDetail(rawDetail)) {
+              quotaDetected = true
+              if (quotaHintReported) {
+                return
+              }
+              quotaHintReported = true
+              const quotaPayload = {
+                status,
+                detail: GEMINI_QUOTA_MESSAGE,
+              }
+              markDialogStatus({
+                agentId: input.agentId,
+                provider: input.provider,
+                status,
+                lastError: null,
+              })
+              send('status', quotaPayload)
+              return
+            }
+            if (shouldHideToolDetail(rawDetail)) {
+              return
+            }
+          }
+
+          const normalizedPayload = status === 'tool_call'
+            ? { ...payload, detail: truncateDetail(rawDetail) }
+            : payload
           markDialogStatus({
             agentId: input.agentId,
             provider: input.provider,
             status,
             lastError: null,
           })
-          send('status', payload)
+          send('status', normalizedPayload)
           return
         }
 
@@ -170,6 +245,7 @@ export async function handleTerminalAgentMessageStream(input: {
             agentId: input.agentId,
             provider: input.provider,
             providerSessionRef: providerRef,
+            dialogTitle: dialogTitle || currentState.dialogTitle,
             status: 'done',
             lastError: null,
           })
@@ -198,7 +274,10 @@ export async function handleTerminalAgentMessageStream(input: {
         }
 
         if (eventType === 'error') {
-          const message = toText(payload.message) || 'Unknown agent error.'
+          const rawMessage = toText(payload.message) || 'Unknown agent error.'
+          const message = (quotaDetected || isGeminiQuotaDetail(rawMessage))
+            ? GEMINI_QUOTA_MESSAGE
+            : rawMessage
           markDialogStatus({
             agentId: input.agentId,
             provider: input.provider,

@@ -78,6 +78,7 @@ export function getTerminalAgentDialogStatePayload(agentId: string, provider: Te
     widgetId: WIDGET_ID,
     provider,
     providerSessionRef: state.providerSessionRef,
+    dialogTitle: state.dialogTitle,
     status: state.status,
     lastError: state.lastError,
   }
@@ -92,6 +93,7 @@ export function markDialogStatus(input: {
   agentId: string
   provider: TerminalAgentProvider
   providerSessionRef?: string
+  dialogTitle?: string
   status: string
   lastError?: string | null
 }) {
@@ -100,6 +102,7 @@ export function markDialogStatus(input: {
     widgetId: WIDGET_ID,
     provider: input.provider,
     providerSessionRef: input.providerSessionRef,
+    dialogTitle: input.dialogTitle,
     status: input.status,
     lastError: input.lastError,
   })
@@ -110,6 +113,7 @@ export function markDialogStatus(input: {
       widgetId: WIDGET_ID,
       provider: input.provider,
       providerSessionRef: input.providerSessionRef,
+      dialogTitle: input.dialogTitle,
       lastStatus: input.status,
     })
   }
@@ -118,6 +122,7 @@ export function markDialogStatus(input: {
 export function listTerminalAgentDialogsPayload(agentId: string, provider: TerminalAgentProvider): TerminalAgentDialogRefItemPayload[] {
   return listTerminalAgentDialogRefs(agentId, WIDGET_ID, provider).map((row) => ({
     providerSessionRef: row.providerSessionRef,
+    dialogTitle: row.dialogTitle,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     lastStatus: row.lastStatus,

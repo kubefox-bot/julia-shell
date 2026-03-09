@@ -9,6 +9,7 @@
   "scripts": {
     "prepare": "node ./scripts/prepare-workspace.mjs",
     "cleanup": "node ./scripts/cleanup-workspace.mjs",
+    "reset": "node ./scripts/reset-runtime.mjs",
     "dev": "yarn workspace @julia/server dev",
     "build": "yarn workspace @julia/server build",
     "build:raw": "yarn workspace @julia/server build:raw",
