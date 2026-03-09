@@ -1,8 +1,8 @@
 // biome-ignore lint/nursery/noExcessiveLinesPerFile: Stream runtime stays cohesive until next extraction pass.
 import grpc from '@grpc/grpc-js'
 import protoLoader from '@grpc/proto-loader'
-import { readRuntimeEnv } from '@/core/env'
-import { invalidateWidgetRegistryCache } from '@/core/registry/registry'
+import { readRuntimeEnv } from '@core/env'
+import { invalidateWidgetRegistryCache } from '@core/registry/registry'
 import { moduleBus } from '@shared/lib/module-bus'
 import { nowIso } from '@shared/lib/time'
 import { resolvePassportJwtSecret } from '../config/jwt-secret'
@@ -242,6 +242,38 @@ export class PassportRuntime {
   }
 
   private resolveWidgetEvent(envelope: RuntimeEnvelope): RuntimeWidgetEvent | null {
+    if (envelope.progress) {
+      return {
+        widgetId: TRANSCRIBE_WIDGET_ID,
+        eventType: 'progress',
+        payload: envelope.progress,
+      }
+    }
+
+    if (envelope.token) {
+      return {
+        widgetId: TRANSCRIBE_WIDGET_ID,
+        eventType: 'token',
+        payload: envelope.token,
+      }
+    }
+
+    if (envelope.done) {
+      return {
+        widgetId: TRANSCRIBE_WIDGET_ID,
+        eventType: 'done',
+        payload: envelope.done,
+      }
+    }
+
+    if (envelope.error) {
+      return {
+        widgetId: TRANSCRIBE_WIDGET_ID,
+        eventType: 'error',
+        payload: envelope.error,
+      }
+    }
+
     const widgetEvent = typeof envelope.widgetEvent === 'object' && envelope.widgetEvent !== null
       ? envelope.widgetEvent as Record<string, unknown>
       : null
@@ -578,11 +610,36 @@ export class PassportRuntime {
       }
     }
 
-    connection.call.write({
+    const baseEnvelope = {
       protocolVersion: PROTOCOL_VERSION,
       sessionId: input.sessionId,
       jobId: input.jobId,
       timestampUnixMs: Date.now(),
+    }
+
+    if (input.command.kind === 'transcribe_start') {
+      connection.call.write({
+        ...baseEnvelope,
+        transcribeStart: {
+          folderPath: input.command.folderPath,
+          filePaths: input.command.filePaths,
+        },
+      })
+      return true
+    }
+
+    if (input.command.kind === 'transcribe_cancel') {
+      connection.call.write({
+        ...baseEnvelope,
+        transcribeCancel: {
+          reason: input.command.reason ?? '',
+        },
+      })
+      return true
+    }
+
+    connection.call.write({
+      ...baseEnvelope,
       widgetCommand: {
         widgetId: input.widgetId,
         ...payload,

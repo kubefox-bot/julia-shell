@@ -2,9 +2,9 @@ import {
   getTranscribeWidgetSettings,
   listRecentFolders,
   saveTranscribeWidgetSettings,
-} from '@core/db/transcribe-repository'
-import { secrets } from '@core/secrets/secrets'
-import { logger } from '../../../shared/lib/logger'
+} from './repository'
+import { secrets } from '../../../core/secrets/secrets'
+import { logger } from '@shared/lib/logger'
 import { WIDGET_ENV_NAME, WIDGET_ID } from './constants'
 import type { SecretState, TranscribeSettingsPayload } from './types'
 import { buildAvailableModels, resolveConfiguredModel } from './utils'

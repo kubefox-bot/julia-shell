@@ -19,7 +19,11 @@ message AgentEnvelope {
 
   oneof payload {
     Heartbeat heartbeat = 10;
-    WidgetEvent widget_event = 11;
+    TranscribeProgressEvent progress = 11;
+    TranscribeTokenEvent token = 12;
+    TranscribeDoneEvent done = 13;
+    TranscribeErrorEvent error = 14;
+    WidgetEvent widget_event = 20;
   }
 }
 
@@ -31,8 +35,10 @@ message ServerEnvelope {
 
   oneof payload {
     HealthPing health_ping = 10;
-    WidgetCommand widget_command = 11;
-    ErrorEnvelope error = 12;
+    TranscribeStartCommand transcribe_start = 11;
+    TranscribeCancelCommand transcribe_cancel = 12;
+    ErrorEnvelope error = 13;
+    WidgetCommand widget_command = 20;
   }
 }
 

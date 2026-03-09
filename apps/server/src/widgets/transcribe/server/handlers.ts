@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { passportRuntime } from '@passport/server/runtime'
-import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from '@core/db/transcribe-repository'
+import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from './repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
 import { isAgentRequiredForTranscribe } from './agent-mode'
@@ -10,18 +10,12 @@ import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
 import { listPathEntries, resolveTranscriptPath } from './utils'
 
-const STATUS_BAD_REQUEST = 400
-const STATUS_NOT_FOUND = 404
-const STATUS_INTERNAL_SERVER_ERROR = 500
-const STATUS_SERVICE_UNAVAILABLE = 503
-const RECENT_JOBS_LIMIT = 30
-
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST fs-list': async ({ request, agentId }) => {
     if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession()) {
       return jsonResponse({
         error: 'agent_offline'
-      }, STATUS_SERVICE_UNAVAILABLE)
+      }, 503)
     }
 
     try {
@@ -35,7 +29,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     } catch (error) {
       return jsonResponse({
         error: error instanceof Error ? error.message : 'Failed to list path.'
-      }, STATUS_INTERNAL_SERVER_ERROR)
+      }, 500)
     }
   },
   'GET settings': async ({ agentId }) => {
@@ -99,7 +93,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
         error: message.includes('Не найден')
           ? message
           : `Не найден файл стенограммы: ${path.basename(typeof body.txtPath === 'string' ? body.txtPath : body.sourceFile ?? 'transcript.txt')}`
-      }, STATUS_NOT_FOUND)
+      }, 404)
     }
   },
   'POST transcript-save': async ({ request, agentId }) => {
@@ -134,11 +128,11 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     } catch (error) {
       return jsonResponse({
         error: error instanceof Error ? error.message : 'Transcript save failed.'
-      }, STATUS_BAD_REQUEST)
+      }, 400)
     }
   },
   'GET jobs': async ({ agentId }) => {
-    return jsonResponse({ jobs: listRecentTranscribeJobs(agentId, RECENT_JOBS_LIMIT) })
+    return jsonResponse({ jobs: listRecentTranscribeJobs(agentId, 30) })
   },
   'POST transcribe-stream': async ({ request, agentId }) => {
     const body = await readJsonBody<{

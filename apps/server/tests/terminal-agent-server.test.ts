@@ -1,13 +1,15 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { err, ok } from 'neverthrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getTerminalAgentDialogState,
   saveTerminalAgentSettings,
   upsertTerminalAgentDialogState
-} from '../src/core/db/terminal-agent-repository';
+} from '../src/domains/llm/server/repository/terminal-agent-repository';
 import { resetDbCache } from '../src/core/db/shared';
+import * as llmCatalogService from '../src/domains/llm/server/service';
 import { passportRuntime } from '../src/domains/passport/server/runtime/runtime';
 import type { WidgetRouteContext } from '../src/entities/widget/model/types';
 import { moduleBus } from '../src/shared/lib/module-bus';
@@ -263,8 +265,10 @@ describe('terminal-agent server handlers', () => {
       geminiApiKey: '',
       codexCommand: '/usr/local/bin/codex',
       codexArgs: ['--flag'],
+      codexModel: 'gpt-5-codex',
       geminiCommand: 'gemini',
       geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
       useShellFallback: false,
       shellOverride: ''
     });
@@ -310,7 +314,7 @@ describe('terminal-agent server handlers', () => {
     } | undefined;
     expect(dispatchedInput?.resumeRef).toBe('resume-ref');
     expect(dispatchedInput?.commandPath).toBe('/usr/local/bin/codex');
-    expect(dispatchedInput?.commandArgs).toEqual(['--flag']);
+    expect(dispatchedInput?.commandArgs).toEqual(['--flag', '--model', 'gpt-5-codex']);
 
     const dialogId = String(dispatchedInput?.dialogId ?? '');
     const streamEventsPromise = collectSseEventsWithTimeout(response);
@@ -351,8 +355,10 @@ describe('terminal-agent server handlers', () => {
       geminiApiKey: 'gemini-key',
       codexCommand: 'codex',
       codexArgs: [],
+      codexModel: 'gpt-5-codex',
       geminiCommand: 'gemini',
       geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
       useShellFallback: true,
       shellOverride: 'pwsh'
     });
@@ -466,5 +472,84 @@ describe('terminal-agent server handlers', () => {
     const state = getTerminalAgentDialogState('agent-a', WIDGET_ID, 'codex');
     expect(state.status).toBe('error');
     expect(state.lastError).toBe('agent_offline');
+  });
+
+  it('returns provider-specific model list from llm catalog service', async () => {
+    saveTerminalAgentSettings({
+      agentId: 'agent-a',
+      widgetId: WIDGET_ID,
+      activeProvider: 'codex',
+      codexApiKey: 'codex-secret',
+      geminiApiKey: 'gemini-secret',
+      codexCommand: 'codex',
+      codexArgs: [],
+      codexModel: 'gpt-5-codex',
+      geminiCommand: 'gemini',
+      geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
+      useShellFallback: false,
+      shellOverride: '',
+    });
+
+    const serviceSpy = vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(
+      ok({
+        provider: 'codex',
+        models: ['gpt-5-codex', 'o3'],
+        source: 'remote',
+        updatedAt: '2026-03-09T10:00:00.000Z',
+        stale: false,
+      })
+    );
+
+    const response = await terminalAgentHandlers['GET models'](
+      createContext({
+        url: 'http://localhost/api/widget/com.yulia.terminal-agent/models?provider=codex',
+        action: 'models',
+        actionSegments: ['models'],
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(serviceSpy).toHaveBeenCalledWith({
+      provider: 'codex',
+      apiKey: 'codex-secret',
+      forceRefresh: false,
+    });
+    const payload = await response.json() as Record<string, unknown>;
+    expect(payload.items).toEqual([
+      { value: 'gpt-5-codex', label: 'gpt-5-codex' },
+      { value: 'o3', label: 'o3' },
+    ]);
+  });
+
+  it('validates models query and maps llm service error', async () => {
+    const badRequest = await terminalAgentHandlers['GET models'](
+      createContext({
+        url: 'http://localhost/api/widget/com.yulia.terminal-agent/models?provider=unknown',
+        action: 'models',
+        actionSegments: ['models'],
+      })
+    );
+    expect(badRequest.status).toBe(400);
+
+    vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(
+      err({
+        code: 'provider_http_error',
+        message: 'upstream failed',
+        retryable: true,
+      })
+    );
+    const upstreamFailed = await terminalAgentHandlers['GET models'](
+      createContext({
+        url: 'http://localhost/api/widget/com.yulia.terminal-agent/models?provider=gemini&refresh=1',
+        action: 'models',
+        actionSegments: ['models'],
+      })
+    );
+    expect(upstreamFailed.status).toBe(503);
+    expect(await upstreamFailed.json()).toEqual({
+      error: 'upstream failed',
+      code: 'provider_http_error',
+    });
   });
 });

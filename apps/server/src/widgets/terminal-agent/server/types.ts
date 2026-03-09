@@ -1,4 +1,4 @@
-import type { TerminalAgentProvider } from '../../../core/db/terminal-agent-repository'
+import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
 
 export type TerminalAgentSettingsPayload = {
   widgetId: string
@@ -8,8 +8,10 @@ export type TerminalAgentSettingsPayload = {
   geminiApiKey: string
   codexCommand: string
   codexArgs: string[]
+  codexModel: string
   geminiCommand: string
   geminiArgs: string[]
+  geminiModel: string
   useShellFallback: boolean
   shellOverride: string
 }
@@ -20,4 +22,25 @@ export type TerminalAgentDialogStatePayload = {
   providerSessionRef: string
   status: string
   lastError: string | null
+}
+
+export type TerminalAgentDialogRefItemPayload = {
+  providerSessionRef: string
+  createdAt: string
+  updatedAt: string
+  lastStatus: string
+}
+
+export type TerminalAgentLlmModelItemPayload = {
+  value: string
+  label: string
+}
+
+export type TerminalAgentLlmModelsPayload = {
+  widgetId: string
+  provider: TerminalAgentProvider
+  source: 'db' | 'remote'
+  stale: boolean
+  updatedAt: string | null
+  items: TerminalAgentLlmModelItemPayload[]
 }

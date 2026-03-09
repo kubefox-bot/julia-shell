@@ -8,7 +8,7 @@ import {
   getTerminalAgentSettings,
   saveTerminalAgentSettings,
   upsertTerminalAgentDialogState,
-} from '../src/core/db/terminal-agent-repository'
+} from '../src/domains/llm/server/repository/terminal-agent-repository'
 import { updateTerminalAgentSettings } from '../src/widgets/terminal-agent/server/settings'
 import { resetDbCache } from '../src/core/db/shared'
 
@@ -37,8 +37,10 @@ describe('terminal-agent repository', () => {
       geminiApiKey: 'gemini-key',
       codexCommand: 'codex',
       codexArgs: ['exec', '--json'],
+      codexModel: 'gpt-5-codex',
       geminiCommand: 'gemini',
       geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
       useShellFallback: true,
       shellOverride: 'pwsh',
     })

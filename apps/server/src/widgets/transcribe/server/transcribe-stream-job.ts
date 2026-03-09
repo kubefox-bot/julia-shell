@@ -3,7 +3,7 @@ import {
   appendTranscribeOutboxEvent,
   createTranscribeJob,
   touchRecentFolder,
-} from '@core/db/transcribe-repository'
+} from './repository'
 import { DEFAULT_GEMINI_MODEL, TOOLS_ROOT, WIDGET_ID } from './constants'
 import { prepareAudioForTranscription } from './ffmpeg'
 import type { RunTranscribeStreamInput, TranscribeJobContext } from './transcribe-stream-types'

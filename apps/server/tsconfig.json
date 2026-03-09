@@ -11,8 +11,9 @@
       "@/*": ["src/*"],
       "@app/*": ["src/app/*"],
       "@core/*": ["src/core/*"],
-      "@shared/*": ["src/shared/*"],
-      "@passport/*": ["src/domains/passport/*"]
+      "@passport/*": ["src/domains/passport/*"],
+      "@lls/*": ["src/domains/llm/*"],
+      "@shared/*": ["src/shared/*"]
     },
     "verbatimModuleSyntax": true
   },

@@ -12,7 +12,8 @@ Widget identity:
 - chat-style interaction with runtime-agent;
 - providers in v1: `codex`, `gemini`;
 - streaming response and intermediate status events;
-- persist provider settings and continuity refs in `terminal-agent.db`;
+- persist provider settings and continuity refs in `llm-runtime.db` (consumer=`com.yulia.terminal-agent`);
+- resolve provider LLM model list through shared domain `llm`;
 - follow shell day/night theme and shared design system.
 
 ## Public Widget Actions (`/api/widget/com.yulia.terminal-agent/*`)
@@ -20,6 +21,7 @@ Widget identity:
 - `POST settings`
 - `GET dialog-state`
 - `POST dialog/new`
+- `GET models`
 - `POST message-stream`
 
 ## SSE Contract (`message-stream`)
@@ -36,3 +38,36 @@ Events:
 - shell fallback is optional and explicit in settings;
 - provider switch resets continuity;
 - on resume failure widget must surface error and require explicit new dialog.
+
+## Mapping Layout (Passport-style separation)
+- HTTP handler: `server/handlers.ts`
+  - validates query/body via `zod`
+  - invokes domain/repository services
+  - returns transport-level JSON/SSE responses
+- Mapping layer: `server/llm-models-mapping.ts`
+  - maps domain `Result`/value into widget HTTP payload
+  - maps domain error into HTTP status + error body
+- Domain service: `src/domains/llm/server/service.ts`
+  - remote provider fetch + retry + payload validation (`zod`)
+  - fallback policy (remote -> DB)
+- Repository: `src/domains/llm/server/repository/catalog-repository.ts`
+  - typed DB read/write (`drizzle`)
+  - typed `Result` (`neverthrow`) for persistence operations
+- Runtime consumer repository: `src/domains/llm/server/repository/runtime-repository.ts`
+  - shared consumer-aware settings/dialog persistence (`drizzle + zod + neverthrow`)
+  - terminal-agent uses adapter layer via `src/domains/llm/server/repository/terminal-agent-repository.ts`
+
+## Storage Mapping
+- DB file: `data/llm-catalog.db`
+- Table: `llm_model_catalog`
+- Key columns:
+  - `consumer` (`terminal-agent`)
+  - `provider` (`codex|gemini`)
+  - `model_id` (provider model id)
+- Freshness column:
+  - `updated_at` (used for TTL/fresh-cache decision in domain service)
+- DB file: `data/llm-runtime.db`
+- Tables:
+  - `llm_consumer_settings`
+  - `llm_consumer_dialog_state`
+  - `llm_consumer_dialog_refs`

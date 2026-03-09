@@ -1,6 +1,6 @@
-import { getLocalizedHeader } from '@/shared/lib/locale';
-import { Button } from '@/shared/ui/Button';
-import { IconButton } from '@/shared/ui/IconButton';
+import { getLocalizedHeader } from '@shared/lib/locale';
+import { Button } from '@shared/ui/Button';
+import { IconButton } from '@shared/ui/IconButton';
 import { useShellI18n, useShellSettingsViewModel } from '@app/shell/model/selectors';
 import { useShellStore } from '@app/shell/model/store';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';

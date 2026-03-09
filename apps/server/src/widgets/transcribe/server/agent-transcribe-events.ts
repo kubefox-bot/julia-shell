@@ -4,7 +4,7 @@ import {
   completeTranscribeJob,
   failTranscribeJob,
   updateTranscribeJobProgress,
-} from '@core/db/transcribe-repository'
+} from './repository'
 import { WIDGET_ID } from './constants'
 
 export type AgentEventPayload = {

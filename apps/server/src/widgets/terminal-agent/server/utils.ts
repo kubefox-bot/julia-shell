@@ -1,4 +1,4 @@
-import type { TerminalAgentProvider } from '../../../core/db/terminal-agent-repository'
+import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
 
 export function toProvider(input: unknown, fallback: TerminalAgentProvider = 'codex'): TerminalAgentProvider {
   return input === 'gemini' ? 'gemini' : input === 'codex' ? 'codex' : fallback

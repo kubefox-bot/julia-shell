@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { GoogleGenAI } from '@google/genai'
-import { appendTranscribeOutboxEvent, completeTranscribeJob } from '@core/db/transcribe-repository'
+import { appendTranscribeOutboxEvent, completeTranscribeJob } from './repository'
 import {
   GEMINI_UPLOAD_MIME,
   MOCK_GEMINI_MODEL,

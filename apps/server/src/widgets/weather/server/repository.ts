@@ -1,5 +1,5 @@
 import { nowIso } from '@shared/lib/time';
-import { openDb } from './shared';
+import { openDb } from '../../../core/db/shared';
 
 export type WeatherCacheRow = {
   locationKey: string;

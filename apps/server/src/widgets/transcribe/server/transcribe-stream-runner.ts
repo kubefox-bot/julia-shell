@@ -1,4 +1,4 @@
-import { appendTranscribeOutboxEvent, failTranscribeJob } from '@core/db/transcribe-repository'
+import { appendTranscribeOutboxEvent, failTranscribeJob } from './repository'
 import { MOCK_GEMINI_MODEL, WIDGET_ID } from './constants'
 import { createJobContext, prepareAudio } from './transcribe-stream-job'
 import { cleanupArtifacts, handleGemini, handleMock } from './transcribe-stream-modes'

@@ -1,5 +1,5 @@
 import { DragOverlay } from '@dnd-kit/core';
-import { getLocalizedHeader } from '@/shared/lib/locale';
+import { getLocalizedHeader } from '@shared/lib/locale';
 import { useShellRegistry } from '@app/shell/lib/registry';
 import { useShellDndViewModel, useShellLocale, useShellModuleInfo } from '@app/shell/model/selectors';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';

@@ -28,8 +28,8 @@ use protocol::{
     agent_envelope, server_envelope, widget_command, widget_event, AgentEnvelope, Heartbeat,
     TerminalAgentAssistantChunkEvent, TerminalAgentAssistantDoneEvent, TerminalAgentErrorEvent,
     TerminalAgentResumeFailedEvent, TerminalAgentSendMessageCommand, TerminalAgentStatusEvent,
-    TranscribeDoneEvent, TranscribeErrorEvent, TranscribeProgressEvent, TranscribeStartCommand,
-    TranscribeTokenEvent, WidgetEvent,
+    TranscribeCancelCommand, TranscribeDoneEvent, TranscribeErrorEvent, TranscribeProgressEvent,
+    TranscribeStartCommand, TranscribeTokenEvent, WidgetEvent,
 };
 
 const PROTOCOL_VERSION: &str = "1.0.0";
@@ -197,35 +197,88 @@ async fn handle_server_command(
         return;
     };
 
-    let server_envelope::Payload::WidgetCommand(command) = payload else {
-        return;
-    };
-
     let job_id = message.job_id;
-    let widget_id = command.widget_id.trim().to_string();
 
-    tokio::spawn(async move {
-        if let Err(error) =
-            execute_widget_command(command, job_id.clone(), tx.clone(), &tokens, &session_id).await
-        {
-            let target_widget_id = if widget_id.is_empty() {
-                TERMINAL_AGENT_WIDGET_ID
-            } else {
-                widget_id.as_str()
-            };
+    match payload {
+        server_envelope::Payload::WidgetCommand(command) => {
+            let widget_id = command.widget_id.trim().to_string();
+            tokio::spawn(async move {
+                if let Err(error) = execute_widget_command(
+                    command,
+                    job_id.clone(),
+                    tx.clone(),
+                    &tokens,
+                    &session_id,
+                )
+                .await
+                {
+                    let target_widget_id = if widget_id.is_empty() {
+                        TERMINAL_AGENT_WIDGET_ID
+                    } else {
+                        widget_id.as_str()
+                    };
 
-            let _ = send_widget_execution_error(
-                &tx,
-                &tokens,
-                &session_id,
-                &job_id,
-                target_widget_id,
-                "agent_failed",
-                &error.to_string(),
-            )
-            .await;
+                    let _ = send_widget_execution_error(
+                        &tx,
+                        &tokens,
+                        &session_id,
+                        &job_id,
+                        target_widget_id,
+                        "agent_failed",
+                        &error.to_string(),
+                    )
+                    .await;
+                }
+            });
         }
-    });
+        server_envelope::Payload::TranscribeStart(start) => {
+            tokio::spawn(async move {
+                if let Err(error) =
+                    execute_transcribe_start(start, job_id.clone(), tx.clone(), &tokens, &session_id)
+                        .await
+                {
+                    let _ = send_widget_execution_error(
+                        &tx,
+                        &tokens,
+                        &session_id,
+                        &job_id,
+                        TRANSCRIBE_WIDGET_ID,
+                        "agent_failed",
+                        &error.to_string(),
+                    )
+                    .await;
+                }
+            });
+        }
+        server_envelope::Payload::TranscribeCancel(cancel) => {
+            let command = protocol::WidgetCommand {
+                widget_id: TRANSCRIBE_WIDGET_ID.to_string(),
+                payload: Some(widget_command::Payload::TranscribeCancel(
+                    TranscribeCancelCommand {
+                        reason: cancel.reason,
+                    },
+                )),
+            };
+            tokio::spawn(async move {
+                if let Err(error) =
+                    execute_widget_command(command, job_id.clone(), tx.clone(), &tokens, &session_id)
+                        .await
+                {
+                    let _ = send_widget_execution_error(
+                        &tx,
+                        &tokens,
+                        &session_id,
+                        &job_id,
+                        TRANSCRIBE_WIDGET_ID,
+                        "agent_failed",
+                        &error.to_string(),
+                    )
+                    .await;
+                }
+            });
+        }
+        _ => {}
+    }
 }
 
 async fn execute_widget_command(
@@ -938,6 +991,26 @@ async fn send_widget_event(
     widget_id: &str,
     payload: widget_event::Payload,
 ) -> Result<()> {
+    let payload = if widget_id == TRANSCRIBE_WIDGET_ID {
+        match payload {
+            widget_event::Payload::TranscribeProgress(progress) => {
+                agent_envelope::Payload::Progress(progress)
+            }
+            widget_event::Payload::TranscribeToken(token) => agent_envelope::Payload::Token(token),
+            widget_event::Payload::TranscribeDone(done) => agent_envelope::Payload::Done(done),
+            widget_event::Payload::TranscribeError(error) => agent_envelope::Payload::Error(error),
+            other => agent_envelope::Payload::WidgetEvent(WidgetEvent {
+                widget_id: widget_id.to_string(),
+                payload: Some(other),
+            }),
+        }
+    } else {
+        agent_envelope::Payload::WidgetEvent(WidgetEvent {
+            widget_id: widget_id.to_string(),
+            payload: Some(payload),
+        })
+    };
+
     tx.send(AgentEnvelope {
         protocol_version: PROTOCOL_VERSION.to_string(),
         agent_id: tokens.agent_id.clone(),
@@ -945,10 +1018,7 @@ async fn send_widget_event(
         job_id: job_id.to_string(),
         timestamp_unix_ms: chrono::Utc::now().timestamp_millis(),
         access_jwt: tokens.access_jwt.clone(),
-        payload: Some(agent_envelope::Payload::WidgetEvent(WidgetEvent {
-            widget_id: widget_id.to_string(),
-            payload: Some(payload),
-        })),
+        payload: Some(payload),
     })
     .await?;
 

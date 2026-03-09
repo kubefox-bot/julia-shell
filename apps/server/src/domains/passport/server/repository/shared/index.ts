@@ -1,4 +1,6 @@
 export * from './dates'
 export * from './db'
+export * from './passport-drizzle'
+export * from './passport-schema'
 export * from './time'
 export * from './values'
