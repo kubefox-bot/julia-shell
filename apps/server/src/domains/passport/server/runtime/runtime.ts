@@ -1,10 +1,10 @@
 // biome-ignore lint/nursery/noExcessiveLinesPerFile: Stream runtime stays cohesive until next extraction pass.
 import grpc from '@grpc/grpc-js'
 import protoLoader from '@grpc/proto-loader'
-import { readRuntimeEnv } from '@core/env'
-import { invalidateWidgetRegistryCache } from '@core/registry/registry'
-import { moduleBus } from '@/shared/lib/module-bus'
-import { nowIso } from '@/shared/lib/time'
+import { readRuntimeEnv } from '@/core/env'
+import { invalidateWidgetRegistryCache } from '@/core/registry/registry'
+import { moduleBus } from '@shared/lib/module-bus'
+import { nowIso } from '@shared/lib/time'
 import { resolvePassportJwtSecret } from '../config/jwt-secret'
 import { resolvePassportHeartbeatTimeoutMs } from '../config/health'
 import { verifyAccessJwt } from '../jwt'
@@ -17,6 +17,14 @@ const PROTOCOL_VERSION = '1.0.0'
 const DEFAULT_SESSION_ID = 'session'
 const UNAUTHORIZED_MESSAGE = 'Invalid access token.'
 const GRPC_BIND_HOST = '0.0.0.0'
+const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe'
+const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent'
+
+type RuntimeWidgetEvent = {
+  widgetId: string
+  eventType: string
+  payload: unknown
+}
 
 export class PassportRuntime {
   private _server: grpc.Server | null = null
@@ -209,75 +217,143 @@ export class PassportRuntime {
     return true
   }
 
-  private publishStreamPayload(input: {
+  private publishWidgetPayload(input: {
     agentId: string
     sessionId: string
     jobId: string
-    eventType: 'progress' | 'token' | 'done' | 'error'
+    widgetId: string
+    eventType: string
     payload: unknown
   }) {
     appendAgentEvent({
       agentId: input.agentId,
       sessionId: input.sessionId,
       jobId: input.jobId,
-      eventType: input.eventType,
+      eventType: `${input.widgetId}:${input.eventType}`,
       payload: input.payload,
     })
 
-    moduleBus.publish(`agent:transcribe:${input.jobId}`, `agent/${input.agentId}`, {
+    moduleBus.publish(`agent:widget:${input.widgetId}:${input.jobId}`, `agent/${input.agentId}`, {
       type: input.eventType,
+      widgetId: input.widgetId,
+      jobId: input.jobId,
       payload: input.payload,
     })
   }
 
-  private handleStreamPayloads(input: {
+  private resolveWidgetEvent(envelope: RuntimeEnvelope): RuntimeWidgetEvent | null {
+    const widgetEvent = typeof envelope.widgetEvent === 'object' && envelope.widgetEvent !== null
+      ? envelope.widgetEvent as Record<string, unknown>
+      : null
+
+    if (!widgetEvent) {
+      return null
+    }
+
+    const widgetId = typeof widgetEvent.widgetId === 'string'
+      ? widgetEvent.widgetId.trim()
+      : typeof widgetEvent.widget_id === 'string'
+        ? widgetEvent.widget_id.trim()
+        : ''
+
+    if (!widgetId) {
+      return null
+    }
+
+    if (widgetEvent.transcribeProgress) {
+      return {
+        widgetId,
+        eventType: 'progress',
+        payload: widgetEvent.transcribeProgress,
+      }
+    }
+
+    if (widgetEvent.transcribeToken) {
+      return {
+        widgetId,
+        eventType: 'token',
+        payload: widgetEvent.transcribeToken,
+      }
+    }
+
+    if (widgetEvent.transcribeDone) {
+      return {
+        widgetId,
+        eventType: 'done',
+        payload: widgetEvent.transcribeDone,
+      }
+    }
+
+    if (widgetEvent.transcribeError) {
+      return {
+        widgetId,
+        eventType: 'error',
+        payload: widgetEvent.transcribeError,
+      }
+    }
+
+    if (widgetEvent.terminalAgentStatus) {
+      return {
+        widgetId,
+        eventType: 'status',
+        payload: widgetEvent.terminalAgentStatus,
+      }
+    }
+
+    if (widgetEvent.terminalAgentAssistantChunk) {
+      return {
+        widgetId,
+        eventType: 'assistant_chunk',
+        payload: widgetEvent.terminalAgentAssistantChunk,
+      }
+    }
+
+    if (widgetEvent.terminalAgentAssistantDone) {
+      return {
+        widgetId,
+        eventType: 'assistant_done',
+        payload: widgetEvent.terminalAgentAssistantDone,
+      }
+    }
+
+    if (widgetEvent.terminalAgentResumeFailed) {
+      return {
+        widgetId,
+        eventType: 'resume_failed',
+        payload: widgetEvent.terminalAgentResumeFailed,
+      }
+    }
+
+    if (widgetEvent.terminalAgentError) {
+      return {
+        widgetId,
+        eventType: 'error',
+        payload: widgetEvent.terminalAgentError,
+      }
+    }
+
+    return null
+  }
+
+  private handleWidgetPayloads(input: {
     envelope: RuntimeEnvelope
     agentId: string
     sessionId: string
     jobId: string
   }) {
-    if (input.envelope.progress) {
-      this.publishStreamPayload({
-        agentId: input.agentId,
-        sessionId: input.sessionId,
-        jobId: input.jobId,
-        eventType: 'progress',
-        payload: input.envelope.progress,
-      })
+    const resolved = this.resolveWidgetEvent(input.envelope)
+    if (!resolved) {
       return
     }
 
-    if (input.envelope.token) {
-      this.publishStreamPayload({
-        agentId: input.agentId,
-        sessionId: input.sessionId,
-        jobId: input.jobId,
-        eventType: 'token',
-        payload: input.envelope.token,
-      })
-      return
-    }
-
-    if (input.envelope.done) {
-      this.publishStreamPayload({
-        agentId: input.agentId,
-        sessionId: input.sessionId,
-        jobId: input.jobId,
-        eventType: 'done',
-        payload: input.envelope.done,
-      })
-      return
-    }
-
-    if (input.envelope.error) {
-      this.publishStreamPayload({
-        agentId: input.agentId,
-        sessionId: input.sessionId,
-        jobId: input.jobId,
-        eventType: 'error',
-        payload: input.envelope.error,
-      })
-    }
+    this.publishWidgetPayload({
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      jobId: input.jobId,
+      widgetId: resolved.widgetId,
+      eventType: resolved.eventType,
+      payload: resolved.payload,
+    })
   }
 
   private markConnectionDisconnected(connection: AgentConnection, reason: string) {
@@ -351,7 +427,7 @@ export class PassportRuntime {
       return connection
     }
 
-    this.handleStreamPayloads({
+    this.handleWidgetPayloads({
       envelope,
       agentId: claims.sub,
       sessionId,
@@ -429,12 +505,36 @@ export class PassportRuntime {
     return this.getAgentStatusSnapshot()
   }
 
-  dispatchTranscribeStart(input: {
+  dispatchWidgetCommand(input: {
     agentId: string
     sessionId: string
     jobId: string
-    folderPath: string
-    filePaths: string[]
+    widgetId: string
+    command:
+      | {
+          kind: 'transcribe_start'
+          folderPath: string
+          filePaths: string[]
+        }
+      | {
+          kind: 'transcribe_cancel'
+          reason?: string
+        }
+      | {
+          kind: 'terminal_agent_send_message'
+          provider: 'codex' | 'gemini'
+          message: string
+          resumeRef?: string
+          apiKey?: string
+          commandPath: string
+          commandArgs: string[]
+          useShellFallback: boolean
+          shellOverride?: string
+        }
+      | {
+          kind: 'terminal_agent_reset_dialog'
+          reason?: string
+        }
   }) {
     this.reconcileStaleSessions()
 
@@ -443,18 +543,123 @@ export class PassportRuntime {
       return false
     }
 
+    let payload: Record<string, unknown>
+    if (input.command.kind === 'transcribe_start') {
+      payload = {
+        transcribeStart: {
+          folderPath: input.command.folderPath,
+          filePaths: input.command.filePaths,
+        },
+      }
+    } else if (input.command.kind === 'transcribe_cancel') {
+      payload = {
+        transcribeCancel: {
+          reason: input.command.reason ?? '',
+        },
+      }
+    } else if (input.command.kind === 'terminal_agent_send_message') {
+      payload = {
+        terminalAgentSendMessage: {
+          provider: input.command.provider === 'codex' ? 1 : 2,
+          message: input.command.message,
+          resumeRef: input.command.resumeRef ?? '',
+          apiKey: input.command.apiKey ?? '',
+          commandPath: input.command.commandPath,
+          commandArgs: input.command.commandArgs,
+          useShellFallback: input.command.useShellFallback,
+          shellOverride: input.command.shellOverride ?? '',
+        },
+      }
+    } else {
+      payload = {
+        terminalAgentResetDialog: {
+          reason: input.command.reason ?? '',
+        },
+      }
+    }
+
     connection.call.write({
       protocolVersion: PROTOCOL_VERSION,
       sessionId: input.sessionId,
       jobId: input.jobId,
       timestampUnixMs: Date.now(),
-      transcribeStart: {
-        folderPath: input.folderPath,
-        filePaths: input.filePaths,
+      widgetCommand: {
+        widgetId: input.widgetId,
+        ...payload,
       },
     })
 
     return true
+  }
+
+  dispatchTranscribeStart(input: {
+    agentId: string
+    sessionId: string
+    jobId: string
+    folderPath: string
+    filePaths: string[]
+  }) {
+    return this.dispatchWidgetCommand({
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      jobId: input.jobId,
+      widgetId: TRANSCRIBE_WIDGET_ID,
+      command: {
+        kind: 'transcribe_start',
+        folderPath: input.folderPath,
+        filePaths: input.filePaths,
+      },
+    })
+  }
+
+  dispatchTerminalAgentSendMessage(input: {
+    agentId: string
+    sessionId: string
+    dialogId: string
+    provider: 'codex' | 'gemini'
+    message: string
+    resumeRef?: string
+    apiKey?: string
+    commandPath: string
+    commandArgs: string[]
+    useShellFallback: boolean
+    shellOverride?: string
+  }) {
+    return this.dispatchWidgetCommand({
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      jobId: input.dialogId,
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
+      command: {
+        kind: 'terminal_agent_send_message',
+        provider: input.provider,
+        message: input.message,
+        resumeRef: input.resumeRef,
+        apiKey: input.apiKey,
+        commandPath: input.commandPath,
+        commandArgs: input.commandArgs,
+        useShellFallback: input.useShellFallback,
+        shellOverride: input.shellOverride,
+      },
+    })
+  }
+
+  dispatchTerminalAgentResetDialog(input: {
+    agentId: string
+    sessionId: string
+    dialogId: string
+    reason?: string
+  }) {
+    return this.dispatchWidgetCommand({
+      agentId: input.agentId,
+      sessionId: input.sessionId,
+      jobId: input.dialogId,
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
+      command: {
+        kind: 'terminal_agent_reset_dialog',
+        reason: input.reason,
+      },
+    })
   }
 }
 

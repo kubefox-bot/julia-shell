@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { saveShellLayout } from '../../lib/api';
-import { resolveDisplayLocale } from '../../../../shared/lib/locale';
+import { resolveDisplayLocale } from '@shared/lib/locale';
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types';
 import { buildShellStatePatch, sanitizeColumns, toSettingsDraft } from '../store-helpers';
 

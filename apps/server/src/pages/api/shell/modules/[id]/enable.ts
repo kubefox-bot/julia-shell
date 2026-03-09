@@ -4,7 +4,7 @@ import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';
 import { PASSPORT_HTTP_STATUS } from '@passport/server/http';
-import { jsonResponse } from '../../../../../shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
 
 export const POST: APIRoute = async ({ params, request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { agentEnrollmentTokensTable, agentRegistryTable } from '@core/db/passport-schema';
-import { nowIso } from '@/shared/lib/time';
+import { agentEnrollmentTokensTable, agentRegistryTable } from '@/core/db/passport-schema';
+import { nowIso } from '@shared/lib/time';
 import {
   PASSPORT_ENROLLMENT_TOKEN_BYTES,
   PASSPORT_AGENT_STATUS_ENROLLMENT_PENDING

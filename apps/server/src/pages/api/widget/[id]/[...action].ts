@@ -6,7 +6,7 @@ import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';
 import { PASSPORT_HTTP_STATUS } from '@passport/server/http';
 import { isPassportProtectedWidget } from '@passport/server/widget';
-import { jsonResponse } from '../../../../shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
 
 async function handleRequest(method: string, request: Request, id: string | undefined, actionRaw: string | undefined) {
   if (!id) {

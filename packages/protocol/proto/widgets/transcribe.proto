@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package julia.agent.v1;
+
+message TranscribeStartCommand {
+  string folder_path = 1;
+  repeated string file_paths = 2;
+}
+
+message TranscribeCancelCommand {
+  string reason = 1;
+}
+
+message TranscribeProgressEvent {
+  int32 percent = 1;
+  string stage = 2;
+}
+
+message TranscribeTokenEvent {
+  string text = 1;
+}
+
+message TranscribeDoneEvent {
+  string source_file = 1;
+  string save_path = 2;
+  string transcript = 3;
+}
+
+message TranscribeErrorEvent {
+  string code = 1;
+  string message = 2;
+}

@@ -7,7 +7,7 @@ const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), '.
 const protoFile = path.join(rootDir, 'proto', 'agent_control.proto')
 
 const raw = fs.readFileSync(protoFile, 'utf8')
-protobuf.parse(raw)
+protobuf.loadSync(protoFile)
 
 const hash = crypto.createHash('sha256').update(raw, 'utf8').digest('hex')
 console.log(`[protocol] proto ok: ${path.relative(process.cwd(), protoFile)}`)

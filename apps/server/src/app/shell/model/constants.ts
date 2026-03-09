@@ -8,4 +8,4 @@ export {
   SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS,
   SHELL_STATUS_POLL_INTERVAL_MAX_MS,
   SHELL_STATUS_POLL_INTERVAL_MIN_MS,
-} from '../../../shared/config/shell-status-polling'
+} from '@shared/config/shell-status-polling'

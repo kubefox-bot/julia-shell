@@ -7,6 +7,7 @@ import { listShellModules } from '../src/core/services/shell-service';
 
 const ANONYMOUS_AGENT_ID = 'public-anonymous';
 const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe';
+const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent';
 
 let tempDir = '';
 
@@ -27,10 +28,16 @@ describe('shell service passport access policy', () => {
       hasPassportAccess: false
     });
     const transcribe = modules.find((item) => item.id === TRANSCRIBE_WIDGET_ID);
+    const terminalAgent = modules.find((item) => item.id === TERMINAL_AGENT_WIDGET_ID);
 
     expect(transcribe).toBeDefined();
     expect(transcribe?.ready).toBe(false);
     expect(transcribe?.enabled).toBe(false);
     expect(transcribe?.notReadyReasons).toContain('com.yulia.transcribe widget requires agent.');
+
+    expect(terminalAgent).toBeDefined();
+    expect(terminalAgent?.ready).toBe(false);
+    expect(terminalAgent?.enabled).toBe(false);
+    expect(terminalAgent?.notReadyReasons).toContain('com.yulia.terminal-agent widget requires agent.');
   });
 });

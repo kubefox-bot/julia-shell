@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { HostPlatform } from '../../entities/widget/model/types';
-import { nowIso } from '../../shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 import { openDb } from './shared';
 import { nextRecentFolderTimestamp, normalizeSpeakerKey } from './transcribe-helpers';
 

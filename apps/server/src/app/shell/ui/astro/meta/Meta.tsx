@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DisplayLocale } from '../../../../../entities/widget/model/types';
-import { resolveDisplayLocale } from '../../../../../shared/lib/locale';
+import { resolveDisplayLocale } from '@shared/lib/locale';
 import { useShellStore } from '../../../model/store';
 import styles from './Meta.module.scss';
 

@@ -20,6 +20,7 @@ import { GET as widgetGet } from '../src/pages/api/widget/[id]/[...action]';
 
 const WEATHER_WIDGET_ID = 'com.yulia.weather';
 const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe';
+const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent';
 const HTTP_STATUS_OK = 200;
 const HTTP_STATUS_UNAUTHORIZED = 401;
 
@@ -68,6 +69,24 @@ describe('widget passport policy', () => {
       request: new Request(`http://localhost/api/widget/${TRANSCRIBE_WIDGET_ID}/settings`),
       params: {
         id: TRANSCRIBE_WIDGET_ID,
+        action: 'settings'
+      }
+    } as never);
+
+    expect(response.status).toBe(HTTP_STATUS_UNAUTHORIZED);
+    expect(listShellModulesMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks terminal-agent route without passport context', async () => {
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: null,
+      reason: 'missing'
+    });
+
+    const response = await widgetGet({
+      request: new Request(`http://localhost/api/widget/${TERMINAL_AGENT_WIDGET_ID}/settings`),
+      params: {
+        id: TERMINAL_AGENT_WIDGET_ID,
         action: 'settings'
       }
     } as never);

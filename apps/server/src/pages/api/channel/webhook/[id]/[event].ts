@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
-import { moduleBus } from '../../../../../shared/lib/module-bus';
-import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http';
+import { moduleBus } from '@shared/lib/module-bus';
+import { jsonResponse, readJsonBody } from '@shared/lib/http';
 
 const STATUS_ACCEPTED = 202;
 const STATUS_BAD_REQUEST = 400;
