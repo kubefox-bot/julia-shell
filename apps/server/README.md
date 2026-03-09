@@ -61,7 +61,16 @@ yarn build
 yarn start
 ```
 
-`yarn build` теперь делает production-минификацию (Terser) и дополнительно генерирует precompressed ассеты (`.gz` и `.br`) для `dist/client`.
+`yarn build` теперь:
+- использует `esbuild` minifier по умолчанию (быстрее),
+- может переключаться на `terser` через `JULIAAPP_BUILD_MINIFIER=terser`,
+- делает post-build precompression (`.gz` / `.br`) для `dist/client`.
+
+Управление compression через env:
+- `JULIAAPP_BUILD_COMPRESS=0` отключает этап сжатия,
+- `JULIAAPP_BUILD_COMPRESS_CONCURRENCY` задает параллелизм,
+- `JULIAAPP_BUILD_COMPRESS_BROTLI_QUALITY` и `JULIAAPP_BUILD_COMPRESS_GZIP_LEVEL` настраивают баланс размер/скорость.
+
 Если нужен только чистый build без этапа сжатия, используй `yarn build:raw`.
 
 ## Podman scaffold

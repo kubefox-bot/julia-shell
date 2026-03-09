@@ -23,6 +23,9 @@ Typical flow:
 ```bash
 yarn install
 
+yarn prepare        # post-install hook: cargo fetch for apps/agent
+yarn cleanup        # remove node/astro/dist/coverage/cargo artifacts
+
 yarn dev            # @julia/server dev
 yarn build          # @julia/server build
 yarn test           # @julia/server tests

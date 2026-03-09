@@ -46,6 +46,8 @@ Safe approach:
 
 Useful commands:
 - `yarn install`
+- `yarn prepare` (post-install rust fetch)
+- `yarn cleanup` (clean workspace artifacts)
 - `yarn dev`
 - `yarn test`
 - `yarn build`
@@ -295,8 +297,13 @@ Current transcribe UI notes:
 
 ## Build / Production
 - `yarn build` includes:
-  - production minification (Terser),
+  - build minification (`esbuild` by default, `terser` via `JULIAAPP_BUILD_MINIFIER=terser`),
   - post-build precompression for `dist/client` (`.gz` and `.br` when smaller).
+- compression is tunable via env:
+  - `JULIAAPP_BUILD_COMPRESS` (`0` disables step),
+  - `JULIAAPP_BUILD_COMPRESS_CONCURRENCY`,
+  - `JULIAAPP_BUILD_COMPRESS_BROTLI_QUALITY`,
+  - `JULIAAPP_BUILD_COMPRESS_GZIP_LEVEL`.
 - raw build without compression: `yarn build:raw`.
 
 Linting / typing:
