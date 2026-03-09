@@ -48,18 +48,24 @@ export function PassportStatusBadge() {
 
   return (
     <div className={styles.agentStatusBadge}>
-      <span className={`${styles.agentLamp} ${getLampClass(currentStatus)}`} aria-hidden="true" />
-      <span className={styles.agentStatusText}>{statusLabel}</span>
-      <Button
-        type="button"
-        variant="ghost"
-        className={styles.agentStatusAction}
-        onClick={() => void (isConnected ? syncFromStatus() : retryStatus())}
-        disabled={isLoading || isActionPending}
-      >
-        {actionLabel}
-      </Button>
-      {hostname ? <span className={styles.agentHostname}>{hostname}</span> : null}
+      <div className={styles.agentStatusRow}>
+        <span className={`${styles.agentLamp} ${getLampClass(currentStatus)}`} aria-hidden="true" />
+        <span className={styles.agentStatusText}>{statusLabel}</span>
+        <Button
+          type="button"
+          variant="ghost"
+          className={styles.agentStatusAction}
+          onClick={() => void (isConnected ? syncFromStatus() : retryStatus())}
+          disabled={isLoading || isActionPending}
+        >
+          {actionLabel}
+        </Button>
+      </div>
+      {hostname ? (
+        <div className={styles.agentMetaRow}>
+          <span className={styles.agentHostname}>{hostname}</span>
+        </div>
+      ) : null}
       {isDisconnected ? (
         <PassportInstallBlock
           platform={platform}
