@@ -38,6 +38,8 @@ function withModelArgs(baseArgs: string[], model: string) {
   return next
 }
 
+const STREAM_IDLE_TIMEOUT_MS = 20_000
+
 export async function handleTerminalAgentMessageStream(input: {
   request: Request
   agentId: string
@@ -77,6 +79,7 @@ export async function handleTerminalAgentMessageStream(input: {
     start(controller) {
       const encoder = new TextEncoder()
       let closed = false
+      let idleTimer: ReturnType<typeof setTimeout> | null = null
 
       const send = (event: string, payload: Record<string, unknown>) => {
         if (closed) {
@@ -92,6 +95,10 @@ export async function handleTerminalAgentMessageStream(input: {
         }
 
         closed = true
+        if (idleTimer) {
+          clearTimeout(idleTimer)
+          idleTimer = null
+        }
         try {
           controller.close()
         } catch {
@@ -99,14 +106,41 @@ export async function handleTerminalAgentMessageStream(input: {
         }
       }
 
+      const resetIdleTimer = () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer)
+        }
+
+        idleTimer = setTimeout(() => {
+          markDialogStatus({
+            agentId: input.agentId,
+            provider: input.provider,
+            status: 'error',
+            lastError: 'agent_timeout_no_events',
+          })
+          send('error', {
+            message: 'Agent did not return events in time. Check agent process/logs and provider credentials.',
+          })
+          close()
+        }, STREAM_IDLE_TIMEOUT_MS)
+      }
+
+      send('status', {
+        status: 'running',
+        detail: 'Dispatching provider command…',
+      })
+      resetIdleTimer()
+
       if (currentState.providerSessionRef) {
         send('status', {
           status: 'resuming',
           detail: 'Trying to resume dialog context…',
         })
+        resetIdleTimer()
       }
 
       const off = moduleBus.subscribe(topic, (event) => {
+        resetIdleTimer()
         const busPayload = (event.payload ?? {}) as BusPayload
         const eventType = toText(busPayload.type)
         const payload = (busPayload.payload ?? {}) as Record<string, unknown>

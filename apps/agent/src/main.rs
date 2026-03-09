@@ -56,11 +56,13 @@ enum StreamSource {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .with_target(false)
-        .compact()
-        .init();
+    if cfg!(debug_assertions) {
+        tracing_subscriber::fmt()
+            .with_env_filter("debug")
+            .with_target(true)
+            .pretty()
+            .init();
+    }
 
     let config = AgentConfig::from_env();
     let http_client = Client::new();
@@ -193,7 +195,9 @@ async fn handle_server_command(
     tokens: SessionTokens,
     session_id: String,
 ) {
+    let server_job_id = message.job_id.clone();
     let Some(payload) = message.payload else {
+        debug!("server envelope without payload ignored");
         return;
     };
 
@@ -202,6 +206,11 @@ async fn handle_server_command(
     match payload {
         server_envelope::Payload::WidgetCommand(command) => {
             let widget_id = command.widget_id.trim().to_string();
+            info!(
+                job_id = %server_job_id,
+                widget_id = %widget_id,
+                "received widget command"
+            );
             tokio::spawn(async move {
                 if let Err(error) = execute_widget_command(
                     command,
@@ -232,6 +241,7 @@ async fn handle_server_command(
             });
         }
         server_envelope::Payload::TranscribeStart(start) => {
+            info!(job_id = %server_job_id, "received legacy transcribe_start command");
             tokio::spawn(async move {
                 if let Err(error) =
                     execute_transcribe_start(start, job_id.clone(), tx.clone(), &tokens, &session_id)
@@ -251,6 +261,7 @@ async fn handle_server_command(
             });
         }
         server_envelope::Payload::TranscribeCancel(cancel) => {
+            info!(job_id = %server_job_id, "received legacy transcribe_cancel command");
             let command = protocol::WidgetCommand {
                 widget_id: TRANSCRIBE_WIDGET_ID.to_string(),
                 payload: Some(widget_command::Payload::TranscribeCancel(
@@ -277,7 +288,13 @@ async fn handle_server_command(
                 }
             });
         }
-        _ => {}
+        other => {
+            debug!(
+                job_id = %server_job_id,
+                payload = ?other,
+                "received unsupported server payload"
+            );
+        }
     }
 }
 
@@ -289,14 +306,17 @@ async fn execute_widget_command(
     session_id: &str,
 ) -> Result<()> {
     let Some(payload) = command.payload else {
+        debug!(job_id = %job_id, widget_id = %command.widget_id, "widget command without payload ignored");
         return Ok(());
     };
 
     match payload {
         widget_command::Payload::TranscribeStart(start) => {
+            debug!(job_id = %job_id, "execute transcribe_start");
             execute_transcribe_start(start, job_id, tx, tokens, session_id).await
         }
         widget_command::Payload::TranscribeCancel(_cancel) => {
+            debug!(job_id = %job_id, "execute transcribe_cancel");
             send_widget_event(
                 &tx,
                 tokens,
@@ -312,9 +332,11 @@ async fn execute_widget_command(
             Ok(())
         }
         widget_command::Payload::TerminalAgentSendMessage(send_message) => {
+            debug!(job_id = %job_id, "execute terminal_agent_send_message");
             execute_terminal_agent_message(send_message, job_id, tx, tokens, session_id).await
         }
         widget_command::Payload::TerminalAgentResetDialog(_reset) => {
+            debug!(job_id = %job_id, "execute terminal_agent_reset_dialog");
             send_widget_event(
                 &tx,
                 tokens,

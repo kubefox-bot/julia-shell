@@ -336,6 +336,7 @@ describe('terminal-agent server handlers', () => {
     expect(events.map((item) => item.event)).toEqual([
       'status',
       'status',
+      'status',
       'assistant_chunk',
       'assistant_done'
     ]);
@@ -412,7 +413,7 @@ describe('terminal-agent server handlers', () => {
     });
 
     const events = await streamEventsPromise;
-    expect(events.map((item) => item.event)).toEqual(['status', 'resume_failed', 'error']);
+    expect(events.map((item) => item.event)).toEqual(['status', 'status', 'resume_failed', 'error']);
 
     const state = getTerminalAgentDialogState('agent-a', WIDGET_ID, 'gemini');
     expect(state.providerSessionRef).toBe('');
@@ -466,8 +467,8 @@ describe('terminal-agent server handlers', () => {
 
     expect(response.status).toBe(200);
     const events = await collectSseEventsWithTimeout(response);
-    expect(events.map((item) => item.event)).toEqual(['error']);
-    expect(events[0]?.payload).toEqual({ message: 'agent_offline' });
+    expect(events.map((item) => item.event)).toEqual(['status', 'error']);
+    expect(events[1]?.payload).toEqual({ message: 'agent_offline' });
 
     const state = getTerminalAgentDialogState('agent-a', WIDGET_ID, 'codex');
     expect(state.status).toBe('error');
