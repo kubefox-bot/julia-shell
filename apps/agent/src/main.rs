@@ -243,9 +243,14 @@ async fn handle_server_command(
         server_envelope::Payload::TranscribeStart(start) => {
             info!(job_id = %server_job_id, "received legacy transcribe_start command");
             tokio::spawn(async move {
-                if let Err(error) =
-                    execute_transcribe_start(start, job_id.clone(), tx.clone(), &tokens, &session_id)
-                        .await
+                if let Err(error) = execute_transcribe_start(
+                    start,
+                    job_id.clone(),
+                    tx.clone(),
+                    &tokens,
+                    &session_id,
+                )
+                .await
                 {
                     let _ = send_widget_execution_error(
                         &tx,
@@ -271,9 +276,14 @@ async fn handle_server_command(
                 )),
             };
             tokio::spawn(async move {
-                if let Err(error) =
-                    execute_widget_command(command, job_id.clone(), tx.clone(), &tokens, &session_id)
-                        .await
+                if let Err(error) = execute_widget_command(
+                    command,
+                    job_id.clone(),
+                    tx.clone(),
+                    &tokens,
+                    &session_id,
+                )
+                .await
                 {
                     let _ = send_widget_execution_error(
                         &tx,
