@@ -52,11 +52,23 @@ async fn main() -> Result<()> {
 
 async fn run_cycle(http_client: &Client, config: &AgentConfig) -> Result<()> {
     let tokens = authorize(http_client, config).await?;
+    let access_token_expires_at = tokens.expires_in.and_then(|seconds| {
+        if seconds <= 0 {
+            return None;
+        }
+
+        Some(
+            (chrono::Utc::now() + chrono::Duration::seconds(seconds))
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        )
+    });
     storage::write_session(
         &config.refresh_token_path,
         &storage::StoredSession {
             agent_id: tokens.agent_id.clone(),
             refresh_token: tokens.refresh_token.clone(),
+            access_jwt: Some(tokens.access_jwt.clone()),
+            access_token_expires_at,
         },
     )
     .await?;
@@ -275,7 +287,13 @@ async fn send_progress(
 }
 
 async fn authorize(http_client: &Client, config: &AgentConfig) -> Result<SessionTokens> {
+    let mut enroll_agent_id = config.agent_id.clone();
+
     if let Some(session) = storage::read_session(&config.refresh_token_path).await {
+        if enroll_agent_id.trim().is_empty() {
+            enroll_agent_id = session.agent_id.clone();
+        }
+
         if let Ok(tokens) = refresh(
             http_client,
             &config.server_base_url,
@@ -290,9 +308,21 @@ async fn authorize(http_client: &Client, config: &AgentConfig) -> Result<Session
         warn!("refresh failed, falling back to enroll");
     }
 
+    if enroll_agent_id.trim().is_empty() {
+        return Err(anyhow::anyhow!(
+            "JULIA_AGENT_ID is required for first enroll when no valid session exists"
+        ));
+    }
+    if config.enrollment_token.trim().is_empty() {
+        return Err(anyhow::anyhow!(
+            "JULIA_AGENT_ENROLLMENT_TOKEN is required for enroll fallback"
+        ));
+    }
+
     enroll(
         http_client,
         &config.server_base_url,
+        &enroll_agent_id,
         &config.enrollment_token,
         &config.agent_version,
         &config.agent_display_name,

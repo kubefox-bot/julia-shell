@@ -1,7 +1,9 @@
+import { readRuntimeEnv } from '../../../core/env'
+
 export function isTranscribeDevBypassMode() {
-  return process.env.JULIAAPP_AGENT_ENABLE_DEV === '1';
+  return readRuntimeEnv().passportAgentDevModeEnabled
 }
 
 export function isAgentRequiredForTranscribe() {
-  return !isTranscribeDevBypassMode();
+  return !isTranscribeDevBypassMode()
 }

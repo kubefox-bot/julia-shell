@@ -44,6 +44,7 @@ export type WidgetRuntimeState = {
 
 export type WidgetRouteContext = {
   request: Request;
+  agentId: string;
   action: string;
   actionSegments: string[];
   params: {

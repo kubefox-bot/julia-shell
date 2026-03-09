@@ -1,5 +1,5 @@
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
-import { agentRuntime } from '../../../core/agent/runtime'
+import { passportRuntime } from '../../../domains/passport/server/runtime'
 import { transcribeHandlers } from './handlers'
 import { isAgentRequiredForTranscribe } from './agent-mode'
 import { buildAvailableModels, getHostPlatform, isSupportedAudioPath, resolveConfiguredModel, resolveTranscriptPath, toTranscriptPath } from './utils'
@@ -10,7 +10,7 @@ export const transcribeServerModule: WidgetServerModule = {
       return { ready: true };
     }
 
-    const onlineAgent = agentRuntime.getOnlineAgentSession();
+    const onlineAgent = passportRuntime.getOnlineAgentSession();
     if (!onlineAgent) {
       return {
         ready: false,

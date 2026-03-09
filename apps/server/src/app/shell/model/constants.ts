@@ -1,3 +1,11 @@
-export const CLOCK_TICK_INTERVAL_MS = 1_000;
-export const AUTO_THEME_DAY_START_HOUR = 7;
-export const AUTO_THEME_NIGHT_START_HOUR = 19;
+export const CLOCK_TICK_INTERVAL_MS = 1_000
+export const AUTO_THEME_DAY_START_HOUR = 7
+export const AUTO_THEME_NIGHT_START_HOUR = 19
+export const SHELL_BOOT_DELAY_MS = 1_000
+export const SHELL_LAYOUT_COLUMNS_MIN = 1
+export const SHELL_LAYOUT_COLUMNS_MAX = 12
+export {
+  SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS,
+  SHELL_STATUS_POLL_INTERVAL_MAX_MS,
+  SHELL_STATUS_POLL_INTERVAL_MIN_MS,
+} from '../../../shared/config/shell-status-polling'

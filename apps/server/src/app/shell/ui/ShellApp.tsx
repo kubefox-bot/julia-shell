@@ -1,122 +1,130 @@
-import { useEffect, useRef, useState } from 'react';
-import { useResolvedShellTheme, useShellI18n, useShellLoadingState } from '../model/selectors';
-import { CLOCK_TICK_INTERVAL_MS } from '../model/constants';
-import { useShellStore } from '../model/store';
-import type { ShellSettingsResponse } from '../model/types';
-import { ShellBootSkeleton } from './components/ShellBootSkeleton';
-import { ShellHeader } from './components/ShellHeader';
-import { ShellSettingsOverlay } from './components/ShellSettingsOverlay';
-import { WidgetGrid } from './components/WidgetGrid';
-import styles from './ShellApp.module.scss';
+import { useEffect, useRef, useState } from 'react'
+import { CLOCK_TICK_INTERVAL_MS, SHELL_BOOT_DELAY_MS } from '../model/constants'
+import { useResolvedShellTheme, useShellI18n, useShellLoadingState } from '../model/selectors'
+import { useShellStore } from '../model/store'
+import type { ShellSettingsResponse } from '../model/types'
+import { ShellBootSkeleton } from './components/ShellBootSkeleton'
+import { ShellHeader } from './components/ShellHeader'
+import { ShellSettingsOverlay } from './components/ShellSettingsOverlay'
+import { WidgetGrid } from './components/WidgetGrid'
+import styles from './ShellApp.module.scss'
 
 type ShellAppProps = {
-  initialShellSettings?: ShellSettingsResponse;
-  initialNowIso?: string;
-};
+  initialShellSettings?: ShellSettingsResponse
+  initialNowIso?: string
+}
 
 export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps) {
-  const hasSeededClockRef = useRef(false);
+  const hasSeededClockRef = useRef(false)
 
   if (!hasSeededClockRef.current && initialNowIso) {
-    useShellStore.setState({ nowIso: initialNowIso });
-    hasSeededClockRef.current = true;
+    useShellStore.setState({ nowIso: initialNowIso })
+    hasSeededClockRef.current = true
   }
 
-  const { loading, error } = useShellLoadingState();
-  const { t } = useShellI18n();
-  const theme = useResolvedShellTheme();
-  const hydrateShell = useShellStore((state) => state.hydrateShell);
-  const loadShell = useShellStore((state) => state.loadShell);
-  const loadAgentStatus = useShellStore((state) => state.loadAgentStatus);
-  const setBrowserLocale = useShellStore((state) => state.setBrowserLocale);
-  const tickNow = useShellStore((state) => state.tickNow);
-  const [isBootDelayComplete, setIsBootDelayComplete] = useState(false);
+  const { loading, error } = useShellLoadingState()
+  const { t } = useShellI18n()
+  const theme = useResolvedShellTheme()
+  const hydrateShell = useShellStore((state) => state.hydrateShell)
+  const loadShell = useShellStore((state) => state.loadShell)
+  const syncFromStatus = useShellStore((state) => state.syncFromStatus)
+  const statusPollIntervalMs = useShellStore((state) => state.statusPollIntervalMs)
+  const setBrowserLocale = useShellStore((state) => state.setBrowserLocale)
+  const tickNow = useShellStore((state) => state.tickNow)
+  const [isBootDelayComplete, setIsBootDelayComplete] = useState(false)
 
   useEffect(() => {
     if (initialShellSettings) {
-      hydrateShell(initialShellSettings);
+      hydrateShell(initialShellSettings)
     } else {
-      void loadShell();
+      void loadShell()
     }
 
     if (typeof navigator !== 'undefined') {
-      setBrowserLocale(navigator.language);
+      setBrowserLocale(navigator.language)
     }
 
-    void loadAgentStatus();
-  }, [hydrateShell, initialShellSettings, loadAgentStatus, loadShell, setBrowserLocale]);
+    void syncFromStatus()
+  }, [hydrateShell, initialShellSettings, loadShell, setBrowserLocale, syncFromStatus])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      void loadAgentStatus();
-    }, 15_000);
+      void syncFromStatus()
+    }, statusPollIntervalMs)
 
     return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [loadAgentStatus]);
+      window.clearInterval(intervalId)
+    }
+  }, [statusPollIntervalMs, syncFromStatus])
 
   useEffect(() => {
-    tickNow();
+    tickNow()
 
-    const controller = new AbortController();
+    const controller = new AbortController()
     const intervalId = window.setInterval(() => {
-      tickNow();
-    }, CLOCK_TICK_INTERVAL_MS);
+      tickNow()
+    }, CLOCK_TICK_INTERVAL_MS)
 
     controller.signal.addEventListener(
       'abort',
       () => {
-        window.clearInterval(intervalId);
+        window.clearInterval(intervalId)
       },
       { once: true }
-    );
+    )
 
     return () => {
-      controller.abort();
-    };
-  }, [tickNow]);
+      controller.abort()
+    }
+  }, [tickNow])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setIsBootDelayComplete(true);
-    }, 1000);
+      setIsBootDelayComplete(true)
+    }, SHELL_BOOT_DELAY_MS)
 
     return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, []);
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
 
   useEffect(() => {
-    document.documentElement.dataset.shellTheme = theme;
-    document.body.dataset.shellTheme = theme;
+    document.documentElement.dataset.shellTheme = theme
+    document.body.dataset.shellTheme = theme
 
     return () => {
-      delete document.documentElement.dataset.shellTheme;
-      delete document.body.dataset.shellTheme;
-    };
-  }, [theme]);
+      delete document.documentElement.dataset.shellTheme
+      delete document.body.dataset.shellTheme
+    }
+  }, [theme])
 
   useEffect(() => {
     if (!initialShellSettings || !isBootDelayComplete) {
-      return;
+      return
     }
 
-    window.dispatchEvent(new CustomEvent('yulia-shell-hydrated'));
-  }, [initialShellSettings, isBootDelayComplete]);
+    window.dispatchEvent(new CustomEvent('yulia-shell-hydrated'))
+  }, [initialShellSettings, isBootDelayComplete])
 
-  const showBootSkeleton = !initialShellSettings && (loading || !isBootDelayComplete);
+  const showBootSkeleton = !initialShellSettings && (loading || !isBootDelayComplete)
 
   return (
     <div className={styles.shellRoot} data-theme={theme}>
       <ShellHeader />
-      {!showBootSkeleton && error ? <p className={styles.error}>{t('error')}: {error}</p> : null}
+      {!showBootSkeleton && error ? (
+        <p className={styles.error}>
+          {t('error')}: {error}
+        </p>
+      ) : null}
       {!showBootSkeleton ? <ShellSettingsOverlay /> : null}
       {showBootSkeleton ? (
-        <ShellBootSkeleton animate={!isBootDelayComplete} initialShellSettings={initialShellSettings} />
+        <ShellBootSkeleton
+          animate={!isBootDelayComplete}
+          initialShellSettings={initialShellSettings}
+        />
       ) : (
         <WidgetGrid />
       )}
     </div>
-  );
+  )
 }

@@ -1,44 +1,37 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { isChannelAuthorized } from '../src/shared/lib/channel-auth'
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-afterEach(() => {
-  delete process.env.WIDGET_CHANNEL_TOKEN
-  delete process.env.JULIAAPP_ENABLE_CHANNEL_AUTH
-})
+const resolvePassportRequestContextMock = vi.hoisted(() => vi.fn());
 
-describe('channel token guard', () => {
-  it('allows access when channel auth is disabled', async () => {
-    process.env.WIDGET_CHANNEL_TOKEN = 'secret'
-    const request = new Request('http://localhost/test', {
-      headers: {
-        'X-Widget-Token': 'wrong',
+vi.mock('../src/domains/passport/server/context', () => ({
+  resolvePassportRequestContext: resolvePassportRequestContextMock
+}));
+
+import { isChannelAuthorized } from '../src/shared/lib/channel-auth';
+
+describe('channel auth via passport context', () => {
+  beforeEach(() => {
+    resolvePassportRequestContextMock.mockReset();
+  });
+
+  it('authorizes when passport context exists', async () => {
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: {
+        agentId: 'agent-1',
+        accessJwt: 'token',
+        setCookieHeader: null
       },
-    })
+      reason: 'missing'
+    });
 
-    await expect(isChannelAuthorized(request)).resolves.toBe(true)
-  })
+    await expect(isChannelAuthorized(new Request('http://localhost/test'))).resolves.toBe(true);
+  });
 
-  it('rejects mismatched token when channel auth is enabled', async () => {
-    process.env.JULIAAPP_ENABLE_CHANNEL_AUTH = '1'
-    process.env.WIDGET_CHANNEL_TOKEN = 'secret'
-    const request = new Request('http://localhost/test', {
-      headers: {
-        'X-Widget-Token': 'wrong',
-      },
-    })
+  it('rejects when passport context is missing', async () => {
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: null,
+      reason: 'missing'
+    });
 
-    await expect(isChannelAuthorized(request)).resolves.toBe(false)
-  })
-
-  it('accepts matching token in strict mode', async () => {
-    process.env.JULIAAPP_ENABLE_CHANNEL_AUTH = '1'
-    process.env.WIDGET_CHANNEL_TOKEN = 'secret'
-    const request = new Request('http://localhost/test', {
-      headers: {
-        'X-Widget-Token': 'secret',
-      },
-    })
-
-    await expect(isChannelAuthorized(request)).resolves.toBe(true)
-  })
-})
+    await expect(isChannelAuthorized(new Request('http://localhost/test'))).resolves.toBe(false);
+  });
+});

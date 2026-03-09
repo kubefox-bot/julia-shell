@@ -2,7 +2,7 @@ import { Button } from '../../../../shared/ui/Button';
 import { IconButton } from '../../../../shared/ui/IconButton';
 import { useShellClockViewModel, useShellI18n, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
-import { AgentStatusBadge } from './AgentStatusBadge';
+import { PassportStatusBadge } from '../../../../domains/passport/ui/PassportStatusBadge';
 import styles from '../ShellApp.module.scss';
 
 export function ShellHeader() {
@@ -31,7 +31,7 @@ export function ShellHeader() {
         <h1>{greeting}</h1>
       </div>
       <div className={styles.headerAside}>
-        <AgentStatusBadge />
+        <PassportStatusBadge />
         <div className={styles.headerClock}>
           <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
           <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>

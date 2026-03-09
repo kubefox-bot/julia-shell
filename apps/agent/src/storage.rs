@@ -5,6 +5,8 @@ use std::path::Path;
 pub struct StoredSession {
     pub agent_id: String,
     pub refresh_token: String,
+    pub access_jwt: Option<String>,
+    pub access_token_expires_at: Option<String>,
 }
 
 pub async fn read_session(path: &Path) -> Option<StoredSession> {

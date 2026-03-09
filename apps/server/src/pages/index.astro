@@ -4,11 +4,19 @@ import { ShellApp } from '../app/shell/ui/ShellApp';
 import { ShellSilhouetteGrid } from '../app/shell/ui/components/ShellSilhouetteGrid';
 import { buildShellSkeletonLayout } from '../app/shell/model/skeleton';
 import { getShellSettings } from '../core/services/shell-service';
+import { resolvePassportRequestContext } from '../domains/passport/server/context';
 import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from '../app/shell/model/constants';
 import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
 const title = 'Julia Shell';
-const initialShellSettings = await getShellSettings();
+const passportContext = await resolvePassportRequestContext(Astro.request, {
+  allowBootstrapFromOnlineAgent: true
+});
+if (passportContext.context?.setCookieHeader) {
+  Astro.response.headers.append('Set-Cookie', passportContext.context.setCookieHeader);
+}
+const initialAgentId = passportContext.context?.agentId ?? 'ssr-default';
+const initialShellSettings = await getShellSettings(initialAgentId);
 const initialNowIso = new Date().toISOString();
 const initialSilhouetteLayout = buildShellSkeletonLayout(initialShellSettings.layout, initialShellSettings.modules, []);
 const currentHour = new Date().getHours();

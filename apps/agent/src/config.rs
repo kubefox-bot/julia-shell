@@ -5,6 +5,7 @@ use std::path::PathBuf;
 pub struct AgentConfig {
     pub server_base_url: String,
     pub grpc_endpoint: String,
+    pub agent_id: String,
     pub enrollment_token: String,
     pub refresh_token_path: PathBuf,
     pub agent_version: String,
@@ -18,6 +19,12 @@ impl AgentConfig {
 
         let grpc_endpoint = env::var("JULIA_AGENT_GRPC_ENDPOINT")
             .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+
+        let agent_id = env::var("JULIA_AGENT_ID")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_default();
 
         let enrollment_token = env::var("JULIA_AGENT_ENROLLMENT_TOKEN").unwrap_or_default();
 
@@ -36,6 +43,7 @@ impl AgentConfig {
         Self {
             server_base_url,
             grpc_endpoint,
+            agent_id,
             enrollment_token,
             refresh_token_path,
             agent_version,

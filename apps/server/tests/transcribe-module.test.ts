@@ -68,6 +68,7 @@ describe('transcribe server module', () => {
         }
       }),
       action: 'transcribe-stream',
+      agentId: 'agent-test',
       actionSegments: ['transcribe-stream'],
       params: {
         id: 'com.yulia.transcribe'
@@ -84,7 +85,7 @@ describe('transcribe server module', () => {
     expect(body).toContain('event: done')
     expect(body).toContain('Prepared opus file:')
     expect(fs.existsSync(path.join(audioDir, 'clip-1.txt'))).toBe(true)
-    expect(listRecentTranscribeJobs(1)[0]?.model).toBe('mock')
+    expect(listRecentTranscribeJobs('agent-test', 1)[0]?.model).toBe('mock')
 
     const readResponse = await transcribeServerModule.handlers['POST transcript-read']({
       request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcript-read', {
@@ -98,6 +99,7 @@ describe('transcribe server module', () => {
         }
       }),
       action: 'transcript-read',
+      agentId: 'agent-test',
       actionSegments: ['transcript-read'],
       params: {
         id: 'com.yulia.transcribe'
@@ -122,6 +124,7 @@ describe('transcribe server module', () => {
         }
       }),
       action: 'transcript-save',
+      agentId: 'agent-test',
       actionSegments: ['transcript-save'],
       params: {
         id: 'com.yulia.transcribe'
@@ -147,6 +150,7 @@ describe('transcribe server module', () => {
         }
       }),
       action: 'speaker-aliases',
+      agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
         id: 'com.yulia.transcribe'
@@ -173,6 +177,7 @@ describe('transcribe server module', () => {
         }
       }),
       action: 'speaker-aliases',
+      agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
         id: 'com.yulia.transcribe'
@@ -189,6 +194,7 @@ describe('transcribe server module', () => {
     const getAliasesResponse = await transcribeServerModule.handlers['GET speaker-aliases']({
       request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases'),
       action: 'speaker-aliases',
+      agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
         id: 'com.yulia.transcribe'

@@ -1,6 +1,6 @@
+import type { ChildProcess } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { ChildProcess } from 'node:child_process'
 import { GoogleGenAI } from '@google/genai'
 import {
   appendTranscribeOutboxEvent,
@@ -9,15 +9,23 @@ import {
   failTranscribeJob,
   getTranscribeWidgetSettings,
   touchRecentFolder,
-  updateTranscribeJobProgress
+  updateTranscribeJobProgress,
 } from '../../../core/db/transcribe-repository'
+import { readRuntimeEnv } from '../../../core/env'
 import { jsonResponse } from '../../../shared/lib/http'
-import { DEFAULT_GEMINI_MODEL, GEMINI_UPLOAD_MIME, MOCK_GEMINI_MODEL, PROMPT_PATH, TOOLS_ROOT, WIDGET_ID } from './constants'
+import { isTranscribeDevBypassMode } from './agent-mode'
+import { handleAgentTranscribeStream } from './agent-transcribe-stream'
+import {
+  DEFAULT_GEMINI_MODEL,
+  GEMINI_UPLOAD_MIME,
+  MOCK_GEMINI_MODEL,
+  PROMPT_PATH,
+  TOOLS_ROOT,
+  WIDGET_ID,
+} from './constants'
 import { prepareAudioForTranscription } from './ffmpeg'
 import { startGeminiStream } from './gemini'
 import { runMockTranscription } from './mock'
-import { handleAgentTranscribeStream } from './agent-transcribe-stream'
-import { isTranscribeDevBypassMode } from './agent-mode'
 import { resolveApiKeyState } from './settings'
 import type { SsePayload, UploadedGeminiFile } from './types'
 import {
@@ -26,19 +34,24 @@ import {
   getHostPlatform,
   resolveConfiguredModel,
   resolveSelection,
-  toSseEvent
+  toSseEvent,
 } from './utils'
 
-export async function handleTranscribeStream(body: {
-  folderPath?: string
-  filePath?: string
-  filePaths?: string[]
-}, request: Request) {
+export async function handleTranscribeStream(
+  body: {
+    folderPath?: string
+    filePath?: string
+    filePaths?: string[]
+  },
+  request: Request,
+  agentId: string
+) {
+  const runtimeEnv = readRuntimeEnv()
   const devBypassMode = isTranscribeDevBypassMode()
-  const allowMockFallback = devBypassMode && process.env.JULIAAPP_AGENT_MOCK_MODE === '1'
+  const allowMockFallback = devBypassMode && runtimeEnv.transcribeAgentMockModeEnabled
 
   if (!devBypassMode) {
-    const agentResponse = await handleAgentTranscribeStream(body, request)
+    const agentResponse = await handleAgentTranscribeStream(body, request, agentId)
     if (!(allowMockFallback && agentResponse.status === 503)) {
       return agentResponse
     }
@@ -52,8 +65,8 @@ export async function handleTranscribeStream(body: {
     return jsonResponse({ error: 'folderPath or filePaths is required.' }, 400)
   }
 
-  const widgetSettings = getTranscribeWidgetSettings(WIDGET_ID)
-  const secretState = await resolveApiKeyState()
+  const widgetSettings = getTranscribeWidgetSettings(agentId, WIDGET_ID)
+  const secretState = await resolveApiKeyState(agentId)
   const selectedModel = resolveConfiguredModel(widgetSettings.geminiModel)
   const geminiModelCandidates = buildGeminiModelCandidates(selectedModel)
 
@@ -128,28 +141,31 @@ export async function handleTranscribeStream(body: {
           const { filePaths: selectedFiles, canonicalSourceFile, resolvedFolderPath } = selection
           const primaryBaseName = path.parse(canonicalSourceFile).name
 
-          touchRecentFolder(WIDGET_ID, resolvedFolderPath)
+          touchRecentFolder(agentId, WIDGET_ID, resolvedFolderPath)
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             eventType: 'audio_selected',
             state: 'selected',
             payload: {
               folderPath: resolvedFolderPath,
               filePaths: selectedFiles,
-              primarySourceFile: canonicalSourceFile
-            }
+              primarySourceFile: canonicalSourceFile,
+            },
           })
 
           jobId = createTranscribeJob({
+            agentId,
             widgetId: WIDGET_ID,
             folderPath: resolvedFolderPath,
             filePaths: selectedFiles,
             primarySourceFile: canonicalSourceFile,
             platform: getHostPlatform(),
-            model: selectedModel || DEFAULT_GEMINI_MODEL
+            model: selectedModel || DEFAULT_GEMINI_MODEL,
           })
 
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'job_created',
@@ -157,22 +173,26 @@ export async function handleTranscribeStream(body: {
             payload: {
               folderPath: resolvedFolderPath,
               filePaths: selectedFiles,
-              model: selectedModel
-            }
+              model: selectedModel,
+            },
           })
 
           send('progress', { percent: 2, stage: 'progressJobCreated', jobId })
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'processing_started',
             state: 'processing',
             payload: {
-              stage: 'started'
-            }
+              stage: 'started',
+            },
           })
 
-          const ffmpegExe = await findBinary(path.join(TOOLS_ROOT, 'ffmpeg'), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+          const ffmpegExe = await findBinary(
+            path.join(TOOLS_ROOT, 'ffmpeg'),
+            process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+          )
           if (!ffmpegExe) {
             throw new Error('ffmpeg binary not found in tools/ffmpeg or PATH.')
           }
@@ -184,7 +204,7 @@ export async function handleTranscribeStream(body: {
             sendProgress,
             setActiveChild: (child) => {
               activeChild = child
-            }
+            },
           })
           mergedAudioPath = preparedAudio.mergedAudioPath
           concatListPath = preparedAudio.concatListPath
@@ -200,28 +220,30 @@ export async function handleTranscribeStream(body: {
               convertedAudioPath,
               sendProgress,
               send,
-              jobId
+              jobId,
             })
 
             completeTranscribeJob(jobId, mockResult.savePath)
             appendTranscribeOutboxEvent({
+              agentId,
               widgetId: WIDGET_ID,
               jobId,
               eventType: 'transcription_completed',
               state: 'completed',
               payload: {
                 model: MOCK_GEMINI_MODEL,
-                sourceFile: canonicalSourceFile
-              }
+                sourceFile: canonicalSourceFile,
+              },
             })
             appendTranscribeOutboxEvent({
+              agentId,
               widgetId: WIDGET_ID,
               jobId,
               eventType: 'file_created',
               state: 'ready',
               payload: {
-                savePath: mockResult.savePath
-              }
+                savePath: mockResult.savePath,
+              },
             })
             send('done', {
               status: 'ready',
@@ -229,7 +251,7 @@ export async function handleTranscribeStream(body: {
               savePath: mockResult.savePath,
               transcript: mockResult.transcript,
               model: MOCK_GEMINI_MODEL,
-              jobId
+              jobId,
             })
             close()
             return
@@ -242,18 +264,23 @@ export async function handleTranscribeStream(body: {
 
           sendProgress(60, 'progressUploading')
           const ai = new GoogleGenAI({ apiKey: secretState.value })
-          uploadedFile = await ai.files.upload({
+          uploadedFile = (await ai.files.upload({
             file: convertedAudioPath,
             config: {
               mimeType: GEMINI_UPLOAD_MIME,
-              displayName: path.basename(convertedAudioPath)
-            }
-          }) as UploadedGeminiFile
+              displayName: path.basename(convertedAudioPath),
+            },
+          })) as UploadedGeminiFile
 
           if (aborted) return
 
           sendProgress(72, 'progressTranscribing')
-          const { model, response } = await startGeminiStream(ai, prompt, uploadedFile, geminiModelCandidates)
+          const { model, response } = await startGeminiStream(
+            ai,
+            prompt,
+            uploadedFile,
+            geminiModelCandidates
+          )
           let transcript = ''
           let rollingProgress = 72
 
@@ -266,7 +293,10 @@ export async function handleTranscribeStream(body: {
             }
 
             transcript += text
-            rollingProgress = Math.min(98, rollingProgress + Math.max(1, Math.ceil(text.length / 120)))
+            rollingProgress = Math.min(
+              98,
+              rollingProgress + Math.max(1, Math.ceil(text.length / 120))
+            )
             sendProgress(rollingProgress, 'progressTranscribing')
             send('token', { text, model, jobId })
           }
@@ -282,23 +312,25 @@ export async function handleTranscribeStream(body: {
           sendProgress(100, 'progressDone')
           completeTranscribeJob(jobId, savePath)
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'transcription_completed',
             state: 'completed',
             payload: {
               model,
-              sourceFile: canonicalSourceFile
-            }
+              sourceFile: canonicalSourceFile,
+            },
           })
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'file_created',
             state: 'ready',
             payload: {
-              savePath
-            }
+              savePath,
+            },
           })
           send('done', {
             status: 'ready',
@@ -306,7 +338,7 @@ export async function handleTranscribeStream(body: {
             savePath,
             transcript,
             model,
-            jobId
+            jobId,
           })
           close()
         } catch (error) {
@@ -315,13 +347,14 @@ export async function handleTranscribeStream(body: {
             failTranscribeJob(jobId, message)
           }
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId: jobId || null,
             eventType: 'job_failed',
             state: 'failed',
             payload: {
-              message
-            }
+              message,
+            },
           })
           if (!aborted) {
             send('error', { message, jobId })
@@ -360,7 +393,7 @@ export async function handleTranscribeStream(body: {
         request.signal.removeEventListener('abort', abortHandler)
         abortHandler = null
       }
-    }
+    },
   })
 
   return new Response(stream, {
@@ -369,7 +402,7 @@ export async function handleTranscribeStream(body: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no'
-    }
+      'X-Accel-Buffering': 'no',
+    },
   })
 }

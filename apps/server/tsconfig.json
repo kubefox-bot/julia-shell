@@ -3,9 +3,13 @@
   "compilerOptions": {
     "allowJs": false,
     "checkJs": false,
+    "baseUrl": ".",
     "moduleResolution": "bundler",
     "noEmit": true,
     "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "verbatimModuleSyntax": true
   },
   "include": [".astro/types.d.ts", "**/*"],

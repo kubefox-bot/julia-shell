@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 
 ## Purpose
 This is Yulia's Astro app in Shell-Core v1.2 architecture.
@@ -74,11 +74,14 @@ Useful commands:
 - transport between server and agent is gRPC bidi (`StreamConnect`).
 - agent implementation is Rust and supports Windows/Linux/macOS binaries.
 - runtime source of truth for online/offline is in-memory live connection, not DB fallback.
+- runtime env access is centralized through `apps/server/src/core/env/*` (server + public providers).
 - heartbeat timeout:
   - env `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (default `60000` ms).
+- gRPC bind port:
+  - env `JULIA_AGENT_GRPC_PORT` (default `50051`).
 - server status endpoints:
-  - `GET /api/agent/status`
-  - `POST /api/agent/status/retry`
+  - `GET /api/passport/agent/status`
+  - `POST /api/passport/agent/status/retry`
 - status enum:
   - `connected`
   - `connected_dev`
@@ -96,6 +99,7 @@ Useful commands:
   - polling + manual refresh/retry,
   - on status transition shell modules are reloaded,
   - hostname is shown in badge text.
+  - polling interval is server-driven via `JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS` (default `1500` ms).
 
 ## Runtime Model
 - Astro server mode with `@astrojs/node` standalone adapter.
@@ -117,6 +121,10 @@ Agent startup note:
 
 ## Current Architecture (v1.2)
 - Shell core with manifest-driven widget registry and validation.
+- Passport request validation stack:
+  - `zod` for endpoint contracts,
+  - `drizzle-zod` for DB-derived base field schemas,
+  - `neverthrow` for typed `Result` parse/mapping flow.
 - Widget registration is DI-style:
   - each widget provides its own `manifest.ts`,
   - each widget exports a `register.ts`,
@@ -192,6 +200,16 @@ Shell APIs:
 - `POST /api/shell/modules/:id/enable`
 - `POST /api/shell/modules/:id/disable`
 
+Passport APIs:
+- `POST /api/passport/agent/enroll-token/create`
+- `GET /api/passport/agent/enroll-token/list`
+- `POST /api/passport/agent/enroll-token/revoke`
+- `POST /api/passport/agent/enroll`
+- `POST /api/passport/agent/token/refresh`
+- `POST /api/passport/agent/token/revoke`
+- `GET /api/passport/agent/status`
+- `POST /api/passport/agent/status/retry`
+
 Widget namespace:
 - `GET|POST /api/widget/:id/*`
 
@@ -201,10 +219,13 @@ Channels:
 
 Notes:
 - `/api/channel/ws` currently uses SSE-style stream transport (fallback semantics) on GET.
-- channel endpoints are protected by `X-Widget-Token`.
+- channel endpoints are protected by passport JWT (`julia_access_token` cookie).
+- passport agent request bodies are validated via centralized catalog:
+  - `apps/server/src/domains/passport/server/validation/catalog.ts`.
 
 ## Storage Model
 SQLite databases in `data/`:
+- `passport.db`: agent/passport registry/sessions/tokens/enrollment
 - `core.db`: shell layout/settings/module state
 - `weather.db`: weather cache
 - `transcribe.db`: transcription jobs/outbox state
@@ -224,14 +245,18 @@ Gemini secrets source:
 Required env vars:
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` (optional, default `gemini-2.5-flash`)
-- `WIDGET_CHANNEL_TOKEN`
+- `AGENT_JWT_SECRET`
 - `JULIAAPP_DATA_DIR` (optional)
 
 Agent/auth related env:
 - `ADMIN_TOKEN` (required for admin enroll-token API).
-- `AGENT_ENROLL_TOKEN` (server-side fallback for enroll validation flow, if used by deployment profile).
+- `JULIA_AGENT_GRPC_PORT` (optional, default `50051`).
 - `JULIAAPP_AGENT_ENABLE_DEV` (`1` enables dev bypass semantics).
 - `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (optional).
+- `JULIAAPP_PROTOCOL_PROTO_PATH` (optional, explicit path to `agent_control.proto`).
+- `JULIAAPP_AGENT_MOCK_MODE` (optional, enables mock fallback for transcribe only in dev bypass).
+- `JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS` (optional, default `1500` ms, shell `syncFromStatus` polling interval).
+- `PUBLIC_AGENT_RELEASES_BASE_URL` (optional, agent download URL base for status badge UI).
 
 ## Transcribe Flow (Current)
 - user opens folder and selects one or multiple `.m4a` / `.opus` files,

@@ -31,27 +31,29 @@ afterEach(() => {
 
 describe('transcribe repository', () => {
   it('persists widget settings and keeps recent folders as a 5-item stack', () => {
-    expect(getTranscribeWidgetSettings('com.yulia.transcribe').geminiModel).toBe('')
+    const agentId = 'agent-a'
+    expect(getTranscribeWidgetSettings(agentId, 'com.yulia.transcribe').geminiModel).toBe('')
 
     saveTranscribeWidgetSettings({
+      agentId,
       widgetId: 'com.yulia.transcribe',
       geminiModel: 'mock',
       localApiKey: 'local-key'
     })
 
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\A')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\B')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\A')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\C')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\D')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\E')
-    touchRecentFolder('com.yulia.transcribe', 'C:\\OneDrive\\F')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\A')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\B')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\A')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\C')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\D')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\E')
+    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\F')
 
-    expect(getTranscribeWidgetSettings('com.yulia.transcribe')).toMatchObject({
+    expect(getTranscribeWidgetSettings(agentId, 'com.yulia.transcribe')).toMatchObject({
       geminiModel: 'mock',
       localApiKey: 'local-key'
     })
-    expect(listRecentFolders('com.yulia.transcribe').map((entry) => entry.folderPath)).toEqual([
+    expect(listRecentFolders(agentId, 'com.yulia.transcribe').map((entry) => entry.folderPath)).toEqual([
       'C:\\OneDrive\\F',
       'C:\\OneDrive\\E',
       'C:\\OneDrive\\D',
@@ -61,7 +63,9 @@ describe('transcribe repository', () => {
   })
 
   it('stores jobs and outbox events with extended schema', () => {
+    const agentId = 'agent-a'
     const jobId = createTranscribeJob({
+      agentId,
       widgetId: 'com.yulia.transcribe',
       folderPath: 'C:\\Audio',
       filePaths: ['C:\\Audio\\clip.opus'],
@@ -71,6 +75,7 @@ describe('transcribe repository', () => {
     })
 
     appendTranscribeOutboxEvent({
+      agentId,
       widgetId: 'com.yulia.transcribe',
       jobId,
       eventType: 'job_created',
@@ -81,8 +86,9 @@ describe('transcribe repository', () => {
     })
     completeTranscribeJob(jobId, 'C:\\Audio\\clip.txt')
 
-    expect(listRecentTranscribeJobs(1)[0]).toMatchObject({
+    expect(listRecentTranscribeJobs(agentId, 1)[0]).toMatchObject({
       id: jobId,
+      agentId,
       widgetId: 'com.yulia.transcribe',
       primarySourceFile: 'C:\\Audio\\clip.opus',
       platform: 'windows',
@@ -97,28 +103,30 @@ describe('transcribe repository', () => {
   })
 
   it('normalizes, upserts and deletes speaker aliases per widget', () => {
-    saveSpeakerAliases('com.yulia.transcribe', [
+    const agentA = 'agent-a'
+    const agentB = 'agent-b'
+    saveSpeakerAliases(agentA, 'com.yulia.transcribe', [
       { speakerKey: '  Спикер   2 ', aliasName: 'Анна' },
       { speakerKey: 'speaker 1', aliasName: 'John' }
     ])
 
-    saveSpeakerAliases('com.yulia.weather', [
+    saveSpeakerAliases(agentB, 'com.yulia.weather', [
       { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
     ])
 
-    expect(listSpeakerAliases('com.yulia.transcribe')).toEqual([
+    expect(listSpeakerAliases(agentA, 'com.yulia.transcribe')).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'John' },
       { speakerKey: 'спикер 2', aliasName: 'Анна' }
     ])
 
-    saveSpeakerAliases('com.yulia.transcribe', [
+    saveSpeakerAliases(agentA, 'com.yulia.transcribe', [
       { speakerKey: 'Спикер 2', aliasName: '' }
     ])
 
-    expect(listSpeakerAliases('com.yulia.transcribe')).toEqual([
+    expect(listSpeakerAliases(agentA, 'com.yulia.transcribe')).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'John' }
     ])
-    expect(listSpeakerAliases('com.yulia.weather')).toEqual([
+    expect(listSpeakerAliases(agentB, 'com.yulia.weather')).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
     ])
   })

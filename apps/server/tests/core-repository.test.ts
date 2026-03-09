@@ -29,28 +29,30 @@ afterEach(() => {
 
 describe('core repository', () => {
   it('persists layout settings and layout rows', () => {
-    const initial = getLayoutSettings();
+    const agentId = 'agent-a';
+    const initial = getLayoutSettings(agentId);
     expect(initial.desktopColumns).toBe(12);
     expect(initial.locale).toBe('system');
     expect(initial.theme).toBe('auto');
 
-    saveLayoutSettings({ desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });
+    saveLayoutSettings(agentId, { desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });
 
-    ensureDefaultLayoutItem({ widgetId: 'com.test.one', order: 0, size: 'medium' });
-    upsertLayoutItem({ widgetId: 'com.test.one', order: 2, size: 'large' });
+    ensureDefaultLayoutItem(agentId, { widgetId: 'com.test.one', order: 0, size: 'medium' });
+    upsertLayoutItem(agentId, { widgetId: 'com.test.one', order: 2, size: 'large' });
 
-    const saved = getLayoutSettings();
-    const layout = getLayoutItems();
+    const saved = getLayoutSettings(agentId);
+    const layout = getLayoutItems(agentId);
 
     expect(saved).toEqual({ desktopColumns: 10, mobileColumns: 2, locale: 'en', theme: 'night' });
     expect(layout).toEqual([{ widgetId: 'com.test.one', order: 2, size: 'large' }]);
   });
 
   it('persists module enabled state', () => {
-    ensureDefaultModuleState('com.test.two', true);
-    setModuleEnabled('com.test.two', false, 'Disabled by test');
+    const agentId = 'agent-a';
+    ensureDefaultModuleState(agentId, 'com.test.two', true);
+    setModuleEnabled(agentId, 'com.test.two', false, 'Disabled by test');
 
-    const states = getModuleStates();
+    const states = getModuleStates(agentId);
 
     expect(states).toEqual([
       {

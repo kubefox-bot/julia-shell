@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
-import { subscribeAgentStatusChanged } from '../../../../app/agent-service/lib/agent-status-bus'
+import { subscribePassportStatusChanged } from '../../../../domains/passport/client/bus'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,
@@ -164,7 +164,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
   }, [loadPathEntries, loadSpeakerAliases, setStatus, store])
 
   useEffect(() => {
-    return subscribeAgentStatusChanged((event) => {
+    return subscribePassportStatusChanged((event) => {
       if (event.status !== 'connected' && event.status !== 'connected_dev') {
         return
       }

@@ -1,4 +1,11 @@
-import type { HostPlatform, LayoutItem, LayoutSettings, WidgetModuleInfo, WidgetSize } from '../../entities/widget/model/types';
+import type {
+  HostPlatform,
+  LayoutItem,
+  LayoutSettings,
+  WidgetModuleInfo,
+  WidgetSize
+} from '../../entities/widget/model/types';
+import { readRuntimeEnv } from '../env';
 import {
   ensureDefaultLayoutItem,
   ensureDefaultModuleState,
@@ -49,24 +56,24 @@ function normalizeLayoutItems(items: LayoutItem[]) {
     }));
 }
 
-export async function ensureCoreDefaults() {
+export async function ensureCoreDefaults(agentId: string) {
   const widgets = await listDiscoveredWidgets();
 
   widgets.forEach((descriptor, index) => {
-    ensureDefaultLayoutItem({
+    ensureDefaultLayoutItem(agentId, {
       widgetId: descriptor.module.manifest.id,
       order: index,
       size: descriptor.module.manifest.defaultSize
     });
 
-    ensureDefaultModuleState(descriptor.module.manifest.id, descriptor.runtime.ready);
+    ensureDefaultModuleState(agentId, descriptor.module.manifest.id, descriptor.runtime.ready);
   });
 }
 
-export async function listShellModules(): Promise<WidgetModuleInfo[]> {
-  await ensureCoreDefaults();
+export async function listShellModules(agentId: string): Promise<WidgetModuleInfo[]> {
+  await ensureCoreDefaults(agentId);
   const widgets = await listDiscoveredWidgets();
-  const states = getModuleStates();
+  const states = getModuleStates(agentId);
   const stateMap = new Map(states.map((state) => [state.widgetId, state]));
 
   const modules: WidgetModuleInfo[] = [];
@@ -95,12 +102,12 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
 
     if (!runtimeReady && enabled) {
       const reason = notReadyReasons[0] ?? 'Widget is not ready.';
-      setModuleEnabled(widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
+      setModuleEnabled(agentId, widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
       enabled = false;
     }
 
     if (runtimeReady && !enabled && wasAutoDisabled) {
-      setModuleEnabled(widgetId, true, null);
+      setModuleEnabled(agentId, widgetId, true, null);
       enabled = true;
     }
 
@@ -122,28 +129,31 @@ export async function listShellModules(): Promise<WidgetModuleInfo[]> {
   return modules.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 }
 
-export async function getShellSettings() {
-  await ensureCoreDefaults();
-  const modules = await listShellModules();
-  const settings = getLayoutSettings();
-  const layout = getLayoutItems();
+export async function getShellSettings(agentId: string) {
+  await ensureCoreDefaults(agentId);
+  const modules = await listShellModules(agentId);
+  const settings = getLayoutSettings(agentId);
+  const layout = getLayoutItems(agentId);
+  const runtimeEnv = readRuntimeEnv();
 
   return {
     platform: resolveHostPlatform(),
     layoutSettings: settings,
     layout,
-    modules
+    modules,
+    statusPollIntervalMs: runtimeEnv.shellStatusPollIntervalMs
   };
 }
 
 export async function updateLayoutSettings(input: {
+  agentId: string;
   desktopColumns?: number;
   mobileColumns?: number;
   locale?: LayoutSettings['locale'];
   theme?: LayoutSettings['theme'];
   layout?: LayoutItem[];
 }) {
-  const current = getLayoutSettings();
+  const current = getLayoutSettings(input.agentId);
 
   const nextSettings: LayoutSettings = {
     desktopColumns: sanitizeColumns(input.desktopColumns ?? current.desktopColumns, current.desktopColumns),
@@ -152,18 +162,18 @@ export async function updateLayoutSettings(input: {
     theme: input.theme ?? current.theme
   };
 
-  saveLayoutSettings(nextSettings);
+  saveLayoutSettings(input.agentId, nextSettings);
 
   if (Array.isArray(input.layout)) {
     const normalized = normalizeLayoutItems(input.layout);
-    replaceLayout(normalized);
+    replaceLayout(input.agentId, normalized);
   }
 
-  return getShellSettings();
+  return getShellSettings(input.agentId);
 }
 
-export async function setShellModuleEnabled(widgetId: string, enabled: boolean) {
-  const modules = await listShellModules();
+export async function setShellModuleEnabled(agentId: string, widgetId: string, enabled: boolean) {
+  const modules = await listShellModules(agentId);
   const moduleInfo = modules.find((module) => module.id === widgetId);
 
   if (!moduleInfo) {
@@ -183,16 +193,16 @@ export async function setShellModuleEnabled(widgetId: string, enabled: boolean) 
     };
   }
 
-  setModuleEnabled(widgetId, enabled, enabled ? null : 'Disabled by user.');
+  setModuleEnabled(agentId, widgetId, enabled, enabled ? null : 'Disabled by user.');
 
   return {
     ok: true,
     status: 200,
-    module: (await listShellModules()).find((module) => module.id === widgetId)
+    module: (await listShellModules(agentId)).find((module) => module.id === widgetId)
   };
 }
 
-export async function getEnabledWidgetIds() {
-  const modules = await listShellModules();
+export async function getEnabledWidgetIds(agentId: string) {
+  const modules = await listShellModules(agentId);
   return new Set(modules.filter((module) => module.ready && module.enabled).map((module) => module.id));
 }

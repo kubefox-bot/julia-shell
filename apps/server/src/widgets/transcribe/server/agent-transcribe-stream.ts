@@ -7,7 +7,7 @@ import {
   touchRecentFolder,
   updateTranscribeJobProgress,
 } from '../../../core/db/transcribe-repository';
-import { agentRuntime } from '../../../core/agent/runtime';
+import { passportRuntime } from '../../../domains/passport/server/runtime';
 import { jsonResponse } from '../../../shared/lib/http';
 import { moduleBus } from '../../../shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
@@ -37,13 +37,14 @@ function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: stri
 export async function handleAgentTranscribeStream(
   body: { folderPath?: string; filePath?: string; filePaths?: string[] },
   request: Request,
+  agentId: string,
 ) {
   const folderPathRaw = typeof body.folderPath === 'string' ? body.folderPath.trim() : '';
   const filePath = typeof body.filePath === 'string' ? body.filePath.trim() : '';
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : [];
   const useServerSelection = isTranscribeDevBypassMode();
 
-  const onlineAgent = agentRuntime.getOnlineAgentSession();
+  const onlineAgent = passportRuntime.getOnlineAgentSession();
   if (!onlineAgent) {
     return jsonResponse({ error: 'agent_offline' }, 503);
   }
@@ -73,9 +74,10 @@ export async function handleAgentTranscribeStream(
     });
   }
 
-  touchRecentFolder(WIDGET_ID, resolvedFolderPath);
+  touchRecentFolder(agentId, WIDGET_ID, resolvedFolderPath);
 
   const jobId = createTranscribeJob({
+    agentId,
     widgetId: WIDGET_ID,
     folderPath: resolvedFolderPath,
     filePaths: selectedFiles,
@@ -85,6 +87,7 @@ export async function handleAgentTranscribeStream(
   });
 
   appendTranscribeOutboxEvent({
+    agentId,
     widgetId: WIDGET_ID,
     jobId,
     eventType: 'job_created',
@@ -159,6 +162,7 @@ export async function handleAgentTranscribeStream(
           );
           completeTranscribeJob(jobId, savePath);
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'transcription_completed',
@@ -186,6 +190,7 @@ export async function handleAgentTranscribeStream(
           const message = String(payload.payload?.message ?? 'Agent transcription failed.');
           failTranscribeJob(jobId, message);
           appendTranscribeOutboxEvent({
+            agentId,
             widgetId: WIDGET_ID,
             jobId,
             eventType: 'job_failed',
@@ -198,7 +203,7 @@ export async function handleAgentTranscribeStream(
         }
       });
 
-      const dispatched = agentRuntime.dispatchTranscribeStart({
+      const dispatched = passportRuntime.dispatchTranscribeStart({
         agentId: onlineAgent.agentId,
         sessionId: onlineAgent.sessionId,
         jobId,

@@ -14,7 +14,7 @@ Core decisions for current implementation:
 - build a monorepo with three projects: `server`, `agent`, `protocol`;
 - implement one production phase first (`Phase A: Agent-first MVP`);
 - use gRPC + Protobuf for server-agent control channel;
-- use separate `agent.db` and baseline JWT auth from day one;
+- use separate `passport.db` and baseline JWT auth from day one;
 - postpone command dedup/idempotency and autonomous self-update to later phases.
 
 ## 2) Target Architecture
@@ -24,7 +24,7 @@ Core decisions for current implementation:
 - `apps/server`:
   - Astro UI + widget APIs;
   - Agent Control Core (sessions, jobs, bridge);
-  - persistence in `core.db` + `agent.db`.
+  - persistence in `core.db` + `passport.db`.
 - `apps/agent` (Rust service):
   - connector runtime;
   - v1 connectors: `health`, `transcribe`;
@@ -36,7 +36,7 @@ Core decisions for current implementation:
 - Traefik:
   - TLS termination;
   - HTTP/2 routing for gRPC;
-  - route isolation for `/api/agent/*`.
+  - route isolation for `/api/passport/agent/*`.
 
 ### 2.2 Compatibility boundary
 
@@ -89,9 +89,9 @@ Explicitly out of scope in Phase A:
 
 Use two SQLite databases:
 - `data/core.db` (business/widget runtime state),
-- `data/agent.db` (agent identity, sessions, auth, event log).
+- `data/passport.db` (agent identity, sessions, auth, event log).
 
-`agent.db` minimum tables:
+`passport.db` minimum tables:
 - `agent_registry`
   - `agent_id` (PK), `display_name`, `status`, `capabilities_json`, `version`, `created_at`, `updated_at`.
 - `agent_sessions`
@@ -165,29 +165,29 @@ Reserved for future compatibility:
 
 ### 6.2 Server API (HTTP, JSON)
 
-- `POST /api/agent/enroll-token/create`
+- `POST /api/passport/agent/enroll-token/create`
   - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
   - request: `ttl_minutes`, `uses` (default `1`), `label`;
   - response: `token_id`, `enrollment_token`, `expires_at`, `uses`.
-- `GET /api/agent/enroll-token/list`
+- `GET /api/passport/agent/enroll-token/list`
   - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
   - response: token metadata only (`token_id`, `label`, `expires_at`, `uses_left`, `used_at`, `revoked_at`), no raw token values.
-- `POST /api/agent/enroll-token/revoke`
+- `POST /api/passport/agent/enroll-token/revoke`
   - headers: `X-Admin-Token: <ADMIN_TOKEN>`;
   - request: `token_id`;
   - response: `revoked: true`.
-- `POST /api/agent/enroll`
+- `POST /api/passport/agent/enroll`
   - request: `enrollment_token`, `device_info`, `agent_version`, `capabilities`;
   - response: `agent_id`, `access_jwt`, `refresh_token`, `expires_in`.
-- `POST /api/agent/token/refresh`
+- `POST /api/passport/agent/token/refresh`
   - request: `agent_id`, `refresh_token`;
   - response: rotated `access_jwt`, rotated `refresh_token`, `expires_in`.
-- `POST /api/agent/token/revoke`
+- `POST /api/passport/agent/token/revoke`
   - request: `agent_id`, `refresh_token`;
   - response: `revoked: true`.
 
 Agent control ingress:
-- `POST /api/agent/grpc` (Traefik route to gRPC service; browser never calls it).
+- `POST /api/passport/agent/grpc` (Traefik route to gRPC service; browser never calls it).
 
 Security hygiene:
 - refresh tokens stored hashed only;
@@ -205,17 +205,17 @@ Security hygiene:
   - never written to plaintext config files;
   - rotated on every refresh call.
 - server persistence:
-  - store only `hash(refresh_token)` and metadata in `agent.db`;
+  - store only `hash(refresh_token)` and metadata in `passport.db`;
   - never store raw refresh/access token values.
 
 ### 6.4 Authorization lifecycle (install -> runtime)
 
 1. Agent starts with one-time `enrollment_token`.
-2. Agent calls `POST /api/agent/enroll`.
+2. Agent calls `POST /api/passport/agent/enroll`.
 3. Server returns `agent_id`, `access_jwt`, `refresh_token`, `expires_in`.
 4. Agent stores only `refresh_token` in secure Windows storage.
 5. Agent opens/maintains gRPC stream using `access_jwt`.
-6. Before access expiry agent calls `POST /api/agent/token/refresh`.
+6. Before access expiry agent calls `POST /api/passport/agent/token/refresh`.
 7. Server rotates refresh token and returns new token pair.
 8. Agent updates secure storage with the new `refresh_token` and keeps working.
 
@@ -260,7 +260,7 @@ Environment behavior:
 Single end-to-end delivery phase:
 - migrate to monorepo: `apps/server` + `apps/agent` + `packages/protocol`;
 - implement server Agent Control Core with sessions/jobs/bridge;
-- implement separate `agent.db` and baseline JWT auth;
+- implement separate `passport.db` and baseline JWT auth;
 - implement cross-platform agent runtime (`health` + `transcribe`);
 - route transcribe widget flow through agent;
 - enforce environment-based policy:

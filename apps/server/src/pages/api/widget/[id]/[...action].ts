@@ -1,9 +1,19 @@
 import type { APIRoute } from 'astro';
 import { resolveWidgetHandler } from '../../../../core/registry/registry';
 import { listShellModules } from '../../../../core/services/shell-service';
+import { resolvePassportRequestContext } from '../../../../domains/passport/server/context';
+import { withSetCookie } from '../../../../domains/passport/server/cookie';
 import { jsonResponse } from '../../../../shared/lib/http';
 
 async function handleRequest(method: string, request: Request, id: string | undefined, actionRaw: string | undefined) {
+  const resolvedAuth = await resolvePassportRequestContext(request, {
+    allowBootstrapFromOnlineAgent: true
+  });
+
+  if (!resolvedAuth.context) {
+    return jsonResponse({ error: 'Unauthorized.' }, 401);
+  }
+
   if (!id) {
     return jsonResponse({ error: 'Missing widget id.' }, 400);
   }
@@ -16,7 +26,7 @@ async function handleRequest(method: string, request: Request, id: string | unde
     return jsonResponse({ error: `Route not found for widget ${id}.` }, 404);
   }
 
-  const modules = await listShellModules();
+  const modules = await listShellModules(resolvedAuth.context.agentId);
   const moduleInfo = modules.find((entry) => entry.id === id);
 
   if (!moduleInfo) {
@@ -36,14 +46,17 @@ async function handleRequest(method: string, request: Request, id: string | unde
     }, 423);
   }
 
-  return resolved.handler({
+  const response = await resolved.handler({
     request,
+    agentId: resolvedAuth.context.agentId,
     action,
     actionSegments,
     params: {
       id
     }
   });
+
+  return withSetCookie(response, resolvedAuth.context.setCookieHeader);
 }
 
 export const GET: APIRoute = async ({ request, params }) => {

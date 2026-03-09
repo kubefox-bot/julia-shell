@@ -1,8 +1,13 @@
-import fs from 'node:fs/promises'
+import fs, { access } from 'node:fs/promises'
 import path from 'node:path'
-import { access } from 'node:fs/promises'
+import { readRuntimeEnv } from '../../../core/env'
 import type { HostPlatform } from '../../../entities/widget/model/types'
-import { DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL, MOCK_GEMINI_MODEL, SUPPORTED_AUDIO_EXTENSIONS } from './constants'
+import {
+  DEFAULT_GEMINI_MODEL,
+  FALLBACK_GEMINI_MODEL,
+  MOCK_GEMINI_MODEL,
+  SUPPORTED_AUDIO_EXTENSIONS,
+} from './constants'
 import type { BrowserEntry, ResolvedSelection } from './types'
 
 export function toSseEvent(event: string, payload: Record<string, unknown>) {
@@ -24,9 +29,8 @@ export function escapeConcatPath(filePath: string) {
 
 export function normalizePath(inputPath: string) {
   const cleaned = inputPath.trim()
-  const platformNative = process.platform === 'win32'
-    ? cleaned.replace(/\//g, '\\')
-    : cleaned.replace(/\\/g, '/')
+  const platformNative =
+    process.platform === 'win32' ? cleaned.replace(/\//g, '\\') : cleaned.replace(/\\/g, '/')
 
   return path.resolve(platformNative)
 }
@@ -48,19 +52,21 @@ export function toTranscriptPath(filePath: string) {
 
 export function buildGeminiModelCandidates(primary: string) {
   const normalizedPrimary = primary.trim() || DEFAULT_GEMINI_MODEL
-  const candidates = normalizedPrimary === MOCK_GEMINI_MODEL
-    ? [MOCK_GEMINI_MODEL]
-    : [normalizedPrimary, DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL]
+  const candidates =
+    normalizedPrimary === MOCK_GEMINI_MODEL
+      ? [MOCK_GEMINI_MODEL]
+      : [normalizedPrimary, DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL]
 
   return [...new Set(candidates)]
 }
 
 export function resolveConfiguredModel(storedModel?: string | null) {
+  const runtimeEnv = readRuntimeEnv()
   const fromDb = storedModel?.trim()
-  const fromEnv = process.env.GEMINI_MODEL?.trim()
+  const fromEnv = runtimeEnv.geminiModel
   const value = fromDb || fromEnv || DEFAULT_GEMINI_MODEL
 
-  if (value === MOCK_GEMINI_MODEL && !import.meta.env.DEV) {
+  if (value === MOCK_GEMINI_MODEL && !runtimeEnv.isDevelopment) {
     return DEFAULT_GEMINI_MODEL
   }
 
@@ -68,14 +74,15 @@ export function resolveConfiguredModel(storedModel?: string | null) {
 }
 
 export function buildAvailableModels(storedModel?: string | null) {
+  const runtimeEnv = readRuntimeEnv()
   const models = [
     storedModel?.trim() ?? '',
-    process.env.GEMINI_MODEL?.trim() ?? '',
+    runtimeEnv.geminiModel ?? '',
     DEFAULT_GEMINI_MODEL,
-    FALLBACK_GEMINI_MODEL
+    FALLBACK_GEMINI_MODEL,
   ]
 
-  if (import.meta.env.DEV) {
+  if (runtimeEnv.isDevelopment) {
     models.push(MOCK_GEMINI_MODEL)
   }
 
@@ -128,7 +135,11 @@ export async function findBinary(searchRoot: string, fileName: string): Promise<
   return null
 }
 
-export async function resolveSelection(folderPath: string, filePath: string, filePaths: string[]): Promise<ResolvedSelection> {
+export async function resolveSelection(
+  folderPath: string,
+  filePath: string,
+  filePaths: string[]
+): Promise<ResolvedSelection> {
   const normalizedPaths = filePaths
     .filter((value): value is string => typeof value === 'string')
     .map((value) => value.trim())
@@ -160,7 +171,7 @@ export async function resolveSelection(folderPath: string, filePath: string, fil
     return {
       filePaths: [firstAudio],
       canonicalSourceFile: firstAudio,
-      resolvedFolderPath: resolvedFolder
+      resolvedFolderPath: resolvedFolder,
     }
   }
 
@@ -196,7 +207,7 @@ export async function resolveSelection(folderPath: string, filePath: string, fil
   return {
     filePaths: validatedPaths,
     canonicalSourceFile: validatedPaths[0],
-    resolvedFolderPath
+    resolvedFolderPath,
   }
 }
 
@@ -205,7 +216,7 @@ export async function resolveDefaultBrowsePath() {
     path.join(process.env.USERPROFILE ?? process.env.HOME ?? process.cwd(), 'OneDrive'),
     path.join(process.env.USERPROFILE ?? process.env.HOME ?? process.cwd(), 'Desktop'),
     process.env.USERPROFILE ?? process.env.HOME ?? process.cwd(),
-    process.cwd()
+    process.cwd(),
   ].filter(Boolean) as string[]
 
   for (const candidate of candidates) {
@@ -233,11 +244,14 @@ export async function listPathEntries(rawPath: string) {
 
   const dirEntries = await fs.readdir(targetPath, { withFileTypes: true })
   const entries = dirEntries
-    .map((entry) => ({
-      name: entry.name,
-      path: path.join(targetPath, entry.name),
-      type: entry.isDirectory() ? 'dir' : 'file'
-    } as BrowserEntry))
+    .map(
+      (entry) =>
+        ({
+          name: entry.name,
+          path: path.join(targetPath, entry.name),
+          type: entry.isDirectory() ? 'dir' : 'file',
+        }) as BrowserEntry
+    )
     .sort((a, b) => {
       if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
       return a.name.localeCompare(b.name, 'ru')
@@ -246,11 +260,15 @@ export async function listPathEntries(rawPath: string) {
   return {
     path: targetPath,
     parentPath: path.dirname(targetPath),
-    entries
+    entries,
   }
 }
 
-export async function resolveTranscriptPath(input: { sourceFile?: string; txtPath?: string; folderPath?: string }) {
+export async function resolveTranscriptPath(input: {
+  sourceFile?: string
+  txtPath?: string
+  folderPath?: string
+}) {
   const sourceFile = typeof input.sourceFile === 'string' ? input.sourceFile.trim() : ''
   const txtPathFromBody = typeof input.txtPath === 'string' ? input.txtPath.trim() : ''
   const folderPath = typeof input.folderPath === 'string' ? input.folderPath.trim() : ''
