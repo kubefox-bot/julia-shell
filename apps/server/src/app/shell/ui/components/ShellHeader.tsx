@@ -31,35 +31,45 @@ export function ShellHeader() {
         <h1>{greeting}</h1>
       </div>
       <div className={styles.headerAside}>
-        <PassportStatusBadge />
-        <div className={styles.headerClock}>
-          <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
-          <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>
-        </div>
-        <div className={styles.headerActions}>
-          <IconButton type="button" onClick={openSettings} title={t('settings')}>
-            ⚙️
-          </IconButton>
-          <IconButton type="button" onClick={() => void toggleLocale()} title={localeToggleTitle}>
-            {activeLocale === 'ru' ? '🇷🇺' : '🇺🇸'}
-          </IconButton>
-          <IconButton type="button" onClick={() => void toggleTheme()} title={themeToggleTitle}>
-            {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
-          </IconButton>
-          {!isEditMode ? (
-            <IconButton type="button" onClick={startEdit} title={t('editGrid')}>
-              ✎
-            </IconButton>
-          ) : (
-            <>
-              <Button type="button" variant="secondary" onClick={cancelEdit} disabled={isSaving}>
-                {t('cancel')}
-              </Button>
-              <Button type="button" onClick={() => void saveLayout()} disabled={isSaving || !hasUnsavedChanges}>
-                {isSaving ? t('saving') : t('save')}
-              </Button>
-            </>
-          )}
+        <div className={styles.headerMetaZone}>
+          <div className={styles.headerMetaItem}>
+            <PassportStatusBadge />
+          </div>
+          <div className={styles.headerMetaItem}>
+            <div className={styles.headerClock}>
+              <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
+              <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>
+            </div>
+          </div>
+          <div className={styles.headerMetaItem}>
+            <div className={styles.headerActionsPanel}>
+              <div className={styles.headerActions}>
+                <IconButton type="button" onClick={openSettings} title={t('settings')}>
+                  ⚙️
+                </IconButton>
+                <IconButton type="button" onClick={() => void toggleLocale()} title={localeToggleTitle}>
+                  {activeLocale === 'ru' ? '🇷🇺' : '🇺🇸'}
+                </IconButton>
+                <IconButton type="button" onClick={() => void toggleTheme()} title={themeToggleTitle}>
+                  {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
+                </IconButton>
+                {!isEditMode ? (
+                  <IconButton type="button" onClick={startEdit} title={t('editGrid')}>
+                    ✎
+                  </IconButton>
+                ) : (
+                  <>
+                    <Button type="button" variant="secondary" onClick={cancelEdit} disabled={isSaving}>
+                      {t('cancel')}
+                    </Button>
+                    <Button type="button" onClick={() => void saveLayout()} disabled={isSaving || !hasUnsavedChanges}>
+                      {isSaving ? t('saving') : t('save')}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
