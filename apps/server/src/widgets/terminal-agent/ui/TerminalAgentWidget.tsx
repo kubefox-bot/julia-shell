@@ -4,6 +4,8 @@ import { Button } from '@shared/ui/Button'
 import { IconCircle } from '@shared/ui/IconCircle'
 import { ModalSurface } from '@shared/ui/ModalSurface'
 import { OptionSelect } from '@shared/ui/OptionSelect'
+import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
+import { terminalAgentManifest } from '../manifest'
 import styles from './TerminalAgentWidget.module.scss'
 
 type Provider = 'codex' | 'gemini'
@@ -166,6 +168,11 @@ const dictionary = {
   },
 } as const
 
+const WIDGET_META = {
+  id: terminalAgentManifest.id,
+  version: terminalAgentManifest.version,
+} as const
+
 export function TerminalAgentWidget(props: WidgetRenderProps) {
   const t = dictionary[props.locale]
   const [settings, setSettings] = useState<SettingsPayload | null>(null)
@@ -184,7 +191,9 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
   const activeProvider: Provider = settings?.activeProvider ?? 'codex'
 
   const loadSettings = useCallback(async () => {
-    const response = await fetch('/api/widget/com.yulia.terminal-agent/settings')
+    const response = await fetchWithRequestHeaders('/api/widget/com.yulia.terminal-agent/settings', undefined, {
+      widget: WIDGET_META,
+    })
     const data = await response.json() as SettingsPayload
     if (!response.ok) {
       throw new Error(toText((data as Record<string, unknown>).error) || 'Failed to load settings.')
@@ -194,7 +203,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
   }, [])
 
   const loadDialogState = useCallback(async (provider: Provider) => {
-    const response = await fetch(`/api/widget/com.yulia.terminal-agent/dialog-state?provider=${encodeURIComponent(provider)}`)
+    const response = await fetchWithRequestHeaders(
+      `/api/widget/com.yulia.terminal-agent/dialog-state?provider=${encodeURIComponent(provider)}`,
+      undefined,
+      { widget: WIDGET_META }
+    )
     const data = await response.json() as DialogStatePayload
     if (!response.ok) {
       throw new Error(toText((data as Record<string, unknown>).error) || 'Failed to load dialog state.')
@@ -245,11 +258,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
 
     setError(null)
 
-    const response = await fetch('/api/widget/com.yulia.terminal-agent/settings', {
+    const response = await fetchWithRequestHeaders('/api/widget/com.yulia.terminal-agent/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
-    })
+    }, { widget: WIDGET_META })
     const data = await response.json() as SettingsPayload
     if (!response.ok) {
       throw new Error(toText((data as Record<string, unknown>).error) || 'Failed to save settings.')
@@ -263,11 +276,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     setError(null)
     setResumeFailed(false)
 
-    const response = await fetch('/api/widget/com.yulia.terminal-agent/dialog/new', {
+    const response = await fetchWithRequestHeaders('/api/widget/com.yulia.terminal-agent/dialog/new', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider: activeProvider }),
-    })
+    }, { widget: WIDGET_META })
 
     const data = await response.json() as DialogStatePayload
     if (!response.ok) {
@@ -296,11 +309,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     setMessages((prev) => [...prev, { id: userMessageId, role: 'user', text: message }, { id: assistantMessageId, role: 'assistant', text: '' }])
 
     try {
-      const response = await fetch('/api/widget/com.yulia.terminal-agent/message-stream', {
+      const response = await fetchWithRequestHeaders('/api/widget/com.yulia.terminal-agent/message-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider: settings.activeProvider, message }),
-      })
+      }, { widget: WIDGET_META })
 
       if (!response.ok || !response.body) {
         const payload = await response.json().catch(() => null) as Record<string, unknown> | null

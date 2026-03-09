@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
+import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
+import { weatherManifest } from '../manifest'
 import styles from './WeatherWidget.module.scss';
 
 type ForecastDay = {
@@ -52,9 +54,14 @@ async function loadForecast(refresh = false) {
     ? '/api/widget/com.yulia.weather/refresh'
     : '/api/widget/com.yulia.weather/forecast';
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithRequestHeaders(endpoint, {
     method: refresh ? 'POST' : 'GET'
-  });
+  }, {
+    widget: {
+      id: weatherManifest.id,
+      version: weatherManifest.version,
+    },
+  })
 
   const data = await response.json();
   if (!response.ok) {
