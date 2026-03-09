@@ -109,7 +109,7 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   const showBootSkeleton = !initialShellSettings && (loading || !isBootDelayComplete)
 
   return (
-    <div className={styles.shellRoot} data-theme={theme}>
+    <div id="shell-root" className={styles.shellRoot} data-theme={theme}>
       <ShellHeaderActions initialLocale={initialShellSettings?.layoutSettings.locale ?? 'ru'} />
       {!showBootSkeleton && error ? (
         <p className={styles.error}>

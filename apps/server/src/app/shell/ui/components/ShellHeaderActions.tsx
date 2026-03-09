@@ -62,7 +62,7 @@ export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
 
   return (
     <>
-      <div className={styles.headerAside}>
+      <div id="shell-header-actions" className={styles.headerAside}>
         <div className={styles.headerMetaZone}>
           <div className={styles.headerMetaItem}>
             <div className={styles.headerActionsPanel}>

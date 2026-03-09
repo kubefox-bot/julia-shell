@@ -15,6 +15,14 @@ import { buildLocaleCookieHeader, parseLocaleCookie } from '../shared/lib/locale
 import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from '../app/shell/model/constants';
 import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
+function resolveShellTheme(theme: 'auto' | 'day' | 'night', hour: number): ResolvedShellTheme {
+  if (theme === 'day' || theme === 'night') {
+    return theme;
+  }
+
+  return hour >= AUTO_THEME_DAY_START_HOUR && hour < AUTO_THEME_NIGHT_START_HOUR ? 'day' : 'night';
+}
+
 const title = 'Julia Shell';
 const passportContext = await resolvePassportRequestContext(Astro.request, {
   allowBootstrapFromOnlineAgent: false
@@ -45,14 +53,7 @@ const initialQuote = getDailyQuote(initialDisplayLocale, initialNowLocale);
 const initialGreeting = getShellText(initialDisplayLocale, 'greeting');
 const initialSilhouetteLayout = buildShellSkeletonLayout(initialShellSettings.layout, initialShellSettings.modules, []);
 const currentHour = new Date().getHours();
-const resolvedShellTheme: ResolvedShellTheme =
-  initialShellSettings.layoutSettings.theme === 'day'
-    ? 'day'
-    : initialShellSettings.layoutSettings.theme === 'night'
-      ? 'night'
-      : currentHour >= AUTO_THEME_DAY_START_HOUR && currentHour < AUTO_THEME_NIGHT_START_HOUR
-        ? 'day'
-        : 'night';
+const resolvedShellTheme = resolveShellTheme(initialShellSettings.layoutSettings.theme, currentHour);
 
 ---
 
@@ -79,47 +80,25 @@ const resolvedShellTheme: ResolvedShellTheme =
   </div>
 </Layout>
 
-<script is:inline>
-  (() => {
-    const overlay = document.getElementById('shell-boot-overlay');
-    if (!overlay) return;
-    const stage = overlay.closest('.shellBootStage');
-
-    const syncBootHeaderHeight = () => {
-      if (!stage) return;
-      const header = document.getElementById('shell-header');
-      if (!header) return;
-      const height = Math.ceil(header.getBoundingClientRect().height);
-      if (height > 0) {
-        stage.style.setProperty('--shell-boot-header-height', `${height}px`);
-      }
-    };
-
-    syncBootHeaderHeight();
-    window.requestAnimationFrame(() => {
-      syncBootHeaderHeight();
-      window.requestAnimationFrame(syncBootHeaderHeight);
-    });
-    window.addEventListener('resize', syncBootHeaderHeight);
-
-    window.addEventListener(
-      'yulia-shell-hydrated',
-      () => {
-        window.removeEventListener('resize', syncBootHeaderHeight);
-        overlay.classList.add('shellBootOverlayHidden');
-        window.setTimeout(() => {
-          overlay.remove();
-        }, 260);
-      },
-      { once: true }
-    );
-  })();
+<script>
+  import { setupShellBootOverlay } from '../app/shell/ui/lib/boot-overlay';
+  setupShellBootOverlay();
 </script>
 
 <style>
   .shellBootStage {
     position: relative;
     --shell-boot-header-height: 5.6rem;
+    --widget-card-height-desktop: 435px;
+    --radius: 24px;
+    --card-bg: #ffffff;
+    --card-shadow: 0 14px 36px rgb(148 163 184 / 22%);
+  }
+
+  html[data-shell-theme='night'] .shellBootStage,
+  body[data-shell-theme='night'] .shellBootStage {
+    --card-bg: #101b2d;
+    --card-shadow: 0 18px 40px rgb(2 6 23 / 45%);
   }
 
   .shellBootOverlay {

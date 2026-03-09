@@ -176,6 +176,9 @@ Shell features:
   - keep the highlight/pulse animation looping,
   - pulse must not move cards vertically or scale them,
   - keep silhouette geometry aligned with real widget layout and widget sizes from DB/registry.
+  - boot overlay runtime logic is centralized in `apps/server/src/app/shell/ui/lib/boot-overlay.ts`.
+  - boot header spacer must be measured as `JuliaHeader + ShellHeaderActions` (no extra gap math duplication).
+  - boot stage must define skeleton CSS vars (`--widget-card-height-desktop`, `--radius`, `--card-bg`, `--card-shadow`) so SSR silhouettes match live cards.
 - edit-mode drag placeholder must reuse the same silhouette visual language as boot loading state.
 - desktop widget height rule:
   - every widget card must use fixed `min-height = max-height = height = 435px` on desktop,
