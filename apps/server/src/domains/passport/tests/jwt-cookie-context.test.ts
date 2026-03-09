@@ -93,6 +93,29 @@ describe('passport jwt/cookie/context helpers', () => {
     expect(resolved.context?.setCookieHeader).toContain('Secure');
   });
 
+  it('bootstraps context from online agent token when request token is invalid', async () => {
+    resolvePassportJwtSecretMock.mockResolvedValue('secret');
+    getOnlineAgentSessionMock.mockReturnValue({
+      agentId: 'agent-online',
+      sessionId: 'session-1',
+      hostname: 'host',
+      accessJwt: 'runtime-token'
+    });
+
+    const request = new Request('https://example.com/test', {
+      headers: {
+        cookie: 'julia_access_token=broken-token'
+      }
+    });
+    const resolved = await resolvePassportRequestContext(request, {
+      allowBootstrapFromOnlineAgent: true
+    });
+
+    expect(resolved.context?.agentId).toBe('agent-online');
+    expect(resolved.context?.accessJwt).toBe('runtime-token');
+    expect(resolved.context?.setCookieHeader).toContain('julia_access_token=runtime-token');
+  });
+
   it('builds cookie policy for non-https without Secure', () => {
     const request = new Request('http://localhost/test');
     const cookie = buildPassportAccessCookie({
