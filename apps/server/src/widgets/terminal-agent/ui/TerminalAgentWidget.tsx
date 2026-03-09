@@ -187,8 +187,15 @@ const dictionary = {
     geminiModel: 'Gemini model',
     shellFallback: 'Разрешить shell fallback',
     shellOverride: 'Shell override',
-    resumeRef: 'Диалог',
+    resumeRef: 'Dialog ID',
     status: 'Статус',
+    statusIdle: 'Ожидание',
+    statusRunning: 'Выполняется',
+    statusResuming: 'Восстановление',
+    statusThinking: 'Думаю...',
+    statusToolCall: 'Выполнение инструмента',
+    statusDone: 'Готово',
+    statusError: 'Ошибка',
     settingsTitle: 'Настройки агента',
     model: 'модель',
     resumeFailed: 'Не удалось восстановить continuity. Нажми "Новый диалог".',
@@ -220,8 +227,15 @@ const dictionary = {
     geminiModel: 'Gemini model',
     shellFallback: 'Allow shell fallback',
     shellOverride: 'Shell override',
-    resumeRef: 'Dialog',
+    resumeRef: 'Dialog ID',
     status: 'Status',
+    statusIdle: 'Idle',
+    statusRunning: 'Running',
+    statusResuming: 'Resuming',
+    statusThinking: 'Thinking...',
+    statusToolCall: 'Tool call',
+    statusDone: 'Done',
+    statusError: 'Error',
     settingsTitle: 'Agent settings',
     model: 'model',
     resumeFailed: 'Continuity restore failed. Start a new dialog.',
@@ -276,6 +290,21 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
   const activeModel = settings
     ? (activeProvider === 'codex' ? settings.codexModel : settings.geminiModel)
     : ''
+  const localizedStatus = statusLine === 'idle'
+    ? t.statusIdle
+    : statusLine === 'running'
+      ? t.statusRunning
+      : statusLine === 'resuming'
+        ? t.statusResuming
+        : statusLine === 'thinking'
+          ? t.statusThinking
+          : statusLine === 'tool_call'
+            ? t.statusToolCall
+            : statusLine === 'done'
+              ? t.statusDone
+              : statusLine === 'error'
+                ? t.statusError
+                : statusLine
 
   const loadSettings = useCallback(async () => {
     const response = await fetch('/api/widget/com.yulia.terminal-agent/settings')
@@ -607,8 +636,7 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     <div className={[styles.root, themeClass].join(' ')}>
       <div className={styles.toolbar}>
         <div className={styles.meta}>
-          <strong>{activeProvider === 'codex' ? 'Codex' : 'Gemini CLI'}</strong>
-          <span>{t.status}: {statusLine}</span>
+          <span>{t.status}: {localizedStatus}</span>
           <span>{t.resumeRef}: {dialogState?.providerSessionRef || '—'}</span>
         </div>
         <div className={styles.actions}>
@@ -620,9 +648,6 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
             <span className={styles.actionButtonIcon}><NewDialogGlyph /></span>
             <span>{t.newDialog}</span>
           </button>
-          <IconCircle type="button" theme={props.theme} title={t.settings} onClick={() => setSettingsOpen(true)}>
-            <AgentWrenchGlyph />
-          </IconCircle>
           <button
             type="button"
             className={[styles.actionButton, styles.actionButtonSecondary, actionThemeClass].join(' ').trim()}
@@ -631,6 +656,9 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
             <span className={styles.actionButtonIcon}><DialogsGlyph /></span>
             <span>{t.dialogs}</span>
           </button>
+          <IconCircle type="button" theme={props.theme} title={t.settings} onClick={() => setSettingsOpen(true)}>
+            <AgentWrenchGlyph />
+          </IconCircle>
         </div>
       </div>
 
