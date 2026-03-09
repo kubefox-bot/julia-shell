@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Button } from '../../../../shared/ui/Button';
 import { IconButton } from '../../../../shared/ui/IconButton';
 import { useShellClockViewModel, useShellI18n, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
-import { PassportStatusBadge } from '@passport/ui';
+import { ShellAgentStatusOverlay } from './ShellAgentStatusOverlay';
 import styles from '../ShellApp.module.scss';
 
 export function ShellHeader() {
@@ -19,59 +20,71 @@ export function ShellHeader() {
   const toggleTheme = useShellStore((state) => state.toggleTheme);
   const toggleLocale = useShellStore((state) => state.toggleLocale);
   const theme = useShellStore((state) => state.layoutSettings.theme);
+  const passportStatus = useShellStore((state) => state.passportStatus);
+  const [isAgentOverlayOpen, setIsAgentOverlayOpen] = useState(false);
 
   const themeToggleTitle =
     theme === 'auto' ? t('switchToDay') : theme === 'day' ? t('switchToNight') : t('switchToAutoTheme');
   const localeToggleTitle = activeLocale === 'ru' ? t('switchToEnglish') : t('switchToRussian');
+  const agentStatus = passportStatus?.status ?? 'disconnected';
+  const agentLampClass =
+    agentStatus === 'connected' || agentStatus === 'connected_dev'
+      ? styles.agentLampGreen
+      : agentStatus === 'unauthorized'
+        ? styles.agentLampYellow
+        : styles.agentLampRed;
 
   return (
-    <header className={styles.header}>
-      <div className={styles.headerIntro}>
-        <p className={styles.headerEyebrow}>{quote}</p>
-        <h1>{greeting}</h1>
-      </div>
-      <div className={styles.headerAside}>
-        <div className={styles.headerMetaZone}>
-          <div className={styles.headerMetaItem}>
-            <PassportStatusBadge />
-          </div>
-          <div className={styles.headerMetaItem}>
-            <div className={styles.headerClock}>
-              <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
-              <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>
+    <>
+      <header className={styles.header}>
+        <div className={styles.headerIntro}>
+          <p className={styles.headerEyebrow}>{quote}</p>
+          <h1>{greeting}</h1>
+        </div>
+        <div className={styles.headerAside}>
+          <div className={styles.headerMetaZone}>
+            <div className={styles.headerMetaItem}>
+              <div className={styles.headerClock}>
+                <span className={styles.headerTime} suppressHydrationWarning>{formattedTime}</span>
+                <span className={styles.headerDate} suppressHydrationWarning>{formattedDate}</span>
+              </div>
             </div>
-          </div>
-          <div className={styles.headerMetaItem}>
-            <div className={styles.headerActionsPanel}>
-              <div className={styles.headerActions}>
-                <IconButton type="button" onClick={openSettings} title={t('settings')}>
-                  ⚙️
-                </IconButton>
-                <IconButton type="button" onClick={() => void toggleLocale()} title={localeToggleTitle}>
-                  {activeLocale === 'ru' ? '🇷🇺' : '🇺🇸'}
-                </IconButton>
-                <IconButton type="button" onClick={() => void toggleTheme()} title={themeToggleTitle}>
-                  {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
-                </IconButton>
-                {!isEditMode ? (
-                  <IconButton type="button" onClick={startEdit} title={t('editGrid')}>
-                    ✎
+            <div className={styles.headerMetaItem}>
+              <div className={styles.headerActionsPanel}>
+                <div className={styles.headerActions}>
+                  <IconButton type="button" onClick={() => setIsAgentOverlayOpen(true)} title={t('openAgentStatus')}>
+                    <span className={`${styles.agentLamp} ${styles.agentActionLamp} ${agentLampClass}`} aria-hidden="true" />
                   </IconButton>
-                ) : (
-                  <>
-                    <Button type="button" variant="secondary" onClick={cancelEdit} disabled={isSaving}>
-                      {t('cancel')}
-                    </Button>
-                    <Button type="button" onClick={() => void saveLayout()} disabled={isSaving || !hasUnsavedChanges}>
-                      {isSaving ? t('saving') : t('save')}
-                    </Button>
-                  </>
-                )}
+                  <IconButton type="button" onClick={openSettings} title={t('settings')}>
+                    ⚙️
+                  </IconButton>
+                  <IconButton type="button" onClick={() => void toggleLocale()} title={localeToggleTitle}>
+                    {activeLocale === 'ru' ? '🇷🇺' : '🇺🇸'}
+                  </IconButton>
+                  <IconButton type="button" onClick={() => void toggleTheme()} title={themeToggleTitle}>
+                    {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
+                  </IconButton>
+                  {!isEditMode ? (
+                    <IconButton type="button" onClick={startEdit} title={t('editGrid')}>
+                      ✎
+                    </IconButton>
+                  ) : (
+                    <>
+                      <Button type="button" variant="secondary" onClick={cancelEdit} disabled={isSaving}>
+                        {t('cancel')}
+                      </Button>
+                      <Button type="button" onClick={() => void saveLayout()} disabled={isSaving || !hasUnsavedChanges}>
+                        {isSaving ? t('saving') : t('save')}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <ShellAgentStatusOverlay open={isAgentOverlayOpen} onClose={() => setIsAgentOverlayOpen(false)} />
+    </>
   );
 }
