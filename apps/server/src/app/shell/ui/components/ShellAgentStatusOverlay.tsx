@@ -1,4 +1,4 @@
-import { IconButton } from '../../../../shared/ui/IconButton';
+import { IconButton } from '@shared/ui/IconButton';
 import { useShellI18n } from '../../model/selectors';
 import { PassportStatusBadge } from '@passport/ui';
 import styles from '../ShellApp.module.scss';

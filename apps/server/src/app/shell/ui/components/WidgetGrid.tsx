@@ -9,7 +9,7 @@ import {
   type DragStartEvent
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
-import { getLocalizedHeader } from '../../../../shared/lib/locale';
+import { getLocalizedHeader } from '@shared/lib/locale';
 import { useShellRegistry } from '../../lib/registry';
 import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
 import { useShellStore } from '../../model/store';

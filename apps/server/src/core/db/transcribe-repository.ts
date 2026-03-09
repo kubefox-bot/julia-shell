@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { HostPlatform } from '../../entities/widget/model/types';
-import { nowIso } from '../../shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 import { openDb } from './shared';
 
 export type TranscribeJobStatus = 'queued' | 'processing' | 'completed' | 'failed';

@@ -8,8 +8,8 @@ import {
   updateTranscribeJobProgress,
 } from '../../../core/db/transcribe-repository';
 import { passportRuntime } from '@passport/server/runtime';
-import { jsonResponse } from '../../../shared/lib/http';
-import { moduleBus } from '../../../shared/lib/module-bus';
+import { jsonResponse } from '@shared/lib/http';
+import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
 import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';

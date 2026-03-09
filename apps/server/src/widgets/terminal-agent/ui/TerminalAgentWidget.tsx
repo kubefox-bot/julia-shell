@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { WidgetRenderProps } from '../../../entities/widget/model/types'
-import { Button } from '../../../shared/ui/Button'
-import { OptionSelect } from '../../../shared/ui/OptionSelect'
+import { Button } from '@shared/ui/Button'
+import { IconCircle } from '@shared/ui/IconCircle'
+import { ModalSurface } from '@shared/ui/ModalSurface'
+import { OptionSelect } from '@shared/ui/OptionSelect'
 import styles from './TerminalAgentWidget.module.scss'
 
 type Provider = 'codex' | 'gemini'
@@ -36,6 +38,46 @@ type MessageItem = {
 type ParsedSseChunk = {
   eventName: string
   payload: Record<string, unknown>
+}
+
+function AgentWrenchGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ transform: 'rotate(-18deg)' }}>
+      <circle cx="12" cy="12" r="2.8" fill="#F8FAFC" stroke="#64748B" />
+      <path
+        d="M12 4.85v1.65M12 17.5v1.65M19.15 12H17.5M6.5 12H4.85M17.15 6.85l-1.2 1.2M8.05 15.95l-1.2 1.2M17.15 17.15l-1.2-1.2M8.05 8.05l-1.2-1.2"
+        stroke="#94A3B8"
+      />
+      <path
+        d="M12 7.15a4.85 4.85 0 1 1 0 9.7 4.85 4.85 0 0 1 0-9.7Z"
+        fill="#E2E8F0"
+        stroke="#64748B"
+      />
+      <circle cx="12" cy="12" r="1.65" fill="#FFFFFF" stroke="#475569" />
+    </svg>
+  )
+}
+
+function NewDialogGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="7.2" fill="#EDE9FE" stroke="#8B5CF6" />
+      <path d="M12 8.4v7.2" stroke="#7C3AED" />
+      <path d="M8.4 12h7.2" stroke="#7C3AED" />
+    </svg>
+  )
+}
+
+function ModelGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="7.2" fill="#CCFBF1" stroke="#14B8A6" />
+      <path d="M7.25 13.35v-2.7" stroke="#0F766E" />
+      <path d="M10.5 15.7V8.3" stroke="#0F766E" />
+      <path d="M13.75 17.2V6.8" stroke="#0F766E" />
+      <path d="M17 14.6V9.4" stroke="#0F766E" />
+    </svg>
+  )
 }
 
 function toText(value: unknown) {
@@ -95,6 +137,8 @@ const dictionary = {
     shellOverride: 'Shell override',
     resumeRef: 'Continuity ref',
     status: 'Статус',
+    settingsTitle: 'Настройки агента',
+    model: 'модель',
     resumeFailed: 'Не удалось восстановить continuity. Нажми "Новый диалог".',
   },
   en: {
@@ -116,6 +160,8 @@ const dictionary = {
     shellOverride: 'Shell override',
     resumeRef: 'Continuity ref',
     status: 'Status',
+    settingsTitle: 'Agent settings',
+    model: 'model',
     resumeFailed: 'Continuity restore failed. Start a new dialog.',
   },
 } as const
@@ -133,6 +179,7 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
   const [resumeFailed, setResumeFailed] = useState(false)
 
   const themeClass = props.theme === 'night' ? styles.night : styles.day
+  const actionThemeClass = props.theme === 'night' ? styles.actionButtonNight : ''
 
   const activeProvider: Provider = settings?.activeProvider ?? 'codex'
 
@@ -342,8 +389,17 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
           <span>{t.resumeRef}: {dialogState?.providerSessionRef || '—'}</span>
         </div>
         <div className={styles.actions}>
-          <Button type="button" variant="secondary" onClick={() => setSettingsOpen(true)}>{t.settings}</Button>
-          <Button type="button" variant="ghost" onClick={() => void createNewDialog()}>{t.newDialog}</Button>
+          <IconCircle type="button" theme={props.theme} title={t.settings} onClick={() => setSettingsOpen(true)}>
+            <AgentWrenchGlyph />
+          </IconCircle>
+          <button
+            type="button"
+            className={[styles.actionButton, styles.actionButtonSecondary, actionThemeClass].join(' ').trim()}
+            onClick={() => void createNewDialog()}
+          >
+            <span className={styles.actionButtonIcon}><NewDialogGlyph /></span>
+            <span>{t.newDialog}</span>
+          </button>
         </div>
       </div>
 
@@ -372,14 +428,31 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
           rows={3}
           disabled={sending}
         />
-        <Button type="submit" disabled={sending || !input.trim()}>
-          {sending ? t.sending : t.send}
-        </Button>
+        <button
+          type="submit"
+          className={[styles.actionButton, styles.actionButtonPrimary, actionThemeClass].join(' ').trim()}
+          disabled={sending || !input.trim()}
+        >
+          <span className={styles.actionButtonIcon}><ModelGlyph /></span>
+          <span>{sending ? t.sending : t.send}</span>
+          <span className={styles.sendProviderTag}>{activeProvider === 'codex' ? 'Codex' : 'Gemini'} {t.model}</span>
+        </button>
       </form>
 
       {settingsOpen && settings ? (
-        <div className={styles.settingsOverlay} role="dialog" aria-modal="true">
-          <div className={styles.settingsPanel}>
+        <ModalSurface
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          ariaLabel={t.settings}
+          theme={props.theme}
+          panelClassName={styles.settingsPanel}
+        >
+            <div className={styles.settingsHeader}>
+              <h4>{t.settingsTitle}</h4>
+              <IconCircle type="button" theme={props.theme} title={t.close} onClick={() => setSettingsOpen(false)}>
+                ✕
+              </IconCircle>
+            </div>
             <div className={styles.field}>
               {t.provider}
               <OptionSelect
@@ -394,48 +467,55 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
               />
             </div>
 
-            <label>
-              {t.codexKey}
-              <input
-                value={settings.codexApiKey}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, codexApiKey: event.target.value } : prev)}
-              />
-            </label>
-            <label>
-              {t.geminiKey}
-              <input
-                value={settings.geminiApiKey}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiApiKey: event.target.value } : prev)}
-              />
-            </label>
-            <label>
-              {t.codexCommand}
-              <input
-                value={settings.codexCommand}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, codexCommand: event.target.value } : prev)}
-              />
-            </label>
-            <label>
-              {t.codexArgs}
-              <input
-                value={settings.codexArgs.join(' ')}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, codexArgs: parseArgsInput(event.target.value) } : prev)}
-              />
-            </label>
-            <label>
-              {t.geminiCommand}
-              <input
-                value={settings.geminiCommand}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiCommand: event.target.value } : prev)}
-              />
-            </label>
-            <label>
-              {t.geminiArgs}
-              <input
-                value={settings.geminiArgs.join(' ')}
-                onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiArgs: parseArgsInput(event.target.value) } : prev)}
-              />
-            </label>
+            {settings.activeProvider === 'codex' ? (
+              <>
+                <label>
+                  {t.codexKey}
+                  <input
+                    value={settings.codexApiKey}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, codexApiKey: event.target.value } : prev)}
+                  />
+                </label>
+                <label>
+                  {t.codexCommand}
+                  <input
+                    value={settings.codexCommand}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, codexCommand: event.target.value } : prev)}
+                  />
+                </label>
+                <label>
+                  {t.codexArgs}
+                  <input
+                    value={settings.codexArgs.join(' ')}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, codexArgs: parseArgsInput(event.target.value) } : prev)}
+                  />
+                </label>
+              </>
+            ) : (
+              <>
+                <label>
+                  {t.geminiKey}
+                  <input
+                    value={settings.geminiApiKey}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiApiKey: event.target.value } : prev)}
+                  />
+                </label>
+                <label>
+                  {t.geminiCommand}
+                  <input
+                    value={settings.geminiCommand}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiCommand: event.target.value } : prev)}
+                  />
+                </label>
+                <label>
+                  {t.geminiArgs}
+                  <input
+                    value={settings.geminiArgs.join(' ')}
+                    onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiArgs: parseArgsInput(event.target.value) } : prev)}
+                  />
+                </label>
+              </>
+            )}
             <label className={styles.checkboxRow}>
               <input
                 type="checkbox"
@@ -456,8 +536,7 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
               <Button type="button" variant="ghost" onClick={() => setSettingsOpen(false)}>{t.close}</Button>
               <Button type="button" onClick={() => void saveSettings()}>{t.save}</Button>
             </div>
-          </div>
-        </div>
+        </ModalSurface>
       ) : null}
     </div>
   )

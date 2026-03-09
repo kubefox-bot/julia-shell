@@ -1,13 +1,15 @@
-import { getLocalizedHeader } from '../../../../shared/lib/locale';
-import { Button } from '../../../../shared/ui/Button';
-import { IconButton } from '../../../../shared/ui/IconButton';
-import { useShellI18n, useShellSettingsViewModel } from '../../model/selectors';
+import { getLocalizedHeader } from '@shared/lib/locale';
+import { Button } from '@shared/ui/Button';
+import { IconButton } from '@shared/ui/IconButton';
+import { ModalSurface } from '@shared/ui/ModalSurface';
+import { useResolvedShellTheme, useShellI18n, useShellSettingsViewModel } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import styles from '../ShellApp.module.scss';
 
 export function ShellSettingsOverlay() {
   const { t } = useShellI18n();
   const { isSettingsOpen, isSaving, modules, settingsDraft, activeLocale } = useShellSettingsViewModel();
+  const resolvedTheme = useResolvedShellTheme();
   const closeSettings = useShellStore((state) => state.closeSettings);
   const updateSettingsDraftColumns = useShellStore((state) => state.updateSettingsDraftColumns);
   const updateSettingsDraftLocale = useShellStore((state) => state.updateSettingsDraftLocale);
@@ -20,9 +22,13 @@ export function ShellSettingsOverlay() {
   }
 
   return (
-    <div className={styles.settingsOverlay} role="dialog" aria-modal="true" aria-label={t('settingsOverlayLabel')}>
-      <button type="button" className={styles.settingsScrim} onClick={closeSettings} aria-label={t('closeSettings')} />
-      <section className={styles.settingsPanel}>
+    <ModalSurface
+      open={isSettingsOpen}
+      onClose={closeSettings}
+      ariaLabel={t('settingsOverlayLabel')}
+      theme={resolvedTheme}
+      panelClassName={styles.settingsPanel}
+    >
         <div className={styles.settingsHero}>
           <div>
             <p className={styles.settingsEyebrow}>{t('settings')}</p>
@@ -119,7 +125,6 @@ export function ShellSettingsOverlay() {
             {isSaving ? t('saving') : t('save')}
           </Button>
         </div>
-      </section>
-    </div>
+    </ModalSurface>
   );
 }

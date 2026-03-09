@@ -12,7 +12,7 @@ import {
   updateTranscribeJobProgress,
 } from '../../../core/db/transcribe-repository'
 import { readRuntimeEnv } from '../../../core/env'
-import { jsonResponse } from '../../../shared/lib/http'
+import { jsonResponse } from '@shared/lib/http'
 import { isTranscribeDevBypassMode } from './agent-mode'
 import { handleAgentTranscribeStream } from './agent-transcribe-stream'
 import {

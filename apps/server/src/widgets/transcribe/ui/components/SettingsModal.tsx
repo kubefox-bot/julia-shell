@@ -1,5 +1,6 @@
-import { IconCircle } from '../../../../shared/ui/IconCircle'
-import { OptionSelect } from '../../../../shared/ui/OptionSelect'
+import { IconCircle } from '@shared/ui/IconCircle'
+import { ModalSurface } from '@shared/ui/ModalSurface'
+import { OptionSelect } from '@shared/ui/OptionSelect'
 import { getPlatformLabel, getSecretSourceLabel, getTranscribeText } from '../../i18n'
 import { useTranscribeStore } from '../model/store'
 import styles from '../TranscribeWidget.module.scss'
@@ -30,8 +31,17 @@ export function SettingsModal({ locale, platform, theme, onSave }: SettingsModal
   }))
 
   return (
-    <div className={styles.settingsModal}>
-      <div className={styles.settingsPanel}>
+    <ModalSurface
+      open
+      onClose={() => {
+        if (!settingsSaving) {
+          setSettingsOpen(false)
+        }
+      }}
+      ariaLabel={getTranscribeText(locale, 'helperSettingsTitle')}
+      theme={theme}
+      panelClassName={styles.settingsPanel}
+    >
         <div className={styles.settingsHeader}>
           <h4>{getTranscribeText(locale, 'helperSettingsTitle')}</h4>
           <IconCircle
@@ -87,7 +97,6 @@ export function SettingsModal({ locale, platform, theme, onSave }: SettingsModal
             {getTranscribeText(locale, 'buttonSaveSettings')}
           </ActionButton>
         </div>
-      </div>
-    </div>
+    </ModalSurface>
   )
 }

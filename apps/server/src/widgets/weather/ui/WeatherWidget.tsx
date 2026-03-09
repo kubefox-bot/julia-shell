@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
-import { Button } from '../../../shared/ui/Button';
+import { Button } from '@shared/ui/Button';
 import styles from './WeatherWidget.module.scss';
 
 type ForecastDay = {

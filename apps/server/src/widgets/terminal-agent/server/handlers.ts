@@ -1,6 +1,6 @@
 import { passportRuntime } from '@passport/server/runtime'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
-import { jsonResponse, readJsonBody } from '../../../shared/lib/http'
+import { jsonResponse, readJsonBody } from '@shared/lib/http'
 import { WIDGET_ID } from './constants'
 import { handleTerminalAgentMessageStream } from './message-stream'
 import {

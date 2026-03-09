@@ -1,5 +1,5 @@
 import { agentSessionsTable } from '@/core/db/passport-schema';
-import { nowIso } from '@/shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 import { PASSPORT_AGENT_STATUS_DISCONNECTED } from '@passport/server/config/consts';
 import type { UpsertAgentSessionInput } from '@passport/server/types';
 import { getPassportDb } from '@passport/server/repository/shared';

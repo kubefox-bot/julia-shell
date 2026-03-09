@@ -10,13 +10,13 @@ import {
   PASSPORT_HEARTBEAT_TIMEOUT_MIN_MS,
   PASSPORT_PROTOCOL_PROTO_PATH_ENV_KEY,
   TRANSCRIBE_AGENT_MOCK_MODE_ENV_KEY,
-} from '../../shared/config/passport-runtime'
+} from '@shared/config/passport-runtime'
 import {
   SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS as SHELL_STATUS_POLL_INTERVAL_DEFAULT,
   SHELL_STATUS_POLL_INTERVAL_ENV_KEY as SHELL_STATUS_POLL_INTERVAL_ENV,
   SHELL_STATUS_POLL_INTERVAL_MAX_MS as SHELL_STATUS_POLL_INTERVAL_MAX,
   SHELL_STATUS_POLL_INTERVAL_MIN_MS as SHELL_STATUS_POLL_INTERVAL_MIN,
-} from '../../shared/config/shell-status-polling'
+} from '@shared/config/shell-status-polling'
 
 export const ENV_KEYS = {
   shellStatusPollIntervalMs: SHELL_STATUS_POLL_INTERVAL_ENV,

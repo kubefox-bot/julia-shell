@@ -20,6 +20,8 @@
   justify-content: space-between;
   gap: 0.6rem;
   align-items: flex-start;
+  position: relative;
+  z-index: 2;
 }
 
 .meta {
@@ -33,6 +35,12 @@
 .actions {
   display: inline-flex;
   gap: 0.45rem;
+  align-items: center;
+  padding-top: 1px;
+}
+
+.actions .actionButton:hover:not(:disabled) {
+  transform: translateY(0);
 }
 
 .error,
@@ -130,29 +138,29 @@
   color: #e2e8f0;
 }
 
-.settingsOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(15 23 42 / 0.28);
-  border-radius: 18px;
+.settingsPanel {
+  width: min(560px, calc(100vw - 2rem));
+  max-height: min(88vh, 760px);
 }
 
-.settingsPanel {
-  width: min(92%, 560px);
-  max-height: min(90%, 620px);
-  overflow: auto;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: var(--card-bg, #fff);
-  box-shadow: 0 18px 42px rgb(15 23 42 / 18%);
-  padding: 0.85rem;
+.settingsPanel[data-modal-theme='night'] input {
+  background: #111827;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.settingsHeader {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settingsHeader h4 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .settingsPanel label,
@@ -172,12 +180,6 @@
   color: inherit;
 }
 
-.night .settingsPanel input {
-  background: #111827;
-  border-color: #334155;
-  color: #e2e8f0;
-}
-
 .checkboxRow {
   flex-direction: row !important;
   align-items: center;
@@ -188,4 +190,115 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.45rem;
+}
+
+.actionButton {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0.55rem 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 600;
+  color: #0f172a;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.actionButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgb(15 23 42 / 10%);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButtonPrimary {
+  background: linear-gradient(135deg, #ecfeff, #ccfbf1);
+  border-color: rgb(20 184 166 / 26%);
+}
+
+.actionButtonPrimary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgb(240 253 250 / 98%), rgb(236 254 255 / 94%));
+  border-color: rgb(20 184 166 / 35%);
+}
+
+.actionButtonSecondary {
+  background: linear-gradient(135deg, var(--accent-lavender), #ede9fe);
+  border-color: rgb(167 139 250 / 32%);
+  color: var(--button-secondary-fg, #5b21b6);
+}
+
+.actionButtonSecondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border-color: rgb(139 92 246 / 38%);
+}
+
+.actionButtonNight {
+  color: #e2e8f0;
+}
+
+.actionButtonNight.actionButtonPrimary {
+  background: linear-gradient(135deg, rgb(15 118 110 / 28%), rgb(8 145 178 / 18%));
+  border-color: rgb(45 212 191 / 22%);
+}
+
+.actionButtonNight.actionButtonPrimary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgb(15 118 110 / 36%), rgb(8 145 178 / 24%));
+  border-color: rgb(45 212 191 / 32%);
+}
+
+.actionButtonNight.actionButtonSecondary {
+  background: linear-gradient(135deg, rgb(79 70 229 / 22%), rgb(49 46 129 / 40%));
+  border-color: rgb(129 140 248 / 34%);
+  color: #ddd6fe;
+}
+
+.actionButtonNight.actionButtonSecondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgb(99 102 241 / 30%), rgb(67 56 202 / 44%));
+  border-color: rgb(165 180 252 / 42%);
+}
+
+.actionButtonIcon {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 72%);
+  color: #0f172a;
+}
+
+.actionButtonIcon :global(svg) {
+  width: 1rem;
+  height: 1rem;
+}
+
+.actionButtonSecondary .actionButtonIcon {
+  background: rgb(255 255 255 / 64%);
+}
+
+.actionButtonNight .actionButtonIcon {
+  background: rgb(15 23 42 / 48%);
+  color: #e2e8f0;
+}
+
+.actionButtonNight.actionButtonSecondary .actionButtonIcon {
+  background: rgb(30 41 59 / 62%);
+}
+
+.sendProviderTag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  opacity: 0.88;
 }

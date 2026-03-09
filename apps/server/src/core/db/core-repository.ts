@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import type { LayoutItem, LayoutSettings, ShellLocale, ShellTheme } from '../../entities/widget/model/types';
-import { nowIso } from '../../shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 import { openCoreDatabase } from './core-drizzle';
 import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from './core-schema';
 import { openDb } from './shared';

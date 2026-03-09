@@ -1,4 +1,4 @@
-import { nowIso } from '../../shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 import { openDb } from './shared';
 
 export type WeatherCacheRow = {
