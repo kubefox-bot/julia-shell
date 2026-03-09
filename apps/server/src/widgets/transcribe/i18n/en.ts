@@ -27,6 +27,7 @@ export const transcribeEn = {
   statusResultSaved: 'Saved to txt: {file}',
   statusResultSaveFailed: 'Failed to save .txt file.',
   statusSettingsLoading: 'Loading transcribe settings...',
+  statusWidgetUnavailable: 'Widget is unavailable: {message}',
   statusError: 'Error: {message}',
   helperBrowse: 'Click a folder to open it. Click a `.m4a` or `.opus` file to add or remove it from the queue. If the first selected file already has a `.txt`, the `Read` button appears.',
   helperTopFolders: 'Top folders',

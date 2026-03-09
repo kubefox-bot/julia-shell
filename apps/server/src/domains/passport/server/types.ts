@@ -60,3 +60,20 @@ export type AppendAgentEventInput = {
   eventType: string;
   payload: unknown;
 };
+
+export type PassportWidgetProviderStatus =
+  | 'ready'
+  | 'requires_access_token'
+  | 'agent_offline'
+  | 'unsupported_widget';
+
+export type PassportWidgetProviderSnapshot = {
+  widgetId: string;
+  status: PassportWidgetProviderStatus;
+  ready: boolean;
+  requiresAccessToken: boolean;
+  hasAccessToken: boolean;
+  requiresOnlineAgent: boolean;
+  hasOnlineAgent: boolean;
+  reason: string | null;
+};

@@ -15,7 +15,7 @@ async function handleRequest(method: string, request: Request, id: string | unde
 
   const requiresPassport = isPassportProtectedWidget(id);
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: !requiresPassport
+    allowBootstrapFromOnlineAgent: false
   });
   const hasPassportAccess = Boolean(resolvedAuth.context);
   const agentId = resolvedAuth.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;

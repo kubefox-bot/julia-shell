@@ -19,6 +19,17 @@ export type JsonErrorShape = {
   error?: unknown
 }
 
+export type WidgetProviderResponse = {
+  widgetId: string
+  status: 'ready' | 'requires_access_token' | 'agent_offline' | 'unsupported_widget'
+  ready: boolean
+  requiresAccessToken: boolean
+  hasAccessToken: boolean
+  requiresOnlineAgent: boolean
+  hasOnlineAgent: boolean
+  reason: string | null
+}
+
 export type StreamProgressHandler = (percent: number, stage: string) => void | Promise<void>
 export type StreamTokenHandler = (text: string) => void | Promise<void>
 export type StreamDoneHandler = (payload: { transcript: string; savePath: string }) => void | Promise<void>

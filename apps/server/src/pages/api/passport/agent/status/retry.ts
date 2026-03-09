@@ -6,10 +6,21 @@ import { passportRuntime } from '../../../../../domains/passport/server/runtime'
 import { jsonResponse } from '../../../../../shared/lib/http';
 
 export const POST: APIRoute = async ({ request }) => {
-  const response = jsonResponse(passportRuntime.retryStatusSnapshot(), PASSPORT_HTTP_STATUS.ok);
+  const runtimeSnapshot = passportRuntime.retryStatusSnapshot();
   const resolved = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
+  const responsePayload = resolved.context
+    ? runtimeSnapshot
+    : {
+        ...runtimeSnapshot,
+        status: 'disconnected',
+        label: 'Disconnected',
+        reason: 'No browser access token.',
+        hostname: null,
+        agentId: null
+      };
+  const response = jsonResponse(responsePayload, PASSPORT_HTTP_STATUS.ok);
 
   return withSetCookie(response, resolved.context?.setCookieHeader ?? null);
 };

@@ -11,7 +11,7 @@ import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
 const title = 'Julia Shell';
 const passportContext = await resolvePassportRequestContext(Astro.request, {
-  allowBootstrapFromOnlineAgent: true
+  allowBootstrapFromOnlineAgent: false
 });
 if (passportContext.context?.setCookieHeader) {
   Astro.response.headers.append('Set-Cookie', passportContext.context.setCookieHeader);

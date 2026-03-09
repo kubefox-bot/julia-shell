@@ -7,7 +7,7 @@ import { jsonResponse } from '../../../shared/lib/http';
 
 export const GET: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   const hasPassportAccess = Boolean(resolvedAuth.context);
   const agentId = resolvedAuth.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;

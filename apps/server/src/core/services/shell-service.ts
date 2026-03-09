@@ -23,7 +23,6 @@ import { listDiscoveredWidgets } from '../registry/registry';
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
 const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
 const PASSPORT_REQUIRED_WIDGET_IDS = new Set(['com.yulia.transcribe']);
-const PASSPORT_NOT_READY_REASON = 'Passport access token is required for this widget.';
 const MIN_SHELL_COLUMNS = 1;
 const MAX_SHELL_COLUMNS = 12;
 
@@ -82,7 +81,7 @@ export async function ensureCoreDefaults(agentId: string) {
 
 function buildPassportNotReadyReasons(widgetId: string, hasPassportAccess: boolean) {
   if (PASSPORT_REQUIRED_WIDGET_IDS.has(widgetId) && !hasPassportAccess) {
-    return [PASSPORT_NOT_READY_REASON];
+    return [`${widgetId} widget requires agent.`];
   }
 
   return [];

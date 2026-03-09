@@ -27,6 +27,7 @@ export const transcribeRu = {
   statusResultSaved: 'Сохранено в txt: {file}',
   statusResultSaveFailed: 'Не удалось сохранить .txt файл.',
   statusSettingsLoading: 'Загружаю настройки транскрибации...',
+  statusWidgetUnavailable: 'Виджет недоступен: {message}',
   statusError: 'Ошибка: {message}',
   helperBrowse: 'Клик по папке открывает ее содержимое. Клик по `.m4a` или `.opus` добавляет или снимает файл из очереди. Если для первого выбранного файла уже есть `.txt`, появится кнопка `Прочитать`.',
   helperTopFolders: 'Топ папок',

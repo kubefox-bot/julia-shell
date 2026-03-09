@@ -111,8 +111,33 @@ describe('passport api routes', () => {
     expect(response.status).toBe(HTTP_STATUS_UNAUTHORIZED);
   });
 
-  it('returns status snapshot and sets bootstrap cookie', async () => {
+  it('returns disconnected status when browser has no access token', async () => {
     getAgentStatusSnapshotMock.mockReturnValue({
+      status: 'connected',
+      label: 'Connected',
+      updatedAt: '2026-03-09T10:00:00.000Z',
+      reason: null,
+      hostname: 'mac-local',
+      agentId: 'agent-a'
+    });
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: null,
+      reason: 'missing'
+    });
+
+    const response = await statusGet({
+      request: new Request('http://localhost/api/passport/agent/status')
+    } as never);
+
+    const payload = await response.json();
+    expect(response.status).toBe(HTTP_STATUS_OK);
+    expect(payload.status).toBe('disconnected');
+    expect(payload.reason).toBe('No browser access token.');
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('returns retry snapshot when browser has access token', async () => {
+    retryStatusSnapshotMock.mockReturnValue({
       status: 'connected',
       label: 'Connected',
       updatedAt: '2026-03-09T10:00:00.000Z',
@@ -124,35 +149,7 @@ describe('passport api routes', () => {
       context: {
         agentId: 'agent-a',
         accessJwt: 'token',
-        setCookieHeader: 'julia_access_token=token; Path=/; HttpOnly; SameSite=Lax'
-      },
-      reason: 'missing'
-    });
-
-    const response = await statusGet({
-      request: new Request('http://localhost/api/passport/agent/status')
-    } as never);
-
-    const payload = await response.json();
-    expect(response.status).toBe(HTTP_STATUS_OK);
-    expect(payload.status).toBe('connected');
-    expect(response.headers.get('set-cookie')).toContain('julia_access_token=token');
-  });
-
-  it('returns retry snapshot with cookie fallback', async () => {
-    retryStatusSnapshotMock.mockReturnValue({
-      status: 'disconnected',
-      label: 'Disconnected',
-      updatedAt: '2026-03-09T10:00:00.000Z',
-      reason: null,
-      hostname: null,
-      agentId: null
-    });
-    resolvePassportRequestContextMock.mockResolvedValue({
-      context: {
-        agentId: 'agent-a',
-        accessJwt: 'token',
-        setCookieHeader: 'julia_access_token=token; Path=/; HttpOnly; SameSite=Lax'
+        setCookieHeader: null
       },
       reason: 'missing'
     });
@@ -162,6 +159,6 @@ describe('passport api routes', () => {
     } as never);
 
     expect(response.status).toBe(HTTP_STATUS_OK);
-    expect(response.headers.get('set-cookie')).toContain('julia_access_token=token');
+    expect(response.headers.get('set-cookie')).toBeNull();
   });
 });
