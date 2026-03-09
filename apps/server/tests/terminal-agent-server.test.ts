@@ -7,9 +7,9 @@ import {
   getTerminalAgentDialogState,
   saveTerminalAgentSettings,
   upsertTerminalAgentDialogState
-} from '../src/core/db/terminal-agent-repository';
+} from '../src/domains/llm/server/repository/terminal-agent-repository';
 import { resetDbCache } from '../src/core/db/shared';
-import * as llmCatalogService from '../src/domains/llm-catalog/server/service';
+import * as llmCatalogService from '../src/domains/llm/server/service';
 import { passportRuntime } from '../src/domains/passport/server/runtime/runtime';
 import type { WidgetRouteContext } from '../src/entities/widget/model/types';
 import { moduleBus } from '../src/shared/lib/module-bus';

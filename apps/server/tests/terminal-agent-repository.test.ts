@@ -8,7 +8,7 @@ import {
   getTerminalAgentSettings,
   saveTerminalAgentSettings,
   upsertTerminalAgentDialogState,
-} from '../src/core/db/terminal-agent-repository'
+} from '../src/domains/llm/server/repository/terminal-agent-repository'
 import { updateTerminalAgentSettings } from '../src/widgets/terminal-agent/server/settings'
 import { resetDbCache } from '../src/core/db/shared'
 

@@ -7,7 +7,7 @@ import {
   clearTerminalAgentDialogState,
   upsertTerminalAgentDialogState,
   upsertTerminalAgentDialogRef,
-} from '../../../core/db/terminal-agent-repository'
+} from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { PROVIDERS, WIDGET_ID } from './constants'
 import type { TerminalAgentDialogRefItemPayload, TerminalAgentDialogStatePayload, TerminalAgentSettingsPayload } from './types'
 

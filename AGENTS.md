@@ -235,8 +235,8 @@ SQLite databases in `data/`:
 - `core.db`: shell layout/settings/module state
 - `weather.db`: weather cache
 - `transcribe.db`: transcription jobs/outbox state
-- `terminal-agent.db`: chat widget settings/dialog continuity
 - `llm-catalog.db`: provider model catalogs for widget consumers
+- `llm-runtime.db`: consumer-based settings/dialog continuity for LLM widgets
 
 `core.db` notes:
 - `core` DB access is implemented through Drizzle ORM on top of `better-sqlite3`,
@@ -345,7 +345,7 @@ Widget-specific local instructions live here:
 ## Domain Local Context Files
 Domain-specific local instructions live here:
 - `apps/server/src/domains/passport/docs/AGENTS.md`
-- `apps/server/src/domains/llm-catalog/docs/AGENTS.md`
+- `apps/server/src/domains/llm/docs/AGENTS.md`
 
 ## Operational Notes
 - after frontend/API changes, rebuild on Windows before production check,

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { openDb } from './shared'
-import * as schema from './llm-catalog-schema'
+import { openDb } from '../../../../core/db/shared'
+import * as schema from './catalog-schema'
 
 function ensureSchema() {
   const sqlite = openDb('llm-catalog.db')

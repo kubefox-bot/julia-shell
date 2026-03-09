@@ -1,8 +1,8 @@
 import { nowIso } from '@shared/lib/time'
 import { and, eq } from 'drizzle-orm'
 import { err, ok, type Result } from 'neverthrow'
-import { openLlmCatalogDatabase } from './llm-catalog-drizzle'
-import { llmModelCatalogTable } from './llm-catalog-schema'
+import { openLlmCatalogDatabase } from './catalog-drizzle'
+import { llmModelCatalogTable } from './catalog-schema'
 
 export type LlmProvider = 'codex' | 'gemini'
 

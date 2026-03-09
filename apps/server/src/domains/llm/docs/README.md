@@ -19,8 +19,9 @@ Shared server domain that resolves provider model catalogs and persists them loc
   - updatedAt
 
 ## Persistence
-- SQLite DB: `llm-catalog.db`
-- Table: `llm_model_catalog`
+- SQLite DBs:
+  - `llm-catalog.db` (`llm_model_catalog`)
+  - `llm-runtime.db` (`llm_consumer_settings`, `llm_consumer_dialog_state`, `llm_consumer_dialog_refs`)
 
 ## Design principles
 - `zod` for external payload validation

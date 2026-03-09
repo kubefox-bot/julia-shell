@@ -2,7 +2,7 @@ import {
   getTranscribeWidgetSettings,
   listRecentFolders,
   saveTranscribeWidgetSettings,
-} from '../../../core/db/transcribe-repository'
+} from './repository'
 import { secrets } from '../../../core/secrets/secrets'
 import { logger } from '@shared/lib/logger'
 import { WIDGET_ENV_NAME, WIDGET_ID } from './constants'

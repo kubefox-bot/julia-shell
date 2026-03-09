@@ -1,4 +1,4 @@
-import { getWeatherCache, upsertWeatherCache } from '../../../core/db/weather-repository';
+import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
 

@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { replaceLlmModels } from '../src/core/db/llm-model-repository';
+import { replaceLlmModels } from '../src/domains/llm/server/repository/catalog-repository';
 import { resetDbCache } from '../src/core/db/shared';
-import { getLlmModelCatalog } from '../src/domains/llm-catalog/server/service';
+import { getLlmModelCatalog } from '../src/domains/llm/server/service';
 
 let tempDir = '';
 

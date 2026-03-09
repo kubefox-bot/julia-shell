@@ -1,5 +1,5 @@
-import type { LlmCatalogError } from '../../../domains/llm-catalog/server'
-import type { TerminalAgentProvider } from '../../../core/db/terminal-agent-repository'
+import type { LlmCatalogError } from '../../../domains/llm/server'
+import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { WIDGET_ID } from './constants'
 import type { TerminalAgentLlmModelsPayload } from './types'
 

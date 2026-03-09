@@ -6,6 +6,7 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url)),
+      '@lls': fileURLToPath(new URL('./src/domains/llm', import.meta.url)),
       '@shared': fileURLToPath(new URL('./src/shared', import.meta.url))
     }
   },
@@ -18,7 +19,7 @@ export default defineConfig({
       include: [
         'src/domains/passport/**/*.{ts,tsx}',
         'src/widgets/terminal-agent/server/**/*.ts',
-        'src/core/db/terminal-agent-repository.ts'
+        'src/domains/llm/server/repository/terminal-agent-repository.ts'
       ],
       exclude: [
         'src/domains/passport/**/*.d.ts',

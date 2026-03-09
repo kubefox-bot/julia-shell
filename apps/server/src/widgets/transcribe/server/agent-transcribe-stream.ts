@@ -6,7 +6,7 @@ import {
   failTranscribeJob,
   touchRecentFolder,
   updateTranscribeJobProgress,
-} from '../../../core/db/transcribe-repository';
+} from './repository';
 import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
 import { moduleBus } from '@shared/lib/module-bus';

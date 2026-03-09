@@ -4,7 +4,7 @@ import {
   listLlmModels,
   replaceLlmModels,
   type LlmProvider,
-} from '../../../core/db/llm-model-repository'
+} from './repository/catalog-repository'
 
 const DEFAULT_TTL_MS = 1000 * 60 * 60 * 24
 const CONSUMER_TERMINAL_AGENT = 'terminal-agent'

@@ -11,11 +11,10 @@ Chat widget for `Codex` and `Gemini CLI` over Julia runtime-agent transport.
 - `POST /api/widget/com.yulia.terminal-agent/message-stream`
 
 ## Persistence
-- `terminal-agent.db`
-  - provider settings (api keys, commands, args, shell fallback)
-  - continuity references (`provider_session_ref`) per provider
 - `llm-catalog.db`
   - provider LLM model catalog (`llm_model_catalog`) resolved by domain service
+- `llm-runtime.db`
+  - consumer-based settings/dialog continuity (`llm_consumer_*` tables, consumer=`com.yulia.terminal-agent`)
 
 ## UI
 - Chat bubble UX, not terminal emulator
@@ -25,5 +24,6 @@ Chat widget for `Codex` and `Gemini CLI` over Julia runtime-agent transport.
 ## Layering
 - `handlers.ts`: transport + validation
 - `llm-models-mapping.ts`: HTTP mapping for `GET models`
-- `domains/llm-catalog/server/service.ts`: provider fetch/retry/fallback
-- `core/db/llm-model-repository.ts`: drizzle + neverthrow persistence
+- `domains/llm/server/service.ts`: provider fetch/retry/fallback
+- `domains/llm/server/repository/catalog-repository.ts`: drizzle + neverthrow persistence
+- `domains/llm/server/repository/runtime-repository.ts`: consumer-based settings/dialog state

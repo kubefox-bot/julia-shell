@@ -10,7 +10,7 @@ import {
   getTranscribeWidgetSettings,
   touchRecentFolder,
   updateTranscribeJobProgress,
-} from '../../../core/db/transcribe-repository'
+} from './repository'
 import { readRuntimeEnv } from '../../../core/env'
 import { jsonResponse } from '@shared/lib/http'
 import { isTranscribeDevBypassMode } from './agent-mode'

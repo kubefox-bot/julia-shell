@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import { passportRuntime } from '@passport/server/runtime'
-import { getTerminalAgentDialogState, getTerminalAgentSettings } from '../../../core/db/terminal-agent-repository'
+import { getTerminalAgentDialogState, getTerminalAgentSettings } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { jsonResponse } from '@shared/lib/http'
 import { moduleBus } from '@shared/lib/module-bus'
 import { WIDGET_ID } from './constants'
 import { markDialogStatus } from './settings'
-import type { TerminalAgentProvider } from '../../../core/db/terminal-agent-repository'
+import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { toSseEvent } from './utils'
 
 type BusPayload = {

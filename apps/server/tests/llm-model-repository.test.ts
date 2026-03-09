@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { listLlmModels, replaceLlmModels } from '../src/core/db/llm-model-repository';
+import { listLlmModels, replaceLlmModels } from '../src/domains/llm/server/repository/catalog-repository';
 import { resetDbCache } from '../src/core/db/shared';
 
 let tempDir = '';

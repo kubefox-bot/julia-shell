@@ -4,7 +4,7 @@ Last updated: 2026-03-09
 
 ## Scope
 Domain identity:
-- `domain`: `llm-catalog`
+- `domain`: `llm`
 - consumers now: `terminal-agent`
 - providers now: `codex`, `gemini`
 
@@ -21,7 +21,9 @@ Domain identity:
   - `getLlmModelCatalog({ provider, apiKey, forceRefresh })`
 
 ## Storage Mapping
-- DB file: `data/llm-catalog.db`
+- DB files:
+  - `data/llm-catalog.db`
+  - `data/llm-runtime.db`
 - table: `llm_model_catalog`
 - columns:
   - `consumer`
@@ -33,14 +35,18 @@ Domain identity:
 
 ## Mapping Layout
 - domain service:
-  - `src/domains/llm-catalog/server/service.ts`
-  - remote fetch/retry/fallback policy
+  - `src/domains/llm/server/service.ts`
+- remote fetch/retry/fallback policy
 - persistence:
-  - `src/core/db/llm-model-repository.ts`
+  - `src/domains/llm/server/repository/catalog-repository.ts`
   - drizzle queries + neverthrow Result
+- runtime persistence (consumer-based):
+  - `src/domains/llm/server/repository/runtime-repository.ts`
 - DB schema/bootstrap:
-  - `src/core/db/llm-catalog-schema.ts`
-  - `src/core/db/llm-catalog-drizzle.ts`
+  - `src/domains/llm/server/repository/catalog-schema.ts`
+  - `src/domains/llm/server/repository/catalog-drizzle.ts`
+  - `src/domains/llm/server/repository/runtime-schema.ts`
+  - `src/domains/llm/server/repository/runtime-drizzle.ts`
 - widget transport mapping:
   - `src/widgets/terminal-agent/server/llm-models-mapping.ts`
 
