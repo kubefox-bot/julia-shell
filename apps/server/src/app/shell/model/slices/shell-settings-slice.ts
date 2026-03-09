@@ -18,7 +18,7 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
   settingsDraft: {
     desktopColumns: 12,
     mobileColumns: 1,
-    locale: 'system',
+    locale: 'ru',
     theme: 'auto'
   },
   openSettings: () => {
@@ -59,8 +59,8 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
     }));
   },
   toggleLocale: async () => {
-    const { layoutSettings, draftLayout, browserLocale } = get();
-    const activeLocale = resolveDisplayLocale(layoutSettings.locale, browserLocale);
+    const { layoutSettings, draftLayout } = get();
+    const activeLocale = resolveDisplayLocale(layoutSettings.locale);
     const nextLocale = activeLocale === 'en' ? 'ru' : 'en';
     set({ isSaving: true, error: null });
 

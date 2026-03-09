@@ -1,8 +1,11 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import node from '@astrojs/node';
 import react from '@astrojs/react';
-import { VitePWA } from 'vite-plugin-pwa';
+
+const BUILD_MINIFIER = process.env.JULIAAPP_BUILD_MINIFIER === 'terser' ? 'terser' : 'esbuild';
+const SHOULD_USE_TERSER = BUILD_MINIFIER === 'terser';
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,60 +14,29 @@ export default defineConfig({
     mode: 'standalone'
   }),
   vite: {
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+        '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url))
+      }
+    },
     build: {
-      minify: 'terser',
+      minify: BUILD_MINIFIER,
       sourcemap: false,
       reportCompressedSize: false,
-      terserOptions: {
-        compress: {
-          passes: 2,
-          drop_debugger: true
-        },
-        format: {
-          comments: false
-        }
-      }
+      target: 'es2022',
+      terserOptions: SHOULD_USE_TERSER
+        ? {
+            compress: {
+              passes: 2,
+              drop_debugger: true
+            },
+            format: {
+              comments: false
+            }
+          }
+        : undefined
     }
   },
-  integrations: [
-    react(),
-    {
-      name: 'pwa-setup',
-      hooks: {
-        'astro:config:setup': ({ updateConfig }) => {
-          updateConfig({
-            vite: {
-              plugins: [
-                VitePWA({
-                  registerType: 'autoUpdate',
-                  includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'masked-icon.svg'],
-                  manifest: {
-                    name: 'Yulia Personal Assistant',
-                    short_name: 'Yulia Assistant',
-                    description: 'Automation for Yulia (Sorting downloads, HR search, English)',
-                    theme_color: '#fafaf9',
-                    background_color: '#fafaf9',
-                    display: 'standalone',
-                    icons: [
-                      {
-                        src: 'pwa-192x192.png',
-                        sizes: '192x192',
-                        type: 'image/png'
-                      },
-                      {
-                        src: 'pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'any maskable'
-                      }
-                    ]
-                  }
-                })
-              ]
-            }
-          });
-        }
-      }
-    }
-  ]
+  integrations: [react()]
 });

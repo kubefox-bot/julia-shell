@@ -16,13 +16,8 @@ export function useShellLoadingState() {
 }
 
 export function useShellLocale() {
-  const browserLocale = useShellStore((state) => state.browserLocale);
   const locale = useShellStore((state) => state.layoutSettings.locale);
-
-  return useMemo(
-    () => resolveDisplayLocale(locale, browserLocale),
-    [browserLocale, locale]
-  );
+  return useMemo(() => resolveDisplayLocale(locale), [locale]);
 }
 
 export function useShellTheme() {

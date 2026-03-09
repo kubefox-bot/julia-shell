@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
-import { subscribeAgentStatusChanged } from '../../../../app/agent-service/lib/agent-status-bus'
+import { subscribePassportStatusChanged } from '@passport/client'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,
@@ -9,6 +9,7 @@ import {
   isSupportedAudioEntry
 } from '../helpers'
 import {
+  fetchTranscribeProvider,
   fetchSpeakerAliases,
   fetchTranscribeFolder,
   fetchTranscribeSettings,
@@ -36,6 +37,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
   const status = useTranscribeStore((state) => state.status)
   const loading = useTranscribeStore((state) => state.loading)
   const isTranscribing = useTranscribeStore((state) => state.isTranscribing)
+  const providerReady = useTranscribeStore((state) => state.providerReady)
   const progress = useTranscribeStore((state) => state.progress)
   const progressStage = useTranscribeStore((state) => state.progressStage)
   const resultVisible = useTranscribeStore((state) => state.resultVisible)
@@ -68,6 +70,21 @@ export function useTranscribeController(props: WidgetRenderProps) {
   useEffect(() => {
     store.getState().setSelectedTranscriptPath(findMatchingTranscriptPath(readableAudioPath, entries))
   }, [entries, readableAudioPath, store])
+
+  const ensureProviderReady = useCallback(async () => {
+    const provider = await fetchTranscribeProvider()
+    store.getState().setProviderState(provider.ready, provider.reason ?? null)
+
+    if (!provider.ready) {
+      store.getState().clearBrowser()
+      setStatus('statusWidgetUnavailable', {
+        message: provider.reason ?? 'Widget is not available.'
+      })
+      return false
+    }
+
+    return true
+  }, [setStatus, store])
 
   const loadPathEntries = useCallback(async (inputPath: string, options?: LoadPathOptions) => {
     const value = inputPath.trim()
@@ -139,6 +156,11 @@ export function useTranscribeController(props: WidgetRenderProps) {
       setStatus('statusSettingsLoading')
 
       try {
+        const isReady = await ensureProviderReady()
+        if (!isReady || cancelled) {
+          return
+        }
+
         const settings = await fetchTranscribeSettings()
         if (cancelled) {
           return
@@ -161,10 +183,10 @@ export function useTranscribeController(props: WidgetRenderProps) {
     return () => {
       cancelled = true
     }
-  }, [loadPathEntries, loadSpeakerAliases, setStatus, store])
+  }, [ensureProviderReady, loadPathEntries, loadSpeakerAliases, setStatus, store])
 
   useEffect(() => {
-    return subscribeAgentStatusChanged((event) => {
+    return subscribePassportStatusChanged((event) => {
       if (event.status !== 'connected' && event.status !== 'connected_dev') {
         return
       }
@@ -205,6 +227,11 @@ export function useTranscribeController(props: WidgetRenderProps) {
   }, [store, typewriter])
 
   const onTranscribe = useCallback(async () => {
+    const isReady = await ensureProviderReady()
+    if (!isReady) {
+      return
+    }
+
     if (!selectedFolderPath) {
       setStatus('statusSelectFolderFirst')
       return
@@ -287,7 +314,7 @@ export function useTranscribeController(props: WidgetRenderProps) {
       store.getState().setLoading(false)
       store.getState().resetLoader()
     }
-  }, [loadPathEntries, selectedAudioFiles, selectedFolderPath, setStatus, store, typewriter])
+  }, [ensureProviderReady, loadPathEntries, selectedAudioFiles, selectedFolderPath, setStatus, store, typewriter])
 
   const onOpenTxt = useCallback(async () => {
     const primarySelectedAudio = readableAudioPath
@@ -493,8 +520,8 @@ export function useTranscribeController(props: WidgetRenderProps) {
       selectedAudioFiles,
       selectedAudioText: formatSelectedAudioFiles(props.locale, selectedAudioFiles),
       pathPickerOpen,
-      canTranscribe: !loading && Boolean(selectedFolderPath) && selectedAudioFiles.length > 0,
-      canOpenTxt: !loading && Boolean(readableAudioPath) && Boolean(selectedTranscriptPath),
+      canOpenTxt: providerReady && !loading && Boolean(readableAudioPath) && Boolean(selectedTranscriptPath),
+      canTranscribe: providerReady && !loading && Boolean(selectedFolderPath) && selectedAudioFiles.length > 0,
       onBrowsePathChange: (value: string) => store.getState().setBrowsePath(value),
       onPathSubmit: (nextPath?: string) => void loadPathEntries(nextPath ?? browsePath, { allowEmpty: true }),
       onPathPickerOpenChange: (open: boolean) => store.getState().setPathPickerOpen(open),

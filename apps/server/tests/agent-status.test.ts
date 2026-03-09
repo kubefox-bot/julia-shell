@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveAgentStatusSnapshot } from '../src/core/agent/status';
+import { resolvePassportStatusSnapshot } from '../src/domains/passport/server/runtime/status';
 
 describe('agent status snapshot', () => {
   it('returns connected in production mode when online', () => {
-    const snapshot = resolveAgentStatusSnapshot({
+    const snapshot = resolvePassportStatusSnapshot({
       isDevMode: false,
       hasOnlineSession: true,
       unauthorizedState: null
@@ -14,7 +14,7 @@ describe('agent status snapshot', () => {
   });
 
   it('returns connected_dev in dev mode when online', () => {
-    const snapshot = resolveAgentStatusSnapshot({
+    const snapshot = resolvePassportStatusSnapshot({
       isDevMode: true,
       hasOnlineSession: true,
       unauthorizedState: null
@@ -25,7 +25,7 @@ describe('agent status snapshot', () => {
   });
 
   it('returns connected_dev in dev mode even without online session', () => {
-    const snapshot = resolveAgentStatusSnapshot({
+    const snapshot = resolvePassportStatusSnapshot({
       isDevMode: true,
       hasOnlineSession: false,
       unauthorizedState: null
@@ -36,7 +36,7 @@ describe('agent status snapshot', () => {
   });
 
   it('returns unauthorized when no online session and auth reject exists', () => {
-    const snapshot = resolveAgentStatusSnapshot({
+    const snapshot = resolvePassportStatusSnapshot({
       isDevMode: false,
       hasOnlineSession: false,
       unauthorizedState: {
@@ -50,7 +50,7 @@ describe('agent status snapshot', () => {
   });
 
   it('returns disconnected when no online session and no auth reject', () => {
-    const snapshot = resolveAgentStatusSnapshot({
+    const snapshot = resolvePassportStatusSnapshot({
       isDevMode: false,
       hasOnlineSession: false,
       unauthorizedState: null

@@ -1,0 +1,46 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.headerIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.headerEyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+:global(html[data-shell-theme='night']) .headerEyebrow,
+:global(body[data-shell-theme='night']) .headerEyebrow {
+  color: #7dd3fc;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 2.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+}
+
+:global(html[data-shell-theme='night']) .headerTitle,
+:global(body[data-shell-theme='night']) .headerTitle {
+  color: #f8fafc;
+}
+
+.headerRight {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}

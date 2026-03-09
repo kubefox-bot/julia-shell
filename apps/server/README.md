@@ -18,6 +18,7 @@
 
 ## SQLite
 Используются отдельные БД в `data/`:
+- `passport.db` — agent/passport registry, sessions, tokens, enrollment
 - `core.db` — shell layout/settings/module state
 - `weather.db` — cache погоды
 - `transcribe.db` — jobs/outbox транскрибации
@@ -28,6 +29,7 @@
 - `GET /api/shell/modules`
 - `POST /api/shell/modules/:id/enable`
 - `POST /api/shell/modules/:id/disable`
+- `GET|POST /api/passport/agent/*`
 - `GET|POST /api/widget/:id/*`
 - `POST /api/channel/webhook/:id/:event`
 - `GET|POST /api/channel/ws` (SSE fallback transport для channel stream)
@@ -36,7 +38,9 @@
 Нужны переменные:
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` (опционально, default: `gemini-2.5-flash`)
-- `WIDGET_CHANNEL_TOKEN` (для webhook/ws)
+- `ADMIN_TOKEN`
+- `AGENT_JWT_SECRET`
+- `JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS` (опционально, default: `1500`)
 - для Infisical service account:
   - `INFISICAL_CLIENT_ID`
   - `INFISICAL_CLIENT_SECRET`
@@ -57,7 +61,16 @@ yarn build
 yarn start
 ```
 
-`yarn build` теперь делает production-минификацию (Terser) и дополнительно генерирует precompressed ассеты (`.gz` и `.br`) для `dist/client`.
+`yarn build` теперь:
+- использует `esbuild` minifier по умолчанию (быстрее),
+- может переключаться на `terser` через `JULIAAPP_BUILD_MINIFIER=terser`,
+- делает post-build precompression (`.gz` / `.br`) для `dist/client`.
+
+Управление compression через env:
+- `JULIAAPP_BUILD_COMPRESS=0` отключает этап сжатия,
+- `JULIAAPP_BUILD_COMPRESS_CONCURRENCY` задает параллелизм,
+- `JULIAAPP_BUILD_COMPRESS_BROTLI_QUALITY` и `JULIAAPP_BUILD_COMPRESS_GZIP_LEVEL` настраивают баланс размер/скорость.
+
 Если нужен только чистый build без этапа сжатия, используй `yarn build:raw`.
 
 ## Podman scaffold

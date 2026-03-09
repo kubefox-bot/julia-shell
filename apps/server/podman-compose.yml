@@ -16,11 +16,10 @@ services:
       - PORT=4321
       - JULIAAPP_DATA_DIR=/app/data
       - JULIA_AGENT_GRPC_PORT=50051
+      - JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS=${JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS:-1500}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - WIDGET_CHANNEL_TOKEN=${WIDGET_CHANNEL_TOKEN:-change-me}
       - ADMIN_TOKEN=${ADMIN_TOKEN:-change-me}
-      - AGENT_ENROLL_TOKEN=${AGENT_ENROLL_TOKEN:-change-me}
       - AGENT_JWT_SECRET=${AGENT_JWT_SECRET:-change-me}
     volumes:
       - /mnt/ostree/podman/julia-shell/data:/app/data

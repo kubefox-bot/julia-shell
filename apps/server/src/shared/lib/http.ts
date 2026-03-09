@@ -7,6 +7,6 @@ export function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
-export function readJsonBody<T = Record<string, unknown>>(request: Request): Promise<T> {
+export async function readJsonBody<T = Record<string, unknown>>(request: Request): Promise<T> {
   return request.json().catch(() => ({} as T));
 }

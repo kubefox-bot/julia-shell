@@ -9,7 +9,7 @@ import {
   registerAgent,
   revokeRefreshToken,
   rotateRefreshToken,
-} from '../src/core/agent/repository';
+} from '../src/domains/passport/server/repository';
 import { resetDbCache } from '../src/core/db/shared';
 
 let tempDir = '';
@@ -30,15 +30,17 @@ describe('agent repository', () => {
     const created = createEnrollmentToken({ ttlMinutes: 5, uses: 1, label: 'pc-1' });
     expect(created.enrollmentToken.length).toBeGreaterThan(10);
 
-    const firstConsume = consumeEnrollmentToken(created.enrollmentToken);
+    const firstConsume = consumeEnrollmentToken(created.enrollmentToken, created.agentId);
     expect(firstConsume).not.toBeNull();
 
-    const secondConsume = consumeEnrollmentToken(created.enrollmentToken);
+    const secondConsume = consumeEnrollmentToken(created.enrollmentToken, created.agentId);
     expect(secondConsume).toBeNull();
   });
 
   it('rotates refresh tokens and rejects revoked ones', () => {
+    const reservedAgentId = createEnrollmentToken({ ttlMinutes: 5, uses: 1, label: 'agent' }).agentId;
     const agentId = registerAgent({
+      agentId: reservedAgentId,
       displayName: 'agent',
       capabilities: ['health'],
       version: '0.1.0',

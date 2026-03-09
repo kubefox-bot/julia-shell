@@ -1,16 +1,16 @@
 import { asc, eq } from 'drizzle-orm';
-import { nowIso } from '../../shared/lib/time';
 import type { LayoutItem, LayoutSettings, ShellLocale, ShellTheme } from '../../entities/widget/model/types';
-import { openDb } from './shared';
+import { nowIso } from '../../shared/lib/time';
 import { openCoreDatabase } from './core-drizzle';
 import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from './core-schema';
+import { openDb } from './shared';
 
 function sanitizeLocale(value: string | null | undefined): ShellLocale {
-  if (value === 'ru' || value === 'en' || value === 'system') {
+  if (value === 'ru' || value === 'en') {
     return value;
   }
 
-  return 'system';
+  return 'ru';
 }
 
 function sanitizeTheme(value: string | null | undefined): ShellTheme {
@@ -21,46 +21,59 @@ function sanitizeTheme(value: string | null | undefined): ShellTheme {
   return 'auto';
 }
 
-function ensureSettingsColumns() {
-  const sqlite = openDb('core.db');
-  const rows = sqlite.prepare('PRAGMA table_info(shell_layout_settings)').all() as Array<{ name: string }>;
-  const hasLocaleColumn = rows.some((row) => row.name === 'locale');
-  const hasThemeColumn = rows.some((row) => row.name === 'theme');
+function hasColumn(db: ReturnType<typeof openDb>, tableName: string, columnName: string) {
+  const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+  return rows.some((row) => row.name === columnName);
+}
 
-  if (!hasLocaleColumn) {
-    sqlite.exec("ALTER TABLE shell_layout_settings ADD COLUMN locale TEXT NOT NULL DEFAULT 'system'");
+function maybeResetLegacyCoreTables(sqlite: ReturnType<typeof openDb>) {
+  const shouldResetSettings = !hasColumn(sqlite, 'shell_layout_settings', 'agent_id');
+  const shouldResetLayout = !hasColumn(sqlite, 'widget_layout', 'agent_id');
+  const shouldResetModules = !hasColumn(sqlite, 'module_state', 'agent_id');
+
+  if (shouldResetSettings) {
+    sqlite.exec('DROP TABLE IF EXISTS shell_layout_settings;');
   }
 
-  if (!hasThemeColumn) {
-    sqlite.exec("ALTER TABLE shell_layout_settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'auto'");
+  if (shouldResetLayout) {
+    sqlite.exec('DROP TABLE IF EXISTS widget_layout;');
+  }
+
+  if (shouldResetModules) {
+    sqlite.exec('DROP TABLE IF EXISTS module_state;');
   }
 }
 
 function bootstrapCoreSchema() {
   const sqlite = openDb('core.db');
+  maybeResetLegacyCoreTables(sqlite);
 
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS shell_layout_settings (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
+      agent_id TEXT PRIMARY KEY,
       desktop_columns INTEGER NOT NULL DEFAULT 12,
       mobile_columns INTEGER NOT NULL DEFAULT 1,
-      locale TEXT NOT NULL DEFAULT 'system',
+      locale TEXT NOT NULL DEFAULT 'ru',
       theme TEXT NOT NULL DEFAULT 'auto',
       updated_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS widget_layout (
-      widget_id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      widget_id TEXT NOT NULL,
       order_index INTEGER NOT NULL,
       size TEXT NOT NULL CHECK (size IN ('small', 'medium', 'large')),
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (agent_id, widget_id)
     );
 
     CREATE TABLE IF NOT EXISTS module_state (
-      widget_id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      widget_id TEXT NOT NULL,
       enabled INTEGER NOT NULL DEFAULT 1,
       disabled_reason TEXT,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (agent_id, widget_id)
     );
 
     CREATE TABLE IF NOT EXISTS agent_jobs (
@@ -78,19 +91,19 @@ function bootstrapCoreSchema() {
     CREATE INDEX IF NOT EXISTS idx_agent_jobs_state ON agent_jobs(state, updated_at DESC);
   `);
 
-  ensureSettingsColumns();
+  sqlite.exec(`UPDATE shell_layout_settings SET locale = 'ru' WHERE locale = 'system';`);
 }
 
-function getDb() {
+function getDb(agentId: string) {
   bootstrapCoreSchema();
   const db = openCoreDatabase();
 
   db.insert(shellLayoutSettingsTable)
     .values({
-      id: 1,
+      agentId,
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system',
+      locale: 'ru',
       theme: 'auto',
       updatedAt: nowIso()
     })
@@ -100,8 +113,8 @@ function getDb() {
   return db;
 }
 
-export function getLayoutSettings(): LayoutSettings {
-  const db = getDb();
+export function getLayoutSettings(agentId: string): LayoutSettings {
+  const db = getDb(agentId);
   const row = db
     .select({
       desktopColumns: shellLayoutSettingsTable.desktopColumns,
@@ -110,7 +123,7 @@ export function getLayoutSettings(): LayoutSettings {
       theme: shellLayoutSettingsTable.theme
     })
     .from(shellLayoutSettingsTable)
-    .where(eq(shellLayoutSettingsTable.id, 1))
+    .where(eq(shellLayoutSettingsTable.agentId, agentId))
     .get();
 
   return row
@@ -120,11 +133,11 @@ export function getLayoutSettings(): LayoutSettings {
         locale: sanitizeLocale(row.locale),
         theme: sanitizeTheme(row.theme)
       }
-    : { desktopColumns: 12, mobileColumns: 1, locale: 'system', theme: 'auto' };
+    : { desktopColumns: 12, mobileColumns: 1, locale: 'ru', theme: 'auto' };
 }
 
-export function saveLayoutSettings(next: LayoutSettings) {
-  const db = getDb();
+export function saveLayoutSettings(agentId: string, next: LayoutSettings) {
+  const db = getDb(agentId);
   db.update(shellLayoutSettingsTable)
     .set({
       desktopColumns: next.desktopColumns,
@@ -133,12 +146,12 @@ export function saveLayoutSettings(next: LayoutSettings) {
       theme: sanitizeTheme(next.theme),
       updatedAt: nowIso()
     })
-    .where(eq(shellLayoutSettingsTable.id, 1))
+    .where(eq(shellLayoutSettingsTable.agentId, agentId))
     .run();
 }
 
-export function getLayoutItems(): LayoutItem[] {
-  const db = getDb();
+export function getLayoutItems(agentId: string): LayoutItem[] {
+  const db = getDb(agentId);
   return db
     .select({
       widgetId: widgetLayoutTable.widgetId,
@@ -146,21 +159,23 @@ export function getLayoutItems(): LayoutItem[] {
       size: widgetLayoutTable.size
     })
     .from(widgetLayoutTable)
+    .where(eq(widgetLayoutTable.agentId, agentId))
     .orderBy(asc(widgetLayoutTable.order))
     .all() as LayoutItem[];
 }
 
-export function upsertLayoutItem(item: LayoutItem) {
-  const db = getDb();
+export function upsertLayoutItem(agentId: string, item: LayoutItem) {
+  const db = getDb(agentId);
   db.insert(widgetLayoutTable)
     .values({
+      agentId,
       widgetId: item.widgetId,
       order: item.order,
       size: item.size,
       updatedAt: nowIso()
     })
     .onConflictDoUpdate({
-      target: widgetLayoutTable.widgetId,
+      target: [widgetLayoutTable.agentId, widgetLayoutTable.widgetId],
       set: {
         order: item.order,
         size: item.size,
@@ -170,21 +185,22 @@ export function upsertLayoutItem(item: LayoutItem) {
     .run();
 }
 
-export function replaceLayout(items: LayoutItem[]) {
+export function replaceLayout(agentId: string, items: LayoutItem[]) {
   const sqlite = openDb('core.db');
-  const db = getDb();
+  const db = getDb(agentId);
 
   sqlite.transaction(() => {
     for (const item of items) {
       db.insert(widgetLayoutTable)
         .values({
+          agentId,
           widgetId: item.widgetId,
           order: item.order,
           size: item.size,
           updatedAt: nowIso()
         })
         .onConflictDoUpdate({
-          target: widgetLayoutTable.widgetId,
+          target: [widgetLayoutTable.agentId, widgetLayoutTable.widgetId],
           set: {
             order: item.order,
             size: item.size,
@@ -202,8 +218,8 @@ export type ModuleStateRow = {
   disabledReason: string | null;
 };
 
-export function getModuleStates(): ModuleStateRow[] {
-  const db = getDb();
+export function getModuleStates(agentId: string): ModuleStateRow[] {
+  const db = getDb(agentId);
   return db
     .select({
       widgetId: moduleStateTable.widgetId,
@@ -211,6 +227,7 @@ export function getModuleStates(): ModuleStateRow[] {
       disabledReason: moduleStateTable.disabledReason
     })
     .from(moduleStateTable)
+    .where(eq(moduleStateTable.agentId, agentId))
     .all()
     .map((row) => ({
       widgetId: row.widgetId,
@@ -219,17 +236,18 @@ export function getModuleStates(): ModuleStateRow[] {
     }));
 }
 
-export function setModuleEnabled(widgetId: string, enabled: boolean, reason: string | null = null) {
-  const db = getDb();
+export function setModuleEnabled(agentId: string, widgetId: string, enabled: boolean, reason: string | null = null) {
+  const db = getDb(agentId);
   db.insert(moduleStateTable)
     .values({
+      agentId,
       widgetId,
       enabled,
       disabledReason: reason,
       updatedAt: nowIso()
     })
     .onConflictDoUpdate({
-      target: moduleStateTable.widgetId,
+      target: [moduleStateTable.agentId, moduleStateTable.widgetId],
       set: {
         enabled,
         disabledReason: reason,
@@ -239,10 +257,11 @@ export function setModuleEnabled(widgetId: string, enabled: boolean, reason: str
     .run();
 }
 
-export function ensureDefaultModuleState(widgetId: string, enabled: boolean) {
-  const db = getDb();
+export function ensureDefaultModuleState(agentId: string, widgetId: string, enabled: boolean) {
+  const db = getDb(agentId);
   db.insert(moduleStateTable)
     .values({
+      agentId,
       widgetId,
       enabled,
       disabledReason: null,
@@ -252,10 +271,11 @@ export function ensureDefaultModuleState(widgetId: string, enabled: boolean) {
     .run();
 }
 
-export function ensureDefaultLayoutItem(item: LayoutItem) {
-  const db = getDb();
+export function ensureDefaultLayoutItem(agentId: string, item: LayoutItem) {
+  const db = getDb(agentId);
   db.insert(widgetLayoutTable)
     .values({
+      agentId,
       widgetId: item.widgetId,
       order: item.order,
       size: item.size,
@@ -263,4 +283,11 @@ export function ensureDefaultLayoutItem(item: LayoutItem) {
     })
     .onConflictDoNothing()
     .run();
+}
+
+export function purgeAgentCoreState(agentId: string) {
+  const db = getDb(agentId);
+  db.delete(moduleStateTable).where(eq(moduleStateTable.agentId, agentId)).run();
+  db.delete(widgetLayoutTable).where(eq(widgetLayoutTable.agentId, agentId)).run();
+  db.delete(shellLayoutSettingsTable).where(eq(shellLayoutSettingsTable.agentId, agentId)).run();
 }

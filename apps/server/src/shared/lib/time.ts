@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 export function nowIso() {
-  return new Date().toISOString();
+  return DateTime.utc().toISO() ?? new Date().toISOString();
 }

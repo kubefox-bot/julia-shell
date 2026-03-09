@@ -9,7 +9,7 @@ import { WIDGET_ENV_NAME, WIDGET_ID } from './constants'
 import type { SecretState, TranscribeSettingsPayload } from './types'
 import { buildAvailableModels, resolveConfiguredModel } from './utils'
 
-export async function resolveApiKeyState(): Promise<SecretState> {
+export async function resolveApiKeyState(agentId: string): Promise<SecretState> {
   const rootHealthSecret = await secrets.get('HEALTH', '/')
   logger.dev('[secrets] root HEALTH', rootHealthSecret)
 
@@ -24,7 +24,7 @@ export async function resolveApiKeyState(): Promise<SecretState> {
     }
   }
 
-  const storedSettings = getTranscribeWidgetSettings(WIDGET_ID)
+  const storedSettings = getTranscribeWidgetSettings(agentId, WIDGET_ID)
   if (storedSettings.localApiKey) {
     return {
       source: 'db',
@@ -55,9 +55,9 @@ export async function resolveApiKeyState(): Promise<SecretState> {
   }
 }
 
-export async function buildSettingsPayload(): Promise<TranscribeSettingsPayload> {
-  const widgetSettings = getTranscribeWidgetSettings(WIDGET_ID)
-  const secretState = await resolveApiKeyState()
+export async function buildSettingsPayload(agentId: string): Promise<TranscribeSettingsPayload> {
+  const widgetSettings = getTranscribeWidgetSettings(agentId, WIDGET_ID)
+  const secretState = await resolveApiKeyState(agentId)
   const activeModel = resolveConfiguredModel(widgetSettings.geminiModel)
 
   return {
@@ -71,15 +71,16 @@ export async function buildSettingsPayload(): Promise<TranscribeSettingsPayload>
     hasApiKey: Boolean(secretState.value),
     secretName: 'GEMINI_API_KEY',
     secretPath: secretState.secretPath,
-    recentFolders: listRecentFolders(WIDGET_ID).map((entry) => entry.folderPath),
+    recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath),
   }
 }
 
-export async function updateTranscribeSettings(input: { geminiModel?: string; apiKey?: string }) {
-  const previous = await resolveApiKeyState()
-  const current = getTranscribeWidgetSettings(WIDGET_ID)
+export async function updateTranscribeSettings(agentId: string, input: { geminiModel?: string; apiKey?: string }) {
+  const previous = await resolveApiKeyState(agentId)
+  const current = getTranscribeWidgetSettings(agentId, WIDGET_ID)
 
   saveTranscribeWidgetSettings({
+    agentId,
     widgetId: WIDGET_ID,
     geminiModel:
       typeof input.geminiModel === 'string' && input.geminiModel.trim()
@@ -93,5 +94,5 @@ export async function updateTranscribeSettings(input: { geminiModel?: string; ap
           : current.localApiKey,
   })
 
-  return buildSettingsPayload()
+  return buildSettingsPayload(agentId)
 }

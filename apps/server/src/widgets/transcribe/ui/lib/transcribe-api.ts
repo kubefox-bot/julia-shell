@@ -1,5 +1,11 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
-import type { FsListResponse, JsonErrorShape, TranscriptReadResponse, TranscriptSaveResponse } from './types'
+import type {
+  FsListResponse,
+  JsonErrorShape,
+  TranscriptReadResponse,
+  TranscriptSaveResponse,
+  WidgetProviderResponse
+} from './types'
 
 function readErrorMessage(data: unknown, fallback: string) {
   if (typeof data === 'object' && data !== null) {
@@ -22,6 +28,16 @@ function readAliases(data: unknown) {
 
 async function readJson<T>(response: Response) {
   return await response.json() as T
+}
+
+export async function fetchTranscribeProvider() {
+  const response = await fetch('/api/passport/widget/provider?widget_id=com.yulia.transcribe')
+  const data = await readJson<WidgetProviderResponse | JsonErrorShape>(response)
+  if (!response.ok) {
+    throw new Error(readErrorMessage(data, 'Failed to resolve widget provider state.'))
+  }
+
+  return data as WidgetProviderResponse
 }
 
 export async function fetchTranscribeSettings() {

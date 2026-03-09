@@ -7,6 +7,8 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "node ./scripts/prepare-workspace.mjs",
+    "cleanup": "node ./scripts/cleanup-workspace.mjs",
     "dev": "yarn workspace @julia/server dev",
     "build": "yarn workspace @julia/server build",
     "build:raw": "yarn workspace @julia/server build:raw",

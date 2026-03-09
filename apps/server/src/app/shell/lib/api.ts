@@ -19,7 +19,7 @@ export async function fetchShellSettings() {
 export async function saveShellLayout(payload: {
   desktopColumns: number;
   mobileColumns: number;
-  locale: 'system' | 'ru' | 'en';
+  locale: 'ru' | 'en';
   theme: 'auto' | 'day' | 'night';
   layout: LayoutItem[];
 }) {

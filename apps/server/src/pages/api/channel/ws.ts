@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
+import { withSetCookie } from '@passport/server/cookie';
+import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus, type EventPayload } from '../../../shared/lib/module-bus';
-import { isChannelAuthorized } from '../../../shared/lib/channel-auth';
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http';
 
 function formatSseEvent(event: string, payload: unknown) {
@@ -8,7 +9,10 @@ function formatSseEvent(event: string, payload: unknown) {
 }
 
 export const GET: APIRoute = async ({ request }) => {
-  if (!(await isChannelAuthorized(request))) {
+  const resolvedAuth = await resolvePassportRequestContext(request, {
+    allowBootstrapFromOnlineAgent: true
+  });
+  if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 
@@ -51,7 +55,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
   });
 
-  return new Response(stream, {
+  const response = new Response(stream, {
     status: 200,
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
@@ -60,10 +64,15 @@ export const GET: APIRoute = async ({ request }) => {
       'X-Accel-Buffering': 'no'
     }
   });
+
+  return withSetCookie(response, resolvedAuth.context.setCookieHeader);
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  if (!(await isChannelAuthorized(request))) {
+  const resolvedAuth = await resolvePassportRequestContext(request, {
+    allowBootstrapFromOnlineAgent: true
+  });
+  if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 
@@ -82,5 +91,5 @@ export const POST: APIRoute = async ({ request }) => {
 
   moduleBus.publish(topic, source, body.payload ?? null);
 
-  return jsonResponse({ accepted: true, topic }, 202);
+  return withSetCookie(jsonResponse({ accepted: true, topic }, 202), resolvedAuth.context.setCookieHeader);
 };

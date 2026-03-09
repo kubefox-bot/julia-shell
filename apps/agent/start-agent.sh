@@ -59,6 +59,10 @@ resolve_binary() {
 
 load_env_file "$ENV_FILE"
 
+if [[ -z "${JULIA_AGENT_ID:-}" ]]; then
+  echo "[agent] warning: JULIA_AGENT_ID is empty (required for first enroll via /api/passport/agent/*)"
+fi
+
 if agent_bin="$(resolve_binary)"; then
   echo "[agent] starting binary: $agent_bin"
   exec "$agent_bin"

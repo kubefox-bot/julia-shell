@@ -9,7 +9,7 @@ prost = "0.14"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "time", "fs"] }
+tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "time", "fs", "net", "io-util"] }
 tonic = { version = "0.14", features = ["transport"] }
 tonic-prost = "0.14"
 tokio-stream = "0.1"

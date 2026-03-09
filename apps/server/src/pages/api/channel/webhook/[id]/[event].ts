@@ -1,10 +1,14 @@
 import type { APIRoute } from 'astro';
+import { withSetCookie } from '@passport/server/cookie';
+import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus } from '../../../../../shared/lib/module-bus';
-import { isChannelAuthorized } from '../../../../../shared/lib/channel-auth';
 import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http';
 
 export const POST: APIRoute = async ({ request, params }) => {
-  if (!(await isChannelAuthorized(request))) {
+  const resolvedAuth = await resolvePassportRequestContext(request, {
+    allowBootstrapFromOnlineAgent: true
+  });
+  if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
   }
 
@@ -20,10 +24,10 @@ export const POST: APIRoute = async ({ request, params }) => {
 
   moduleBus.publish(topic, 'webhook', payload);
 
-  return jsonResponse({
+  return withSetCookie(jsonResponse({
     accepted: true,
     topic,
     widgetId,
     event: eventName
-  }, 202);
+  }, 202), resolvedAuth.context.setCookieHeader);
 };

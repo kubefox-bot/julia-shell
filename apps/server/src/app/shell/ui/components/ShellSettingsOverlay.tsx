@@ -60,7 +60,6 @@ export function ShellSettingsOverlay() {
             <label>
               {t('locale')}
               <select value={settingsDraft.locale} onChange={(event) => updateSettingsDraftLocale(event.target.value as typeof settingsDraft.locale)}>
-                <option value="system">{t('localeSystem')}</option>
                 <option value="ru">{t('localeRu')}</option>
                 <option value="en">{t('localeEn')}</option>
               </select>

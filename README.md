@@ -2,7 +2,7 @@
 
 Stage 1 monorepo layout:
 
-- `apps/server` - Astro SSR shell + widget APIs + agent control core.
+- `apps/server` - Astro SSR shell + widget APIs + passport auth/session core.
 - `apps/agent` - Rust agent runtime (Linux/macOS/Windows).
 - `packages/protocol` - gRPC/protobuf contracts.
 
@@ -22,6 +22,9 @@ Typical flow:
 
 ```bash
 yarn install
+
+yarn prepare        # post-install hook: cargo fetch for apps/agent
+yarn cleanup        # remove node/astro/dist/coverage/cargo artifacts
 
 yarn dev            # @julia/server dev
 yarn build          # @julia/server build
@@ -55,9 +58,9 @@ See `apps/server/podman-compose.yml` for bind mounts and env vars.
 
 ## Agent Status and Runtime Notes
 
-- Agent status API:
-  - `GET /api/agent/status`
-  - `POST /api/agent/status/retry`
+- Agent/passport status API:
+  - `GET /api/passport/agent/status`
+  - `POST /api/passport/agent/status/retry`
 - Status enum:
   - `connected`
   - `connected_dev`
@@ -80,8 +83,8 @@ See `apps/server/podman-compose.yml` for bind mounts and env vars.
 ## Hostname in UI
 
 - Agent sends hostname in heartbeat (`Heartbeat.hostname` in proto).
-- Server includes hostname in `/api/agent/status`.
-- Header `AgentStatusBadge` shows hostname text after action button.
+- Server includes hostname in `/api/passport/agent/status`.
+- Header `PassportStatusBadge` shows hostname text after action button.
 - If no hostname is available from env (`HOSTNAME`/`COMPUTERNAME`), agent uses `unknown-host`.
 
 ## Local Run (Server + Agent)
@@ -103,7 +106,8 @@ cp .env.example .env
 Optional agent env vars:
 - `JULIA_AGENT_SERVER_URL` (default `http://127.0.0.1:4321`)
 - `JULIA_AGENT_GRPC_ENDPOINT` (default `http://127.0.0.1:50051`)
-- `JULIA_AGENT_ENROLLMENT_TOKEN` (only for first enroll or forced re-enroll)
+- `JULIA_AGENT_ID` (required for first enroll)
+- `JULIA_AGENT_ENROLLMENT_TOKEN` (from `/api/passport/agent/enroll-token/create`)
 - `JULIA_AGENT_DISPLAY_NAME` (overrides hostname sent to server)
 - `JULIA_AGENT_REFRESH_TOKEN_PATH`
 

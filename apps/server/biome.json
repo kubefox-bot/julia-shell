@@ -19,7 +19,34 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "style": {
+        "useImportType": "error",
+        "noMagicNumbers": "warn"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        }
+      },
+      "nursery": {
+        "noExcessiveClassesPerFile": {
+          "level": "error",
+          "options": {
+            "maxClasses": 1
+          }
+        },
+        "noExcessiveLinesPerFile": {
+          "level": "warn",
+          "options": {
+            "maxLines": 220,
+            "skipBlankLines": true
+          }
+        }
+      }
     }
   },
   "overrides": [

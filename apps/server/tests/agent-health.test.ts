@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { isStaleHeartbeat, resolveAgentHeartbeatTimeoutMs } from '../src/core/agent/health';
+import { isStaleHeartbeat, resolveAgentHeartbeatTimeoutMs } from '../src/domains/passport/server/config/health';
 
 const ENV_KEY = 'JULIA_AGENT_HEARTBEAT_TIMEOUT_MS';
 

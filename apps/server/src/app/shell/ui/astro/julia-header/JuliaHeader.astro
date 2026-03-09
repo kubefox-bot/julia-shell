@@ -1,0 +1,20 @@
+---
+import styles from './JuliaHeader.module.scss';
+
+type Props = {
+  quote: string;
+  greeting: string;
+};
+
+const { quote, greeting } = Astro.props as Props;
+---
+
+<header id="shell-header" class={styles.header}>
+  <div class={styles.headerIntro}>
+    <p class={styles.headerEyebrow}>{quote}</p>
+    <h1 class={styles.headerTitle}>{greeting}</h1>
+  </div>
+  <div class={styles.headerRight}>
+    <slot name="meta" />
+  </div>
+</header>

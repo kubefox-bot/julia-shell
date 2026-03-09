@@ -1,13 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ShellSettingsResponse } from '../src/app/shell/model/types';
-import { createShellStore } from '../src/app/shell/model/store';
-import * as shellApi from '../src/app/shell/lib/api';
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as shellApi from '../src/app/shell/lib/api'
+import { createShellStore } from '../src/app/shell/model/store'
+import type { ShellSettingsResponse } from '../src/app/shell/model/types'
 
 vi.mock('../src/app/shell/lib/api', () => ({
   fetchShellSettings: vi.fn(),
   saveShellLayout: vi.fn(),
-  toggleModule: vi.fn()
-}));
+  toggleModule: vi.fn(),
+}))
 
 function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettingsResponse {
   return {
@@ -15,12 +15,12 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
     layoutSettings: {
       desktopColumns: 12,
       mobileColumns: 1,
-      locale: 'system',
-      theme: 'auto'
+      locale: 'ru',
+      theme: 'auto',
     },
     layout: [
       { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' }
+      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' },
     ],
     modules: [
       {
@@ -34,7 +34,7 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
         enabled: true,
         notReadyReasons: [],
         defaultSize: 'medium',
-        supportedSizes: ['small', 'medium', 'large']
+        supportedSizes: ['small', 'medium', 'large'],
       },
       {
         id: 'com.yulia.transcribe',
@@ -47,148 +47,148 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
         enabled: true,
         notReadyReasons: [],
         defaultSize: 'large',
-        supportedSizes: ['medium', 'large']
-      }
+        supportedSizes: ['medium', 'large'],
+      },
     ],
-    ...overrides
-  };
+    ...overrides,
+  }
 }
 
 describe('shell store', () => {
   beforeEach(() => {
-    vi.resetAllMocks();
-  });
+    vi.resetAllMocks()
+  })
 
   it('loadShell syncs server state and draft state', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
-    const store = createShellStore();
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
+    const store = createShellStore()
 
-    await store.getState().loadShell();
+    await store.getState().loadShell()
 
-    expect(store.getState().layout).toEqual(createResponse().layout);
-    expect(store.getState().draftLayout).toEqual(createResponse().layout);
-    expect(store.getState().layoutSettings.locale).toBe('system');
-    expect(store.getState().layoutSettings.theme).toBe('auto');
-  });
+    expect(store.getState().layout).toEqual(createResponse().layout)
+    expect(store.getState().draftLayout).toEqual(createResponse().layout)
+    expect(store.getState().layoutSettings.locale).toBe('ru')
+    expect(store.getState().layoutSettings.theme).toBe('auto')
+  })
 
   it('hydrateShell seeds server state without network fetch', () => {
-    const store = createShellStore();
+    const store = createShellStore()
 
-    store.getState().hydrateShell(createResponse());
+    store.getState().hydrateShell(createResponse())
 
-    expect(store.getState().loading).toBe(false);
-    expect(store.getState().layout).toEqual(createResponse().layout);
-    expect(store.getState().modules).toEqual(createResponse().modules);
-  });
+    expect(store.getState().loading).toBe(false)
+    expect(store.getState().layout).toEqual(createResponse().layout)
+    expect(store.getState().modules).toEqual(createResponse().modules)
+  })
 
   it('startEdit and cancelEdit preserve original layout', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
-    const store = createShellStore();
-    await store.getState().loadShell();
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
+    const store = createShellStore()
+    await store.getState().loadShell()
 
-    store.getState().startEdit();
-    store.getState().changeWidgetSize('com.yulia.weather', 'small');
-    store.getState().cancelEdit();
+    store.getState().startEdit()
+    store.getState().changeWidgetSize('com.yulia.weather', 'small')
+    store.getState().cancelEdit()
 
-    expect(store.getState().isEditMode).toBe(false);
-    expect(store.getState().draftLayout).toEqual(store.getState().layout);
-  });
+    expect(store.getState().isEditMode).toBe(false)
+    expect(store.getState().draftLayout).toEqual(store.getState().layout)
+  })
 
   it('saveLayout persists draft layout and exits edit mode', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
     vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
       createResponse({
         layout: [
           { widgetId: 'com.yulia.transcribe', order: 0, size: 'large' },
-          { widgetId: 'com.yulia.weather', order: 1, size: 'medium' }
-        ]
+          { widgetId: 'com.yulia.weather', order: 1, size: 'medium' },
+        ],
       })
-    );
+    )
 
-    const store = createShellStore();
-    await store.getState().loadShell();
-    store.getState().startEdit();
-    store.getState().startDrag('com.yulia.transcribe');
-    store.getState().overDrag('com.yulia.weather');
-    store.getState().endDrag();
-    await store.getState().saveLayout();
+    const store = createShellStore()
+    await store.getState().loadShell()
+    store.getState().startEdit()
+    store.getState().startDrag('com.yulia.transcribe')
+    store.getState().overDrag('com.yulia.weather')
+    store.getState().endDrag()
+    await store.getState().saveLayout()
 
-    expect(store.getState().isEditMode).toBe(false);
-    expect(store.getState().layout[0]?.widgetId).toBe('com.yulia.transcribe');
-  });
+    expect(store.getState().isEditMode).toBe(false)
+    expect(store.getState().layout[0]?.widgetId).toBe('com.yulia.transcribe')
+  })
 
   it('openSettings, closeSettings and saveSettings work with draft values', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
     vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
       createResponse({
         layoutSettings: {
           desktopColumns: 10,
           mobileColumns: 2,
           locale: 'en',
-          theme: 'night'
-        }
+          theme: 'night',
+        },
       })
-    );
+    )
 
-    const store = createShellStore();
-    await store.getState().loadShell();
-    store.getState().openSettings();
-    store.getState().updateSettingsDraftColumns({ desktopColumns: 10, mobileColumns: 2 });
-    store.getState().updateSettingsDraftLocale('en');
-    store.getState().updateSettingsDraftTheme('night');
-    await store.getState().saveSettings();
+    const store = createShellStore()
+    await store.getState().loadShell()
+    store.getState().openSettings()
+    store.getState().updateSettingsDraftColumns({ desktopColumns: 10, mobileColumns: 2 })
+    store.getState().updateSettingsDraftLocale('en')
+    store.getState().updateSettingsDraftTheme('night')
+    await store.getState().saveSettings()
 
-    expect(store.getState().isSettingsOpen).toBe(false);
+    expect(store.getState().isSettingsOpen).toBe(false)
     expect(store.getState().layoutSettings).toEqual({
       desktopColumns: 10,
       mobileColumns: 2,
       locale: 'en',
-      theme: 'night'
-    });
-  });
+      theme: 'night',
+    })
+  })
 
   it('toggleTheme persists next theme', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
     vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
       createResponse({
         layoutSettings: {
           desktopColumns: 12,
           mobileColumns: 1,
-          locale: 'system',
-          theme: 'day'
-        }
+          locale: 'ru',
+          theme: 'day',
+        },
       })
-    );
+    )
 
-    const store = createShellStore();
-    await store.getState().loadShell();
-    await store.getState().toggleTheme();
+    const store = createShellStore()
+    await store.getState().loadShell()
+    await store.getState().toggleTheme()
 
-    expect(store.getState().layoutSettings.theme).toBe('day');
-  });
+    expect(store.getState().layoutSettings.theme).toBe('day')
+  })
 
   it('toggleLocale persists next locale', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
     vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
       createResponse({
         layoutSettings: {
           desktopColumns: 12,
           mobileColumns: 1,
           locale: 'en',
-          theme: 'auto'
-        }
+          theme: 'auto',
+        },
       })
-    );
+    )
 
-    const store = createShellStore();
-    await store.getState().loadShell();
-    await store.getState().toggleLocale();
+    const store = createShellStore()
+    await store.getState().loadShell()
+    await store.getState().toggleLocale()
 
-    expect(store.getState().layoutSettings.locale).toBe('en');
-  });
+    expect(store.getState().layoutSettings.locale).toBe('en')
+  })
 
   it('toggleModule reloads shell state', async () => {
-    vi.mocked(shellApi.toggleModule).mockResolvedValue({ module: {} });
+    vi.mocked(shellApi.toggleModule).mockResolvedValue({ module: {} })
     vi.mocked(shellApi.fetchShellSettings)
       .mockResolvedValueOnce(createResponse())
       .mockResolvedValueOnce(
@@ -196,39 +196,39 @@ describe('shell store', () => {
           modules: [
             {
               ...createResponse().modules[0],
-              enabled: false
+              enabled: false,
             },
-            createResponse().modules[1]
-          ]
+            createResponse().modules[1],
+          ],
         })
-      );
+      )
 
-    const store = createShellStore();
-    await store.getState().loadShell();
-    await store.getState().toggleModule('com.yulia.weather', false);
+    const store = createShellStore()
+    await store.getState().loadShell()
+    await store.getState().toggleModule('com.yulia.weather', false)
 
-    expect(store.getState().modules[0]?.enabled).toBe(false);
-  });
+    expect(store.getState().modules[0]?.enabled).toBe(false)
+  })
 
   it('drag actions update reorder state and reset active drag ids', async () => {
-    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse());
-    const store = createShellStore();
-    await store.getState().loadShell();
-    store.getState().startEdit();
+    vi.mocked(shellApi.fetchShellSettings).mockResolvedValue(createResponse())
+    const store = createShellStore()
+    await store.getState().loadShell()
+    store.getState().startEdit()
 
-    store.getState().startDrag('com.yulia.transcribe');
-    store.getState().overDrag('com.yulia.weather');
-    store.getState().endDrag();
+    store.getState().startDrag('com.yulia.transcribe')
+    store.getState().overDrag('com.yulia.weather')
+    store.getState().endDrag()
 
-    expect(store.getState().draftLayout[0]?.widgetId).toBe('com.yulia.transcribe');
-    expect(store.getState().activeId).toBeNull();
-    expect(store.getState().overId).toBeNull();
-  });
+    expect(store.getState().draftLayout[0]?.widgetId).toBe('com.yulia.transcribe')
+    expect(store.getState().activeId).toBeNull()
+    expect(store.getState().overId).toBeNull()
+  })
 
   it('tickNow updates shared shell clock value', () => {
-    const store = createShellStore();
-    store.getState().tickNow('2026-03-07T12:00:00.000Z');
+    const store = createShellStore()
+    store.getState().tickNow('2026-03-07T12:00:00.000Z')
 
-    expect(store.getState().nowIso).toBe('2026-03-07T12:00:00.000Z');
-  });
-});
+    expect(store.getState().nowIso).toBe('2026-03-07T12:00:00.000Z')
+  })
+})

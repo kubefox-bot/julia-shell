@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { agentRuntime } from '../../../core/agent/runtime'
+import { passportRuntime } from '@passport/server/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from '../../../core/db/transcribe-repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http'
@@ -11,8 +11,8 @@ import { handleTranscribeStream } from './transcribe-stream'
 import { listPathEntries, resolveTranscriptPath } from './utils'
 
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
-  'POST fs-list': async ({ request }) => {
-    if (isAgentRequiredForTranscribe() && !agentRuntime.getOnlineAgentSession()) {
+  'POST fs-list': async ({ request, agentId }) => {
+    if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession()) {
       return jsonResponse({
         error: 'agent_offline'
       }, 503)
@@ -21,10 +21,10 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     try {
       const body = await readJsonBody<{ path?: string }>(request)
       const payload = await listPathEntries(body.path ?? '')
-      touchRecentFolder(WIDGET_ID, payload.path)
+      touchRecentFolder(agentId, WIDGET_ID, payload.path)
       return jsonResponse({
         ...payload,
-        recentFolders: listRecentFolders(WIDGET_ID).map((entry) => entry.folderPath)
+        recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
       })
     } catch (error) {
       return jsonResponse({
@@ -32,19 +32,19 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       }, 500)
     }
   },
-  'GET settings': async () => {
-    return jsonResponse(await buildSettingsPayload())
+  'GET settings': async ({ agentId }) => {
+    return jsonResponse(await buildSettingsPayload(agentId))
   },
-  'POST settings': async ({ request }) => {
+  'POST settings': async ({ request, agentId }) => {
     const body = await readJsonBody<{ geminiModel?: string; apiKey?: string }>(request)
-    return jsonResponse(await updateTranscribeSettings(body))
+    return jsonResponse(await updateTranscribeSettings(agentId, body))
   },
-  'GET speaker-aliases': async () => {
+  'GET speaker-aliases': async ({ agentId }) => {
     return jsonResponse({
-      aliases: listSpeakerAliases(WIDGET_ID)
+      aliases: listSpeakerAliases(agentId, WIDGET_ID)
     })
   },
-  'POST speaker-aliases': async ({ request }) => {
+  'POST speaker-aliases': async ({ request, agentId }) => {
     const body = await readJsonBody<{
       aliases?: Array<{ speakerKey?: string; aliasName?: string }>
     }>(request)
@@ -57,10 +57,10 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       : []
 
     return jsonResponse({
-      aliases: saveSpeakerAliases(WIDGET_ID, aliases)
+      aliases: saveSpeakerAliases(agentId, WIDGET_ID, aliases)
     })
   },
-  'POST transcript-read': async ({ request }) => {
+  'POST transcript-read': async ({ request, agentId }) => {
     const body = await readJsonBody<{ sourceFile?: string; txtPath?: string; folderPath?: string }>(request)
 
     try {
@@ -72,6 +72,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
 
       const transcript = await fs.readFile(txtPath, 'utf8')
       appendTranscribeOutboxEvent({
+        agentId,
         widgetId: WIDGET_ID,
         eventType: 'transcript_opened',
         state: 'ready',
@@ -95,7 +96,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       }, 404)
     }
   },
-  'POST transcript-save': async ({ request }) => {
+  'POST transcript-save': async ({ request, agentId }) => {
     const body = await readJsonBody<{
       sourceFile?: string
       txtPath?: string
@@ -111,6 +112,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       const txtPath = await resolveTranscriptPath(body)
       await fs.writeFile(txtPath, body.transcript, 'utf8')
       appendTranscribeOutboxEvent({
+        agentId,
         widgetId: WIDGET_ID,
         eventType: 'file_created',
         state: 'updated',
@@ -129,16 +131,16 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       }, 400)
     }
   },
-  'GET jobs': async () => {
-    return jsonResponse({ jobs: listRecentTranscribeJobs(30) })
+  'GET jobs': async ({ agentId }) => {
+    return jsonResponse({ jobs: listRecentTranscribeJobs(agentId, 30) })
   },
-  'POST transcribe-stream': async ({ request }) => {
+  'POST transcribe-stream': async ({ request, agentId }) => {
     const body = await readJsonBody<{
       folderPath?: string
       filePath?: string
       filePaths?: string[]
     }>(request)
 
-    return handleTranscribeStream(body, request)
+    return handleTranscribeStream(body, request, agentId)
   }
 }

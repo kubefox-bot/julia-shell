@@ -60,6 +60,11 @@ function Resolve-AgentBinary {
 }
 
 Import-EnvFile -Path $EnvFile
+
+if ([string]::IsNullOrWhiteSpace($env:JULIA_AGENT_ID)) {
+  Write-Warning "[agent] JULIA_AGENT_ID is empty (required for first enroll via /api/passport/agent/*)"
+}
+
 $agentBinary = Resolve-AgentBinary -ExplicitPath $BinaryPath
 
 if ($null -ne $agentBinary) {
