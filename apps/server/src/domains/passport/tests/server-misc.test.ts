@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const secretsGetMock = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../core/secrets/secrets', () => ({
+vi.mock('@/core/secrets/secrets', () => ({
   secrets: {
     get: secretsGetMock
   }

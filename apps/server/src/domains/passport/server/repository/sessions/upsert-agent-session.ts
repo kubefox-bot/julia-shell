@@ -1,8 +1,8 @@
-import { agentSessionsTable } from '../../../../core/db/passport-schema';
-import { nowIso } from '../../../../shared/lib/time';
-import { PASSPORT_AGENT_STATUS_DISCONNECTED } from '../config/consts';
-import type { UpsertAgentSessionInput } from '../types';
-import { getPassportDb } from './db';
+import { agentSessionsTable } from '@/core/db/passport-schema';
+import { nowIso } from '@/shared/lib/time';
+import { PASSPORT_AGENT_STATUS_DISCONNECTED } from '@passport/server/config/consts';
+import type { UpsertAgentSessionInput } from '@passport/server/types';
+import { getPassportDb } from '@passport/server/repository/shared';
 
 export function upsertAgentSession(input: UpsertAgentSessionInput) {
   const db = getPassportDb();

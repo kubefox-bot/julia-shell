@@ -3,15 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { DateTime } from 'luxon';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { openDb, resetDbCache } from '../../../core/db/shared';
+import { openDb, resetDbCache } from '@/core/db/shared';
 import {
   createEnrollmentToken,
   issueRefreshToken,
   rotateRefreshToken,
   upsertAgentSession
 } from '../server/repository';
-import { isExpiredIso } from '../server/repository/time';
-import { resolveEnrollmentTtlMinutes, resolveEnrollmentUses } from '../server/repository/values';
+import { isExpiredIso, resolveEnrollmentTtlMinutes, resolveEnrollmentUses } from '@passport/server/repository/shared';
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;

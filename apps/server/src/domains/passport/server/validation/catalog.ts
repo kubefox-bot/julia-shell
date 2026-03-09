@@ -1,9 +1,11 @@
 import type { ZodType } from 'zod'
-import type { PassportHttpErrorKey } from '../http'
-import { createEnrollmentTokenRequestSchema } from './create-enrollment-token-request'
-import { enrollRequestSchema } from './enroll-request'
-import { refreshRequestSchema } from './refresh-request'
-import { revokeEnrollmentTokenRequestSchema } from './revoke-enrollment-token-request'
+import type { PassportHttpErrorKey } from '@passport/server/http'
+import {
+  createEnrollmentTokenRequestSchema,
+  enrollRequestSchema,
+  refreshRequestSchema,
+  revokeEnrollmentTokenRequestSchema
+} from './requests'
 
 type PassportValidationEntry<TSchema extends ZodType = ZodType> = {
   schema: TSchema

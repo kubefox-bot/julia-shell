@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import type { WidgetRenderProps } from '../../../../entities/widget/model/types'
-import { subscribePassportStatusChanged } from '../../../../domains/passport/client/bus'
+import { subscribePassportStatusChanged } from '@passport/client'
 import { getTranscribeText } from '../../i18n'
 import {
   findMatchingTranscriptPath,

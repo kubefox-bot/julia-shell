@@ -4,7 +4,7 @@ import { createShellDataSlice } from './slices/shell-data-slice';
 import { createShellSettingsSlice } from './slices/shell-settings-slice';
 import { createShellLayoutSlice } from './slices/shell-layout-slice';
 import { createShellDndSlice } from './slices/shell-dnd-slice';
-import { createPassportSlice } from '../../../domains/passport/client/slice';
+import { createPassportSlice } from '@passport/client';
 
 export const createShellStore = () =>
   create<ShellStore>()((...args) => ({

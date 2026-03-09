@@ -12,7 +12,7 @@ import type {
   PassportStatusResponse
 } from './types';
 import type { ShellStore } from '../../../app/shell/model/types';
-import { nowIso } from '../../../shared/lib/time';
+import { nowIso } from '@/shared/lib/time';
 
 function shouldReloadShellOnStatusTransition(
   previous: PassportStatusResponse['status'] | null | undefined,

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { passportAgentIdSchema, passportRefreshTokenSchema } from './base-schemas'
+import { passportAgentIdSchema, passportRefreshTokenSchema } from '@passport/server/validation/schemas'
 
 export const refreshRequestSchema = z.object({
   agent_id: passportAgentIdSchema,

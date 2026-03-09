@@ -5,7 +5,7 @@ import {
   PASSPORT_ENROLLMENT_MAX_USES,
   PASSPORT_ENROLLMENT_MIN_TTL_MINUTES,
   PASSPORT_ENROLLMENT_MIN_USES
-} from '../config/consts';
+} from '@passport/server/config/consts';
 
 export function resolveEnrollmentTtlMinutes(value: number | undefined) {
   return Math.max(

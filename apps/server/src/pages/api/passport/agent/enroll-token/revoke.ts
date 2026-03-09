@@ -1,11 +1,11 @@
 import type { APIRoute } from 'astro'
-import { isPassportAdminAuthorized } from '../../../../../domains/passport/server/config/admin-auth'
-import { passportErrorResponse } from '../../../../../domains/passport/server/http'
-import { revokeEnrollmentToken } from '../../../../../domains/passport/server/repository'
+import { isPassportAdminAuthorized } from '@passport/server/config/admin-auth'
+import { passportErrorResponse } from '@passport/server/http'
+import { revokeEnrollmentToken } from '@passport/server/repository'
 import {
   PASSPORT_VALIDATION_CATALOG,
   parseRequestBody,
-} from '../../../../../domains/passport/server/validation'
+} from '@passport/server/validation'
 import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http'
 
 export const POST: APIRoute = async ({ request }) => {

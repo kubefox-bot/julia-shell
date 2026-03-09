@@ -1,7 +1,7 @@
 import { and, desc, eq, gte } from 'drizzle-orm';
-import { agentSessionsTable } from '../../../../core/db/passport-schema';
-import { PASSPORT_AGENT_STATUS_ONLINE } from '../config/consts';
-import { getPassportDb } from './db';
+import { agentSessionsTable } from '@/core/db/passport-schema';
+import { PASSPORT_AGENT_STATUS_ONLINE } from '@passport/server/config/consts';
+import { getPassportDb } from '@passport/server/repository/shared';
 
 export function getAnyOnlineAgentSession(input?: { minHeartbeatAt?: string }) {
   const db = getPassportDb();

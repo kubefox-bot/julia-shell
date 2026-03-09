@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { passportEnrollmentTokenIdSchema } from './base-schemas'
+import { passportEnrollmentTokenIdSchema } from '@passport/server/validation/schemas'
 
 export const revokeEnrollmentTokenRequestSchema = z.object({
   token_id: passportEnrollmentTokenIdSchema,

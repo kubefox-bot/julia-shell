@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { agentRegistryTable } from '../../../../core/db/passport-schema';
-import { getPassportDb } from './db';
+import { agentRegistryTable } from '@/core/db/passport-schema';
+import { getPassportDb } from '@passport/server/repository/shared';
 
 export function getAgentDisplayName(agentId: string) {
   const db = getPassportDb();

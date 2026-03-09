@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { withSetCookie } from '../../../../../domains/passport/server/cookie';
-import { resolvePassportRequestContext } from '../../../../../domains/passport/server/context';
+import { withSetCookie } from '@passport/server/cookie';
+import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus } from '../../../../../shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http';
 

@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 export default defineConfig({
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url))
     }
   },
   test: {
@@ -15,8 +16,9 @@ export default defineConfig({
       reporter: ['text', 'html'],
       include: ['src/domains/passport/**/*.{ts,tsx}'],
       exclude: [
-        'src/domains/passport/server/runtime.ts',
-        'src/domains/passport/server/index.ts',
+        'src/domains/passport/**/*.d.ts',
+        'src/domains/passport/**/index.ts',
+        'src/domains/passport/server/runtime/**',
         'src/domains/passport/client/types.ts',
         'src/domains/passport/ui/**'
       ],

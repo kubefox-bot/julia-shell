@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
-import { agentEnrollmentTokensTable } from '../../../../core/db/passport-schema';
-import { nowIso } from '../../../../shared/lib/time';
-import { sha256 } from '../crypto';
-import { getPassportDb } from './db';
-import { isExpiredIso } from './time';
+import { agentEnrollmentTokensTable } from '@/core/db/passport-schema';
+import { nowIso } from '@/shared/lib/time';
+import { sha256 } from '@passport/server/crypto';
+import { getPassportDb } from '@passport/server/repository/shared';
+import { isExpiredIso } from '@passport/server/repository/shared';
 
 /**
  * Consumes enrollment token only when `(agent_id, token)` pair is valid.

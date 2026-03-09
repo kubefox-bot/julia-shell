@@ -1,6 +1,6 @@
 import type { CSSProperties, ComponentType } from 'react';
 import type { HostPlatform, LayoutItem, LayoutSettings, ResolvedShellTheme, ShellLocale, ShellTheme, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
-import type { PassportSliceActions, PassportSliceState } from '../../../domains/passport/client/types';
+import type { PassportSliceActions, PassportSliceState } from '@passport/client';
 
 export type ShellSettingsResponse = {
   platform: HostPlatform;

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { PASSPORT_REFRESH_TTL_DAYS } from '../config/consts';
+import { PASSPORT_REFRESH_TTL_DAYS } from '@passport/server/config/consts';
 
 export function buildEnrollmentTokenExpiresAt(ttlMinutes: number, fallbackIso: string) {
   return DateTime.utc().plus({ minutes: ttlMinutes }).toISO() ?? fallbackIso;

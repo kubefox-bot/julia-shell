@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { updateLayoutSettings } from '../../../../core/services/shell-service';
-import { PASSPORT_ANONYMOUS_AGENT_ID } from '../../../../domains/passport/server/config/consts';
-import { resolvePassportRequestContext } from '../../../../domains/passport/server/context';
-import { withSetCookie } from '../../../../domains/passport/server/cookie';
+import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
+import { resolvePassportRequestContext } from '@passport/server/context';
+import { withSetCookie } from '@passport/server/cookie';
 import { jsonResponse, readJsonBody } from '../../../../shared/lib/http';
 
 export const POST: APIRoute = async ({ request }) => {

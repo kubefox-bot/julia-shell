@@ -1,5 +1,5 @@
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
-import { passportRuntime } from '../../../domains/passport/server/runtime/runtime'
+import { passportRuntime } from '@passport/server/runtime'
 import { transcribeHandlers } from './handlers'
 import { isAgentRequiredForTranscribe } from './agent-mode'
 import { WIDGET_ID } from './constants'

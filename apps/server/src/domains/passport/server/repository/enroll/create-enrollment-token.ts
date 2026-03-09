@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { agentEnrollmentTokensTable, agentRegistryTable } from '../../../../core/db/passport-schema';
-import { nowIso } from '../../../../shared/lib/time';
+import { agentEnrollmentTokensTable, agentRegistryTable } from '@/core/db/passport-schema';
+import { nowIso } from '@/shared/lib/time';
 import {
   PASSPORT_ENROLLMENT_TOKEN_BYTES,
   PASSPORT_AGENT_STATUS_ENROLLMENT_PENDING
-} from '../config/consts';
-import { createOpaqueToken, sha256 } from '../crypto';
-import { resolveAgentDisplayName } from '../models';
-import type { CreateEnrollmentTokenInput } from '../types';
-import { buildEnrollmentTokenExpiresAt } from './dates';
-import { getPassportDb } from './db';
-import { resolveEnrollmentTtlMinutes, resolveEnrollmentUses } from './values';
+} from '@passport/server/config/consts';
+import { createOpaqueToken, sha256 } from '@passport/server/crypto';
+import { resolveAgentDisplayName } from '@passport/server/models';
+import type { CreateEnrollmentTokenInput } from '@passport/server/types';
+import { buildEnrollmentTokenExpiresAt } from '@passport/server/repository/shared';
+import { getPassportDb } from '@passport/server/repository/shared';
+import { resolveEnrollmentTtlMinutes, resolveEnrollmentUses } from '@passport/server/repository/shared';
 
 /**
  * Issues one-time enrollment token and reserves `agent_id` for first auth.
