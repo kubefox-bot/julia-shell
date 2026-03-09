@@ -47,7 +47,7 @@ export function resolvePassportWidgetProviderSnapshot(
       hasAccessToken,
       requiresOnlineAgent,
       hasOnlineAgent,
-      reason: 'Browser access token is required.'
+      reason: `${widgetId} widget requires agent.`
     }
   }
 
@@ -60,7 +60,7 @@ export function resolvePassportWidgetProviderSnapshot(
       hasAccessToken,
       requiresOnlineAgent,
       hasOnlineAgent,
-      reason: 'Agent is offline.'
+      reason: `${widgetId} widget requires agent.`
     }
   }
 

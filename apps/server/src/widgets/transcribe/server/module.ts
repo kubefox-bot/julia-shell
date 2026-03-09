@@ -2,6 +2,7 @@ import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { passportRuntime } from '../../../domains/passport/server/runtime'
 import { transcribeHandlers } from './handlers'
 import { isAgentRequiredForTranscribe } from './agent-mode'
+import { WIDGET_ID } from './constants'
 import { buildAvailableModels, getHostPlatform, isSupportedAudioPath, resolveConfiguredModel, resolveTranscriptPath, toTranscriptPath } from './utils'
 
 export const transcribeServerModule: WidgetServerModule = {
@@ -14,7 +15,7 @@ export const transcribeServerModule: WidgetServerModule = {
     if (!onlineAgent) {
       return {
         ready: false,
-        reason: 'Agent is required for transcribe in production mode.'
+        reason: `${WIDGET_ID} widget requires agent.`
       };
     }
 

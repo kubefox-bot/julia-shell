@@ -31,6 +31,6 @@ describe('shell service passport access policy', () => {
     expect(transcribe).toBeDefined();
     expect(transcribe?.ready).toBe(false);
     expect(transcribe?.enabled).toBe(false);
-    expect(transcribe?.notReadyReasons).toContain('Passport access token is required for this widget.');
+    expect(transcribe?.notReadyReasons).toContain('com.yulia.transcribe widget requires agent.');
   });
 });
