@@ -5,6 +5,20 @@ const HEADER_ID = 'shell-header';
 const HEADER_ACTIONS_ID = 'shell-header-actions';
 const FALLBACK_ACTIONS_HEIGHT_PX = 56;
 
+export function computeBootHeaderSpacerHeight(input: {
+  headerHeight: number;
+  actionsHeight?: number | null;
+}) {
+  const resolvedHeaderHeight = Number.isFinite(input.headerHeight)
+    ? Math.max(0, Math.ceil(input.headerHeight))
+    : 0;
+  const resolvedActionsHeight = Number.isFinite(input.actionsHeight ?? null)
+    ? Math.max(0, Math.ceil(input.actionsHeight as number))
+    : FALLBACK_ACTIONS_HEIGHT_PX;
+
+  return Math.ceil(resolvedHeaderHeight + resolvedActionsHeight);
+}
+
 function resolveBootHeaderHeight() {
   const header = document.getElementById(HEADER_ID);
   if (!header) {
@@ -12,12 +26,10 @@ function resolveBootHeaderHeight() {
   }
 
   const actions = document.getElementById(HEADER_ACTIONS_ID);
-  const headerHeight = Math.ceil(header.getBoundingClientRect().height);
-  const actionsHeight = actions
-    ? Math.ceil(actions.getBoundingClientRect().height)
-    : FALLBACK_ACTIONS_HEIGHT_PX;
-
-  return Math.ceil(headerHeight + actionsHeight);
+  return computeBootHeaderSpacerHeight({
+    headerHeight: header.getBoundingClientRect().height,
+    actionsHeight: actions?.getBoundingClientRect().height
+  });
 }
 
 export function setupShellBootOverlay() {
