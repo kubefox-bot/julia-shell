@@ -134,6 +134,7 @@ Agent startup note:
 - Supported widgets now:
   - `com.yulia.transcribe`
   - `com.yulia.weather`
+  - `com.yulia.terminal-agent`
 - Widget contract requires:
   - `id`
   - `name`
@@ -234,6 +235,8 @@ SQLite databases in `data/`:
 - `core.db`: shell layout/settings/module state
 - `weather.db`: weather cache
 - `transcribe.db`: transcription jobs/outbox state
+- `llm-catalog.db`: provider model catalogs for widget consumers
+- `llm-runtime.db`: consumer-based settings/dialog continuity for LLM widgets
 
 `core.db` notes:
 - `core` DB access is implemented through Drizzle ORM on top of `better-sqlite3`,
@@ -337,6 +340,12 @@ Widget-specific local instructions live here:
 - `apps/server/src/widgets/transcribe/AGENTS.md`
 - `apps/server/src/widgets/transcribe/ui/AGENTS.md`
 - `apps/server/src/widgets/weather/AGENTS.md`
+- `apps/server/src/widgets/terminal-agent/AGENTS.md`
+
+## Domain Local Context Files
+Domain-specific local instructions live here:
+- `apps/server/src/domains/passport/docs/AGENTS.md`
+- `apps/server/src/domains/llm/docs/AGENTS.md`
 
 ## Operational Notes
 - after frontend/API changes, rebuild on Windows before production check,

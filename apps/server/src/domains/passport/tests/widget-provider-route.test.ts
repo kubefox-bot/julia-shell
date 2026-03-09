@@ -14,7 +14,7 @@ vi.mock('../server/runtime/runtime', () => ({
   }
 }))
 
-vi.mock('@/core/env', () => ({
+vi.mock('@core/env', () => ({
   readRuntimeEnv: readRuntimeEnvMock
 }))
 
@@ -76,6 +76,23 @@ describe('passport widget provider route', () => {
 
     expect(response.status).toBe(HTTP_STATUS_OK)
     expect(payload.status).toBe('agent_offline')
+    expect(payload.ready).toBe(false)
+  })
+
+  it('returns requires_access_token for terminal-agent without browser token', async () => {
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: null,
+      reason: 'missing'
+    })
+    getOnlineAgentSessionMock.mockReturnValue({ agentId: 'agent-a' })
+
+    const response = await widgetProviderGet({
+      request: new Request('http://localhost/api/passport/widget/provider?widget_id=com.yulia.terminal-agent')
+    } as never)
+    const payload = await response.json()
+
+    expect(response.status).toBe(HTTP_STATUS_OK)
+    expect(payload.status).toBe('requires_access_token')
     expect(payload.ready).toBe(false)
   })
 })

@@ -27,6 +27,7 @@ const DAILY_QUOTES = {
     'Today is built for thoughtful progress.'
   ]
 } as const;
+const QUOTE_SEED_YEAR_MULTIPLIER = 17;
 
 const SHELL_COPY = {
   ru: {
@@ -155,6 +156,6 @@ export function getShellText(locale: DisplayLocale, key: ShellCopyKey) {
 
 export function getDailyQuote(locale: DisplayLocale, now: DateTime) {
   const quotes = DAILY_QUOTES[locale];
-  const seed = now.ordinal + now.year * 17;
+  const seed = now.ordinal + now.year * QUOTE_SEED_YEAR_MULTIPLIER;
   return quotes[Math.abs(seed) % quotes.length] ?? quotes[0];
 }

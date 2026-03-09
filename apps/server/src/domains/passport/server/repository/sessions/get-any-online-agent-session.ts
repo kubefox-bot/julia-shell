@@ -1,5 +1,5 @@
 import { and, desc, eq, gte } from 'drizzle-orm';
-import { agentSessionsTable } from '@/core/db/passport-schema';
+import { agentSessionsTable } from '@passport/server/repository/shared/passport-schema';
 import { PASSPORT_AGENT_STATUS_ONLINE } from '@passport/server/config/consts';
 import { getPassportDb } from '@passport/server/repository/shared';
 

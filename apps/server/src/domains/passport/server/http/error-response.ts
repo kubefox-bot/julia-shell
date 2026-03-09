@@ -1,4 +1,4 @@
-import { jsonResponse } from '@/shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
 import { PASSPORT_HTTP_ERROR_CATALOG, type PassportHttpErrorKey } from './error-catalog';
 
 /**

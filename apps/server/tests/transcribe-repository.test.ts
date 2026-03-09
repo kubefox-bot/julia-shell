@@ -13,7 +13,7 @@ import {
   saveSpeakerAliases,
   saveTranscribeWidgetSettings,
   touchRecentFolder
-} from '../src/core/db/transcribe-repository'
+} from '../src/widgets/transcribe/server/repository'
 import { openDb, resetDbCache } from '../src/core/db/shared'
 
 let tempDir = ''

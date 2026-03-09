@@ -25,7 +25,13 @@ describe('passport client api', () => {
 
     const payload = await fetchPassportStatus();
     expect(payload.status).toBe('connected');
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/passport/agent/status');
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    const fetchMock = globalThis.fetch as unknown as {
+      mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> }
+    };
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/passport/agent/status');
+    expect(new Headers(init?.headers).get('x-request-id')).toBeTruthy();
   });
 
   it('throws on failed retry status response', async () => {

@@ -1,12 +1,12 @@
 import type { APIRoute } from 'astro';
-import { resolveWidgetHandler } from '../../../../core/registry/registry';
-import { listShellModules } from '../../../../core/services/shell-service';
+import { resolveWidgetHandler } from '@core/registry/registry';
+import { listShellModules } from '@core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';
 import { PASSPORT_HTTP_STATUS } from '@passport/server/http';
 import { isPassportProtectedWidget } from '@passport/server/widget';
-import { jsonResponse } from '../../../../shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
 
 async function handleRequest(method: string, request: Request, id: string | undefined, actionRaw: string | undefined) {
   if (!id) {

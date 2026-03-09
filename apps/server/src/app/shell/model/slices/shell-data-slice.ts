@@ -4,7 +4,7 @@ import { SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS } from '../constants'
 import { buildShellStatePatch } from '../store-helpers'
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types'
 import type { ShellLocale } from '../../../../entities/widget/model/types'
-import { readLocaleCookieFromDocument } from '../../../../shared/lib/locale-cookie'
+import { readLocaleCookieFromDocument } from '@shared/lib/locale-cookie'
 
 export type ShellDataSlice = Pick<
   ShellStoreState,

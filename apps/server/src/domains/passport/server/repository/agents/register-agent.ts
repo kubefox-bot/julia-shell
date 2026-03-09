@@ -1,5 +1,5 @@
-import { agentRegistryTable } from '@/core/db/passport-schema';
-import { nowIso } from '@/shared/lib/time';
+import { agentRegistryTable } from '@passport/server/repository/shared/passport-schema';
+import { nowIso } from '@shared/lib/time';
 import { PASSPORT_AGENT_STATUS_ONLINE } from '@passport/server/config/consts';
 import { resolveAgentDisplayName, resolveAgentVersion, serializeAgentCapabilities } from '@passport/server/models';
 import type { RegisterAgentInput } from '@passport/server/types';

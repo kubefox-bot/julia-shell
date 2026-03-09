@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { readRuntimeEnv } from '@/core/env'
+import { readRuntimeEnv } from '@core/env'
 
 export function isAgentDevMode() {
   return readRuntimeEnv().passportAgentDevModeEnabled

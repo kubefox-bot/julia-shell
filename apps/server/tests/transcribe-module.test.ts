@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { listRecentTranscribeJobs } from '../src/core/db/transcribe-repository'
+import { listRecentTranscribeJobs } from '../src/widgets/transcribe/server/repository'
 import { resetDbCache } from '../src/core/db/shared'
 import { transcribeServerModule } from '../src/widgets/transcribe/server/module'
 
@@ -10,6 +10,8 @@ let tempDir = ''
 let audioDir = ''
 let originalPath = ''
 let ffmpegStubDir = ''
+const EXECUTABLE_MODE = 0o755
+const STATUS_OK = 200
 
 beforeEach(() => {
   tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-transcribe-module-'))
@@ -35,7 +37,7 @@ printf 'stub-audio' > "$output"
 `,
     'utf8'
   )
-  fs.chmodSync(ffmpegStubPath, 0o755)
+  fs.chmodSync(ffmpegStubPath, EXECUTABLE_MODE)
   originalPath = process.env.PATH ?? ''
   process.env.PATH = `${ffmpegStubDir}${path.delimiter}${originalPath}`
   process.env.JULIAAPP_DATA_DIR = tempDir
@@ -75,7 +77,7 @@ describe('transcribe server module', () => {
       }
     })
 
-    expect(transcribeResponse.status).toBe(200)
+    expect(transcribeResponse.status).toBe(STATUS_OK)
     const body = await transcribeResponse.text()
     expect(body).not.toContain('event: error')
     const ffmpegLog = fs.readFileSync(path.join(tempDir, 'ffmpeg.log'), 'utf8')
@@ -106,7 +108,7 @@ describe('transcribe server module', () => {
       }
     })
 
-    expect(readResponse.status).toBe(200)
+    expect(readResponse.status).toBe(STATUS_OK)
     const readPayload = await readResponse.json() as { transcript: string; txtPath: string }
     expect(readPayload.txtPath.endsWith('clip-1.txt')).toBe(true)
     expect(readPayload.transcript).toContain('Mock transcription mode is active.')
@@ -131,7 +133,7 @@ describe('transcribe server module', () => {
       }
     })
 
-    expect(saveResponse.status).toBe(200)
+    expect(saveResponse.status).toBe(STATUS_OK)
     const savePayload = await saveResponse.json() as { txtPath: string }
     expect(savePayload.txtPath.endsWith('clip-1.txt')).toBe(true)
     expect(fs.readFileSync(savePayload.txtPath, 'utf8')).toBe('[01:45:06] Анна: Привет')
@@ -157,7 +159,7 @@ describe('transcribe server module', () => {
       }
     })
 
-    expect(saveAliasesResponse.status).toBe(200)
+    expect(saveAliasesResponse.status).toBe(STATUS_OK)
     const saveAliasesPayload = await saveAliasesResponse.json() as {
       aliases: Array<{ speakerKey: string; aliasName: string }>
     }
@@ -201,7 +203,7 @@ describe('transcribe server module', () => {
       }
     })
 
-    expect(getAliasesResponse.status).toBe(200)
+    expect(getAliasesResponse.status).toBe(STATUS_OK)
     const getAliasesPayload = await getAliasesResponse.json() as {
       aliases: Array<{ speakerKey: string; aliasName: string }>
     }

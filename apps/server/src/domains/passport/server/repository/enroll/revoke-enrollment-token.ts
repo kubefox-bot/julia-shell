@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
-import { agentEnrollmentTokensTable } from '@/core/db/passport-schema';
-import { nowIso } from '@/shared/lib/time';
+import { agentEnrollmentTokensTable } from '@passport/server/repository/shared/passport-schema';
+import { nowIso } from '@shared/lib/time';
 import { getPassportDb } from '@passport/server/repository/shared';
 
 export function revokeEnrollmentToken(tokenId: string) {

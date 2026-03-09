@@ -3,8 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { DateTime } from 'luxon';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { openDb, resetDbCache } from '@/core/db/shared';
-import { nowIso } from '@/shared/lib/time';
+import { openDb, resetDbCache } from '@core/db/shared';
+import { nowIso } from '@shared/lib/time';
 import {
   appendAgentEvent,
   consumeEnrollmentToken,

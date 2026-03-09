@@ -7,7 +7,7 @@ vi.mock('../server/config/jwt-secret', () => ({
   resolvePassportJwtSecret: vi.fn(async () => 'secret')
 }));
 
-import { resetDbCache } from '@/core/db/shared';
+import { resetDbCache } from '@core/db/shared';
 import { createEnrollmentToken } from '../server/repository';
 import { enrollPassportAgent, refreshPassportSession } from '../server/service';
 

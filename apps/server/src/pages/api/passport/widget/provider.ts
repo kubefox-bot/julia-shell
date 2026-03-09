@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { resolvePassportRequestContext } from '@passport/server/context'
 import { PASSPORT_HTTP_STATUS } from '@passport/server/http'
 import { resolvePassportWidgetProviderSnapshot } from '@passport/server/widget'
-import { jsonResponse } from '../../../../shared/lib/http'
+import { jsonResponse } from '@shared/lib/http'
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url)

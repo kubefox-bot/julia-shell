@@ -1,4 +1,4 @@
-import { secrets } from '@/core/secrets/secrets';
+import { secrets } from '@core/secrets/secrets';
 import { safeEqual } from '../crypto';
 
 /**

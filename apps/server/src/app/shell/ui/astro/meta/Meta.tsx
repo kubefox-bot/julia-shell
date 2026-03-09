@@ -1,9 +1,11 @@
 import { DateTime } from 'luxon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DisplayLocale } from '../../../../../entities/widget/model/types';
-import { resolveDisplayLocale } from '../../../../../shared/lib/locale';
+import { resolveDisplayLocale } from '@shared/lib/locale';
 import { useShellStore } from '../../../model/store';
 import styles from './Meta.module.scss';
+
+const CLOCK_TICK_INTERVAL_MS = 1_000;
 
 type MetaProps = {
   initialNowIso: string;
@@ -34,7 +36,7 @@ export function Meta({ initialNowIso, initialLocale }: MetaProps) {
     const intervalId = window.setInterval(() => {
       const elapsed = Date.now() - startMsRef.current;
       setNowMs(seedNowMs + elapsed);
-    }, 1_000);
+    }, CLOCK_TICK_INTERVAL_MS);
 
     return () => {
       window.clearInterval(intervalId);

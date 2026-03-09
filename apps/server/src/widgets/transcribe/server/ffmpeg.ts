@@ -7,6 +7,13 @@ import { escapeConcatPath, parseClockToSeconds } from './utils'
 type ProgressHandler = (percent: number, stage: string) => void
 type ChildSetter = (child: ChildProcess | null) => void
 
+const MERGE_STAGE_START_PERCENT = 6
+const CONVERT_STAGE_START_PERCENT = 5
+const MERGE_STAGE_END_PERCENT = 52
+const CONVERT_STAGE_END_PERCENT = 40
+const MERGE_PROGRESS_RATIO_THRESHOLD = 0.35
+const MIN_CONVERSION_PROGRESS_STEP = 1
+
 export async function prepareAudioForTranscription(input: {
   ffmpegExe: string
   selectedFiles: string[]
@@ -33,8 +40,8 @@ export async function prepareAudioForTranscription(input: {
 
   const convertBaseName = selectedFiles.length > 1 ? `${primaryBaseName}_merged` : primaryBaseName
   convertedAudioPath = path.join(TMP_ROOT, `${convertBaseName}.mono16k.ogg`)
-  const conversionStart = selectedFiles.length > 1 ? 6 : 5
-  const conversionEnd = selectedFiles.length > 1 ? 52 : 40
+  const conversionStart = selectedFiles.length > 1 ? MERGE_STAGE_START_PERCENT : CONVERT_STAGE_START_PERCENT
+  const conversionEnd = selectedFiles.length > 1 ? MERGE_STAGE_END_PERCENT : CONVERT_STAGE_END_PERCENT
 
   sendProgress(conversionStart, selectedFiles.length > 1 ? 'progressMerging' : 'progressConverting')
   await runFfmpeg({
@@ -93,12 +100,12 @@ export async function prepareAudioForTranscription(input: {
       if (durationSeconds > 0 && timeMatches.length > 0) {
         const currentSeconds = parseClockToSeconds(timeMatches[timeMatches.length - 1][1])
         const ratio = Math.max(0, Math.min(1, currentSeconds / durationSeconds))
-        const stage = selectedFiles.length > 1 && ratio < 0.35
+        const stage = selectedFiles.length > 1 && ratio < MERGE_PROGRESS_RATIO_THRESHOLD
           ? 'progressMerging'
           : 'progressConverting'
         const rawProgress = conversionStart + ratio * (conversionEnd - conversionStart)
         const responsiveProgress = selectedFiles.length > 1 && currentSeconds > 0
-          ? Math.max(rawProgress, conversionStart + 1)
+          ? Math.max(rawProgress, conversionStart + MIN_CONVERSION_PROGRESS_STEP)
           : rawProgress
         sendProgress(responsiveProgress, stage)
       }

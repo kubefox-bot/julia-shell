@@ -1,4 +1,4 @@
-import { readRuntimeEnv } from '../../../core/env'
+import { readRuntimeEnv } from '@core/env'
 
 export function isTranscribeDevBypassMode() {
   return readRuntimeEnv().passportAgentDevModeEnabled

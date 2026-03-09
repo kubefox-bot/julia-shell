@@ -6,10 +6,10 @@ import {
   failTranscribeJob,
   touchRecentFolder,
   updateTranscribeJobProgress,
-} from '../../../core/db/transcribe-repository';
+} from './repository';
 import { passportRuntime } from '@passport/server/runtime';
-import { jsonResponse } from '../../../shared/lib/http';
-import { moduleBus } from '../../../shared/lib/module-bus';
+import { jsonResponse } from '@shared/lib/http';
+import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
 import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';
@@ -100,7 +100,7 @@ export async function handleAgentTranscribeStream(
     },
   });
 
-  const topic = `agent:transcribe:${jobId}`;
+  const topic = `agent:widget:${WIDGET_ID}:${jobId}`;
   let closed = false;
 
   const stream = new ReadableStream<Uint8Array>({

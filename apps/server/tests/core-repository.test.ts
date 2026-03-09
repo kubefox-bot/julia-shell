@@ -14,6 +14,8 @@ import {
 } from '../src/core/db/core-repository';
 import { resetDbCache } from '../src/core/db/shared';
 
+const DEFAULT_DESKTOP_COLUMNS = 12;
+
 let tempDir = '';
 
 beforeEach(() => {
@@ -31,7 +33,7 @@ describe('core repository', () => {
   it('persists layout settings and layout rows', () => {
     const agentId = 'agent-a';
     const initial = getLayoutSettings(agentId);
-    expect(initial.desktopColumns).toBe(12);
+    expect(initial.desktopColumns).toBe(DEFAULT_DESKTOP_COLUMNS);
     expect(initial.locale).toBe('ru');
     expect(initial.theme).toBe('auto');
 

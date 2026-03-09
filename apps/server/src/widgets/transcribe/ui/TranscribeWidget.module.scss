@@ -689,7 +689,7 @@
     inset 0 1px 0 rgb(255 255 255 / 72%);
 }
 
-.night .settingsPanel {
+.settingsPanel[data-modal-theme='night'] {
   background:
     radial-gradient(circle at top left, rgb(45 212 191 / 10%), transparent 38%),
     linear-gradient(180deg, rgb(15 23 42 / 98%), rgb(17 24 39 / 98%));
@@ -729,7 +729,7 @@
   color: #475569;
 }
 
-.night .fieldLabel {
+.settingsPanel[data-modal-theme='night'] .fieldLabel {
   color: #cbd5e1;
 }
 
@@ -859,36 +859,36 @@
   transform: translateY(-30%) rotate(180deg);
 }
 
-.night .field input,
-.night .field select {
+.settingsPanel[data-modal-theme='night'] .field input,
+.settingsPanel[data-modal-theme='night'] .field select {
   background: #111827;
   color: #e2e8f0;
   border-color: #334155;
 }
 
-.night .field input:focus,
-.night .field select:focus {
+.settingsPanel[data-modal-theme='night'] .field input:focus,
+.settingsPanel[data-modal-theme='night'] .field select:focus {
   border-color: rgb(45 212 191 / 52%);
   box-shadow: 0 0 0 4px rgb(20 184 166 / 14%);
 }
 
-.night .modelSelectTrigger {
+.settingsPanel[data-modal-theme='night'] .modelSelectTrigger {
   background: #111827;
   border-color: #334155;
   color: #e2e8f0;
 }
 
-.night .modelSelectTriggerActive {
+.settingsPanel[data-modal-theme='night'] .modelSelectTriggerActive {
   border-color: rgb(45 212 191 / 52%);
   box-shadow: 0 0 0 4px rgb(20 184 166 / 14%);
 }
 
-.night .modelSelectMenu {
+.settingsPanel[data-modal-theme='night'] .modelSelectMenu {
   background: #0f172a;
   border-color: #334155;
 }
 
-.night .selectIndicator {
+.settingsPanel[data-modal-theme='night'] .selectIndicator {
   border-top-color: #5eead4;
 }
 

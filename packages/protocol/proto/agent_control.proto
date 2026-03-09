@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package julia.agent.v1;
 
+import "widgets/transcribe.proto";
+import "widgets/terminal_agent.proto";
+
 service AgentControlService {
   rpc StreamConnect(stream AgentEnvelope) returns (stream ServerEnvelope);
 }
@@ -16,10 +19,11 @@ message AgentEnvelope {
 
   oneof payload {
     Heartbeat heartbeat = 10;
-    TranscribeProgress progress = 11;
-    TranscribeToken token = 12;
-    TranscribeDone done = 13;
-    TranscribeError error = 14;
+    TranscribeProgressEvent progress = 11;
+    TranscribeTokenEvent token = 12;
+    TranscribeDoneEvent done = 13;
+    TranscribeErrorEvent error = 14;
+    WidgetEvent widget_event = 20;
   }
 }
 
@@ -31,9 +35,10 @@ message ServerEnvelope {
 
   oneof payload {
     HealthPing health_ping = 10;
-    TranscribeStart transcribe_start = 11;
-    TranscribeCancel transcribe_cancel = 12;
+    TranscribeStartCommand transcribe_start = 11;
+    TranscribeCancelCommand transcribe_cancel = 12;
     ErrorEnvelope error = 13;
+    WidgetCommand widget_command = 20;
   }
 }
 
@@ -47,33 +52,32 @@ message HealthPing {
   string nonce = 1;
 }
 
-message TranscribeStart {
-  string folder_path = 1;
-  repeated string file_paths = 2;
+message WidgetCommand {
+  string widget_id = 1;
+
+  oneof payload {
+    TranscribeStartCommand transcribe_start = 10;
+    TranscribeCancelCommand transcribe_cancel = 11;
+    TerminalAgentSendMessageCommand terminal_agent_send_message = 20;
+    TerminalAgentResetDialogCommand terminal_agent_reset_dialog = 21;
+  }
 }
 
-message TranscribeCancel {
-  string reason = 1;
-}
+message WidgetEvent {
+  string widget_id = 1;
 
-message TranscribeProgress {
-  int32 percent = 1;
-  string stage = 2;
-}
+  oneof payload {
+    TranscribeProgressEvent transcribe_progress = 10;
+    TranscribeTokenEvent transcribe_token = 11;
+    TranscribeDoneEvent transcribe_done = 12;
+    TranscribeErrorEvent transcribe_error = 13;
 
-message TranscribeToken {
-  string text = 1;
-}
-
-message TranscribeDone {
-  string source_file = 1;
-  string save_path = 2;
-  string transcript = 3;
-}
-
-message TranscribeError {
-  string code = 1;
-  string message = 2;
+    TerminalAgentStatusEvent terminal_agent_status = 20;
+    TerminalAgentAssistantChunkEvent terminal_agent_assistant_chunk = 21;
+    TerminalAgentAssistantDoneEvent terminal_agent_assistant_done = 22;
+    TerminalAgentResumeFailedEvent terminal_agent_resume_failed = 23;
+    TerminalAgentErrorEvent terminal_agent_error = 24;
+  }
 }
 
 message ErrorEnvelope {

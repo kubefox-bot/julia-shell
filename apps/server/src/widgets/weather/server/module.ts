@@ -1,11 +1,17 @@
-import { getWeatherCache, upsertWeatherCache } from '../../../core/db/weather-repository';
+import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
-import { jsonResponse } from '../../../shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
+import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
+import { weatherManifest } from '../manifest';
 
 const BATUMI_LATITUDE = 41.65;
 const BATUMI_LONGITUDE = 41.64;
 const LOCATION_KEY = 'batumi';
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const WIDGET_META = {
+  id: weatherManifest.id,
+  version: weatherManifest.version
+} as const;
 
 type ForecastDay = {
   date: string;
@@ -89,11 +95,11 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
   weatherUrl.searchParams.set('forecast_days', '3');
   weatherUrl.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min');
 
-  const response = await fetch(weatherUrl, {
+  const response = await fetchWithRequestHeaders(weatherUrl, {
     headers: {
       'User-Agent': 'Yulia-Assistant/2.0'
     }
-  });
+  }, { widget: WIDGET_META });
 
   if (!response.ok) {
     throw new Error(`Weather API returned ${response.status}`);

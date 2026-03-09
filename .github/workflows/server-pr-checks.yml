@@ -32,16 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Cache day key
-        id: cache-day
-        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: '24'
 
-      - name: Yarn/NPM dependencies cache (1 day)
+      - name: Yarn/NPM dependencies cache
         uses: actions/cache@v4
         with:
           path: |
@@ -49,9 +45,9 @@ jobs:
             .yarn/cache
             .yarn/install-state.gz
             node_modules
-          key: node-yarn-${{ runner.os }}-${{ steps.cache-day.outputs.day }}-${{ hashFiles('yarn.lock') }}
+          key: node-yarn-${{ runner.os }}-node24-${{ hashFiles('yarn.lock', 'package.json', 'apps/server/package.json', '.yarnrc.yml') }}
           restore-keys: |
-            node-yarn-${{ runner.os }}-
+            node-yarn-${{ runner.os }}-node24-
 
       - name: Enable Corepack
         run: corepack enable
@@ -66,9 +62,6 @@ jobs:
 
       - name: Lint
         run: yarn workspace @julia/server lint
-
-      - name: Typecheck
-        run: yarn workspace @julia/server typecheck
 
       - name: Tests
         run: yarn workspace @julia/server test

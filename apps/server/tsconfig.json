@@ -9,7 +9,11 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["src/*"],
-      "@passport/*": ["src/domains/passport/*"]
+      "@app/*": ["src/app/*"],
+      "@core/*": ["src/core/*"],
+      "@passport/*": ["src/domains/passport/*"],
+      "@lls/*": ["src/domains/llm/*"],
+      "@shared/*": ["src/shared/*"]
     },
     "verbatimModuleSyntax": true
   },

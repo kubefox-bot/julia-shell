@@ -1,7 +1,7 @@
 import {
   PUBLIC_AGENT_RELEASES_BASE_URL_DEFAULT,
   PUBLIC_AGENT_RELEASES_BASE_URL_ENV_KEY,
-} from '../../shared/config/passport-runtime'
+} from '@shared/config/passport-runtime'
 import type { AppPublicEnv } from './types'
 import { parseEnvString } from './utils'
 
