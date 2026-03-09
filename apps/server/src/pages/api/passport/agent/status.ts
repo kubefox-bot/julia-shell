@@ -8,7 +8,7 @@ import { jsonResponse } from '../../../../shared/lib/http';
 export const GET: APIRoute = async ({ request }) => {
   const runtimeSnapshot = passportRuntime.getAgentStatusSnapshot();
   const resolved = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: false
+    allowBootstrapFromOnlineAgent: true
   });
   const responsePayload = resolved.context
     ? runtimeSnapshot
