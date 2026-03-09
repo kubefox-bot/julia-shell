@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const resolvePassportJwtSecretMock = vi.hoisted(() => vi.fn());
 const getOnlineAgentSessionMock = vi.hoisted(() => vi.fn());
 
-vi.mock('../server/config', () => ({
+vi.mock('../server/config/jwt-secret', () => ({
   resolvePassportJwtSecret: resolvePassportJwtSecretMock
 }));
 
-vi.mock('../server/runtime', () => ({
+vi.mock('../server/runtime/runtime', () => ({
   passportRuntime: {
     getOnlineAgentSession: getOnlineAgentSessionMock
   }

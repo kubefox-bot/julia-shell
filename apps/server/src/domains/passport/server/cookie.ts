@@ -1,4 +1,4 @@
-import { PASSPORT_ACCESS_COOKIE_NAME, PASSPORT_ACCESS_TTL_SECONDS } from './consts';
+import { PASSPORT_ACCESS_COOKIE_NAME, PASSPORT_ACCESS_TTL_SECONDS } from './config/consts';
 
 function parseCookieHeader(rawCookieHeader: string | null) {
   const map = new Map<string, string>();

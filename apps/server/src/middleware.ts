@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'astro';
-import { passportRuntime } from './domains/passport/server/runtime';
+import { passportRuntime } from './domains/passport/server/runtime/runtime';
 import { preloadServerSecretsOnce } from './core/secrets/secrets';
 
 const startupPromise = Promise.all([

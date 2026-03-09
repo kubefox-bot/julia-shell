@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePassportStatusSnapshot } from '../src/domains/passport/server/status';
+import { resolvePassportStatusSnapshot } from '../src/domains/passport/server/runtime/status';
 
 describe('agent status snapshot', () => {
   it('returns connected in production mode when online', () => {

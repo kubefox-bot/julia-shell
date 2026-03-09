@@ -7,7 +7,7 @@ import {
   touchRecentFolder,
   updateTranscribeJobProgress,
 } from '../../../core/db/transcribe-repository';
-import { passportRuntime } from '../../../domains/passport/server/runtime';
+import { passportRuntime } from '../../../domains/passport/server/runtime/runtime';
 import { jsonResponse } from '../../../shared/lib/http';
 import { moduleBus } from '../../../shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';

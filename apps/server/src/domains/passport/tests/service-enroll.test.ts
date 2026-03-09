@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../server/config', () => ({
+vi.mock('../server/config/jwt-secret', () => ({
   resolvePassportJwtSecret: vi.fn(async () => 'secret')
 }));
 

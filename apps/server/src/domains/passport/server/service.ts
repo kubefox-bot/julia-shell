@@ -1,5 +1,5 @@
 import { issueAccessJwt } from './jwt';
-import { resolvePassportJwtSecret } from './config';
+import { resolvePassportJwtSecret } from './config/jwt-secret';
 import {
   normalizeAgentCapabilities,
   resolveAgentDisplayName,

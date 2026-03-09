@@ -4,7 +4,7 @@ import { nowIso } from '../../../../shared/lib/time';
 import {
   PASSPORT_ENROLLMENT_TOKEN_BYTES,
   PASSPORT_AGENT_STATUS_ENROLLMENT_PENDING
-} from '../consts';
+} from '../config/consts';
 import { createOpaqueToken, sha256 } from '../crypto';
 import { resolveAgentDisplayName } from '../models';
 import type { CreateEnrollmentTokenInput } from '../types';

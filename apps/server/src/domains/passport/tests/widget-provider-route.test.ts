@@ -8,7 +8,7 @@ vi.mock('../server/context', () => ({
   resolvePassportRequestContext: resolvePassportRequestContextMock
 }))
 
-vi.mock('../server/runtime', () => ({
+vi.mock('../server/runtime/runtime', () => ({
   passportRuntime: {
     getOnlineAgentSession: getOnlineAgentSessionMock
   }

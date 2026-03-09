@@ -1,4 +1,4 @@
-import { secrets } from '../../../core/secrets/secrets';
+import { secrets } from '../../../../core/secrets/secrets';
 import { PASSPORT_LAN_FALLBACK_JWT_SECRET } from './consts';
 
 /**

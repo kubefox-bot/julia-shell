@@ -8,8 +8,8 @@ vi.mock('../../../core/secrets/secrets', () => ({
   }
 }));
 
-import { isPassportAdminAuthorized } from '../server/admin-auth';
-import { resolvePassportJwtSecret } from '../server/config';
+import { isPassportAdminAuthorized } from '../server/config/admin-auth';
+import { resolvePassportJwtSecret } from '../server/config/jwt-secret';
 import { createOpaqueToken, safeEqual, sha256 } from '../server/crypto';
 
 const OPAQUE_TOKEN_BYTES = 16;

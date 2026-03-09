@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { agentTokensTable } from '../../../../core/db/passport-schema';
 import { nowIso } from '../../../../shared/lib/time';
-import { PASSPORT_TOKEN_TYPE_REFRESH } from '../consts';
+import { PASSPORT_TOKEN_TYPE_REFRESH } from '../config/consts';
 import { sha256 } from '../crypto';
 import { getPassportDb } from './db';
 

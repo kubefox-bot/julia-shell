@@ -1,8 +1,8 @@
-import { readRuntimeEnv } from '../../../core/env'
-import { PASSPORT_WIDGET_ID_TRANSCRIBE } from './consts'
-import type { PassportRequestContext } from './context'
-import { passportRuntime } from './runtime'
-import type { PassportWidgetProviderSnapshot } from './types'
+import { readRuntimeEnv } from '../../../../core/env'
+import { PASSPORT_WIDGET_ID_TRANSCRIBE } from '../config/consts'
+import type { PassportRequestContext } from '../context'
+import { passportRuntime } from '../runtime/runtime'
+import type { PassportWidgetProviderSnapshot } from '../types'
 import { isPassportProtectedWidget } from './widget-policy'
 
 function resolveRequiresOnlineAgent(widgetId: string) {

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { isPassportAdminAuthorized } from '../../../../../domains/passport/server/admin-auth'
+import { isPassportAdminAuthorized } from '../../../../../domains/passport/server/config/admin-auth'
 import { passportErrorResponse } from '../../../../../domains/passport/server/http'
 import { revokeEnrollmentToken } from '../../../../../domains/passport/server/repository'
 import {

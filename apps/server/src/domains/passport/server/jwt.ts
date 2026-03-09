@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { DateTime } from 'luxon';
-import { PASSPORT_ACCESS_TTL_SECONDS } from './consts';
+import { PASSPORT_ACCESS_TTL_SECONDS } from './config/consts';
 
 const BASE64_BLOCK_SIZE = 4;
 const JWT_PARTS_COUNT = 3;

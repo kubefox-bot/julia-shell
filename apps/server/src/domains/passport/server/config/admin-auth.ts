@@ -1,5 +1,5 @@
-import { secrets } from '../../../core/secrets/secrets';
-import { safeEqual } from './crypto';
+import { secrets } from '../../../../core/secrets/secrets';
+import { safeEqual } from '../crypto';
 
 /**
  * Validates admin token for privileged passport endpoints.

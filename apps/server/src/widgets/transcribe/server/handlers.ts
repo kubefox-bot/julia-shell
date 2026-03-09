@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { passportRuntime } from '../../../domains/passport/server/runtime'
+import { passportRuntime } from '../../../domains/passport/server/runtime/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from '../../../core/db/transcribe-repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '../../../shared/lib/http'

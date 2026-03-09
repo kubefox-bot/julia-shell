@@ -1,7 +1,7 @@
 import { buildPassportAccessCookie, extractAccessTokenFromRequest } from './cookie';
-import { resolvePassportJwtSecret } from './config';
+import { resolvePassportJwtSecret } from './config/jwt-secret';
 import { verifyAccessJwt } from './jwt';
-import { passportRuntime } from './runtime';
+import { passportRuntime } from './runtime/runtime';
 
 export type PassportRequestContext = {
   agentId: string;

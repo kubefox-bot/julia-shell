@@ -1,4 +1,4 @@
-import { PASSPORT_WIDGET_ID_TRANSCRIBE } from './consts';
+import { PASSPORT_WIDGET_ID_TRANSCRIBE } from '../config/consts';
 
 const PASSPORT_PROTECTED_WIDGET_IDS = new Set([PASSPORT_WIDGET_ID_TRANSCRIBE]);
 

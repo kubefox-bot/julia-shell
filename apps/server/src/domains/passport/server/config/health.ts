@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { readRuntimeEnv } from '../../../core/env'
+import { readRuntimeEnv } from '../../../../core/env'
 
 /**
  * Resolves heartbeat timeout for live passport sessions.

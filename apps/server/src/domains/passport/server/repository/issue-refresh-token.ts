@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { agentTokensTable } from '../../../../core/db/passport-schema';
 import { nowIso } from '../../../../shared/lib/time';
-import { PASSPORT_REFRESH_TOKEN_BYTES, PASSPORT_TOKEN_TYPE_REFRESH } from '../consts';
+import { PASSPORT_REFRESH_TOKEN_BYTES, PASSPORT_TOKEN_TYPE_REFRESH } from '../config/consts';
 import { createOpaqueToken, sha256 } from '../crypto';
 import { buildRefreshTokenExpiresAt } from './dates';
 import { getPassportDb } from './db';
