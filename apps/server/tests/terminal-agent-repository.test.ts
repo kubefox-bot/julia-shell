@@ -37,8 +37,10 @@ describe('terminal-agent repository', () => {
       geminiApiKey: 'gemini-key',
       codexCommand: 'codex',
       codexArgs: ['exec', '--json'],
+      codexModel: 'gpt-5-codex',
       geminiCommand: 'gemini',
       geminiArgs: ['--output-format', 'stream-json'],
+      geminiModel: 'gemini-2.5-flash',
       useShellFallback: true,
       shellOverride: 'pwsh',
     })

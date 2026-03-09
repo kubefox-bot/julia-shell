@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { WidgetRenderProps } from '../../../entities/widget/model/types'
 import { Button } from '@shared/ui/Button'
 import { IconCircle } from '@shared/ui/IconCircle'
@@ -16,8 +16,10 @@ type SettingsPayload = {
   geminiApiKey: string
   codexCommand: string
   codexArgs: string[]
+  codexModel: string
   geminiCommand: string
   geminiArgs: string[]
+  geminiModel: string
   useShellFallback: boolean
   shellOverride: string
 }
@@ -33,6 +35,18 @@ type MessageItem = {
   id: string
   role: 'user' | 'assistant'
   text: string
+}
+
+type DialogRefItem = {
+  providerSessionRef: string
+  createdAt: string
+  updatedAt: string
+  lastStatus: string
+}
+
+type ModelListPayload = {
+  items?: Array<{ value: string; label: string }>
+  error?: string
 }
 
 type ParsedSseChunk = {
@@ -80,6 +94,15 @@ function ModelGlyph() {
   )
 }
 
+function DialogsGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4.5" y="5.5" width="15" height="13" rx="2.6" fill="#DBEAFE" stroke="#3B82F6" />
+      <path d="M8 10h8M8 13h8" stroke="#1D4ED8" />
+    </svg>
+  )
+}
+
 function toText(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
@@ -117,6 +140,33 @@ function parseArgsInput(value: string) {
     .filter(Boolean)
 }
 
+function getMessagesStorageKey(provider: Provider, sessionRef: string) {
+  return `terminal-agent:messages:${provider}:${sessionRef || '__current'}`
+}
+
+function normalizeForCompare(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function appendChunkWithSpacing(previous: string, chunk: string) {
+  if (!previous || !chunk) {
+    return previous + chunk
+  }
+
+  const prevLast = previous.at(-1) ?? ''
+  const nextFirst = chunk[0] ?? ''
+  const prevIsWord = /[\p{L}\p{N}]/u.test(prevLast)
+  const nextIsWord = /[\p{L}\p{N}]/u.test(nextFirst)
+  if (!prevIsWord || !nextIsWord) {
+    return `${previous}${chunk}`
+  }
+
+  const nextIsLowerLetter = /\p{Ll}/u.test(nextFirst)
+  const needsGap = !nextIsLowerLetter
+
+  return needsGap ? `${previous} ${chunk}` : `${previous}${chunk}`
+}
+
 const dictionary = {
   ru: {
     placeholder: 'Напиши сообщение...',
@@ -131,15 +181,25 @@ const dictionary = {
     geminiKey: 'Gemini API key',
     codexCommand: 'Codex command path',
     codexArgs: 'Codex args (через пробел)',
+    codexModel: 'Codex model',
     geminiCommand: 'Gemini command path',
     geminiArgs: 'Gemini args (через пробел)',
+    geminiModel: 'Gemini model',
     shellFallback: 'Разрешить shell fallback',
     shellOverride: 'Shell override',
-    resumeRef: 'Continuity ref',
+    resumeRef: 'Диалог',
     status: 'Статус',
     settingsTitle: 'Настройки агента',
     model: 'модель',
     resumeFailed: 'Не удалось восстановить continuity. Нажми "Новый диалог".',
+    dialogs: 'Диалоги',
+    selectDialog: 'Выбор диалога',
+    dialogIdCol: 'Диалог (id)',
+    dialogCreatedCol: 'Дата создания',
+    dialogStatusCol: 'Статус',
+    accept: 'Принять',
+    cancel: 'Отмена',
+    emptyDialogs: 'Список диалогов пуст.',
   },
   en: {
     placeholder: 'Type your message...',
@@ -154,15 +214,25 @@ const dictionary = {
     geminiKey: 'Gemini API key',
     codexCommand: 'Codex command path',
     codexArgs: 'Codex args (space separated)',
+    codexModel: 'Codex model',
     geminiCommand: 'Gemini command path',
     geminiArgs: 'Gemini args (space separated)',
+    geminiModel: 'Gemini model',
     shellFallback: 'Allow shell fallback',
     shellOverride: 'Shell override',
-    resumeRef: 'Continuity ref',
+    resumeRef: 'Dialog',
     status: 'Status',
     settingsTitle: 'Agent settings',
     model: 'model',
     resumeFailed: 'Continuity restore failed. Start a new dialog.',
+    dialogs: 'Dialogs',
+    selectDialog: 'Select dialog',
+    dialogIdCol: 'Dialog (id)',
+    dialogCreatedCol: 'Created at',
+    dialogStatusCol: 'Status',
+    accept: 'Apply',
+    cancel: 'Cancel',
+    emptyDialogs: 'No dialogs yet.',
   },
 } as const
 
@@ -176,12 +246,36 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [dialogsOpen, setDialogsOpen] = useState(false)
   const [resumeFailed, setResumeFailed] = useState(false)
+  const [dialogRefs, setDialogRefs] = useState<DialogRefItem[]>([])
+  const [selectedDialogRef, setSelectedDialogRef] = useState('')
+  const [dialogsLoading, setDialogsLoading] = useState(false)
+  const [codexModelOptions, setCodexModelOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: 'gpt-5-codex', label: 'gpt-5-codex' },
+    { value: 'gpt-5', label: 'gpt-5' },
+    { value: 'gpt-4.1', label: 'gpt-4.1' },
+  ])
+  const [geminiModelOptions, setGeminiModelOptions] = useState<Array<{ value: string; label: string }>>([
+    { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro' },
+    { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash' },
+    { value: 'gemini-2.0-flash', label: 'gemini-2.0-flash' },
+  ])
+  const hydratedMessagesKeyRef = useRef('')
+  const previousMessagesKeyRef = useRef('')
+  const messagesRef = useRef<MessageItem[]>([])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   const themeClass = props.theme === 'night' ? styles.night : styles.day
   const actionThemeClass = props.theme === 'night' ? styles.actionButtonNight : ''
 
   const activeProvider: Provider = settings?.activeProvider ?? 'codex'
+  const activeModel = settings
+    ? (activeProvider === 'codex' ? settings.codexModel : settings.geminiModel)
+    : ''
 
   const loadSettings = useCallback(async () => {
     const response = await fetch('/api/widget/com.yulia.terminal-agent/settings')
@@ -233,6 +327,47 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     void loadDialogState(settings.activeProvider)
   }, [loadDialogState, settings])
 
+  useEffect(() => {
+    if (!settings) {
+      return
+    }
+
+    const sessionRef = dialogState?.providerSessionRef || '__current'
+    const storageKey = getMessagesStorageKey(activeProvider, sessionRef)
+    hydratedMessagesKeyRef.current = storageKey
+    const previousKey = previousMessagesKeyRef.current
+    previousMessagesKeyRef.current = storageKey
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (!raw) {
+        const wasDraft = previousKey.endsWith(':__current')
+        const isRealSession = !storageKey.endsWith(':__current')
+        if (wasDraft && isRealSession && messagesRef.current.length > 0) {
+          localStorage.setItem(storageKey, JSON.stringify(messagesRef.current))
+          return
+        }
+        setMessages([])
+        return
+      }
+      const parsed = JSON.parse(raw) as MessageItem[]
+      setMessages(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setMessages([])
+    }
+  }, [activeProvider, dialogState?.providerSessionRef, settings])
+
+  useEffect(() => {
+    const storageKey = hydratedMessagesKeyRef.current
+    if (!storageKey) {
+      return
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages))
+    } catch {
+      // ignore local persistence failures
+    }
+  }, [messages])
+
   const providerOptions = useMemo(
     () => (settings?.providers ?? []).map((entry) => ({ value: entry.value, label: entry.label })),
     [settings?.providers]
@@ -259,6 +394,41 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     setSettingsOpen(false)
   }, [settings])
 
+  const loadModels = useCallback(async (provider: Provider) => {
+    const response = await fetch(`/api/widget/com.yulia.terminal-agent/models?provider=${encodeURIComponent(provider)}`)
+    const data = await response.json() as ModelListPayload
+    if (!response.ok) {
+      throw new Error(toText(data.error) || 'Failed to load models.')
+    }
+
+    const fallback = provider === 'codex'
+      ? [{ value: 'gpt-5-codex', label: 'gpt-5-codex' }]
+      : [{ value: 'gemini-2.5-flash', label: 'gemini-2.5-flash' }]
+    const items = Array.isArray(data.items) && data.items.length > 0 ? data.items : fallback
+    if (provider === 'codex') {
+      setCodexModelOptions(items)
+    } else {
+      setGeminiModelOptions(items)
+    }
+  }, [])
+
+  const loadDialogRefs = useCallback(async (provider: Provider) => {
+    setDialogsLoading(true)
+    try {
+      const response = await fetch(`/api/widget/com.yulia.terminal-agent/dialogs?provider=${encodeURIComponent(provider)}`)
+      const data = await response.json() as { items?: DialogRefItem[]; error?: string }
+      if (!response.ok) {
+        throw new Error(toText(data.error) || 'Failed to load dialogs.')
+      }
+
+      const items = Array.isArray(data.items) ? data.items : []
+      setDialogRefs(items)
+      setSelectedDialogRef(items[0]?.providerSessionRef ?? '')
+    } finally {
+      setDialogsLoading(false)
+    }
+  }, [])
+
   const createNewDialog = useCallback(async () => {
     setError(null)
     setResumeFailed(false)
@@ -278,6 +448,38 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     setMessages([])
     setStatusLine('idle')
   }, [activeProvider])
+
+  const openDialogs = useCallback(async () => {
+    setError(null)
+    await loadDialogRefs(activeProvider)
+    setDialogsOpen(true)
+  }, [activeProvider, loadDialogRefs])
+
+  const selectDialog = useCallback(async () => {
+    if (!selectedDialogRef) {
+      return
+    }
+
+    setError(null)
+    const response = await fetch('/api/widget/com.yulia.terminal-agent/dialog/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: activeProvider,
+        providerSessionRef: selectedDialogRef,
+      }),
+    })
+    const data = await response.json() as DialogStatePayload
+    if (!response.ok) {
+      throw new Error(toText((data as Record<string, unknown>).error) || 'Failed to select dialog.')
+    }
+
+    setDialogState(data)
+    setStatusLine(data.status || 'resuming')
+    setResumeFailed(false)
+    setMessages([])
+    setDialogsOpen(false)
+  }, [activeProvider, selectedDialogRef])
 
   const sendMessage = useCallback(async () => {
     const message = input.trim()
@@ -343,7 +545,18 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
               continue
             }
 
-            setMessages((prev) => prev.map((entry) => entry.id === assistantMessageId ? { ...entry, text: entry.text + text } : entry))
+            setMessages((prev) => prev.map((entry) => {
+              if (entry.id !== assistantMessageId) {
+                return entry
+              }
+
+              // Some providers can echo the prompt as a first chunk.
+              if (!entry.text && normalizeForCompare(text) === normalizeForCompare(message)) {
+                return entry
+              }
+
+              return { ...entry, text: appendChunkWithSpacing(entry.text, text) }
+            }))
             continue
           }
 
@@ -380,6 +593,16 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
     }
   }, [input, sending, settings])
 
+  useEffect(() => {
+    if (!settings) {
+      return
+    }
+
+    void loadModels(settings.activeProvider).catch(() => {
+      // keep fallback options in UI
+    })
+  }, [loadModels, settings])
+
   return (
     <div className={[styles.root, themeClass].join(' ')}>
       <div className={styles.toolbar}>
@@ -389,9 +612,6 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
           <span>{t.resumeRef}: {dialogState?.providerSessionRef || '—'}</span>
         </div>
         <div className={styles.actions}>
-          <IconCircle type="button" theme={props.theme} title={t.settings} onClick={() => setSettingsOpen(true)}>
-            <AgentWrenchGlyph />
-          </IconCircle>
           <button
             type="button"
             className={[styles.actionButton, styles.actionButtonSecondary, actionThemeClass].join(' ').trim()}
@@ -399,6 +619,17 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
           >
             <span className={styles.actionButtonIcon}><NewDialogGlyph /></span>
             <span>{t.newDialog}</span>
+          </button>
+          <IconCircle type="button" theme={props.theme} title={t.settings} onClick={() => setSettingsOpen(true)}>
+            <AgentWrenchGlyph />
+          </IconCircle>
+          <button
+            type="button"
+            className={[styles.actionButton, styles.actionButtonSecondary, actionThemeClass].join(' ').trim()}
+            onClick={() => void openDialogs()}
+          >
+            <span className={styles.actionButtonIcon}><DialogsGlyph /></span>
+            <span>{t.dialogs}</span>
           </button>
         </div>
       </div>
@@ -409,7 +640,13 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
       <div className={styles.chatList}>
         {messages.map((entry) => (
           <article key={entry.id} className={[styles.bubble, entry.role === 'user' ? styles.user : styles.assistant].join(' ')}>
-            {entry.text || (entry.role === 'assistant' && sending ? '…' : '')}
+            {entry.text ? entry.text : entry.role === 'assistant' && sending ? (
+              <span className={styles.typingIndicator} aria-label={t.sending}>
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : ''}
           </article>
         ))}
       </div>
@@ -428,6 +665,11 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
           rows={3}
           disabled={sending}
         />
+        <span className={styles.sendModelInfo}>{
+          props.locale === 'ru'
+            ? `Модель: ${activeModel || (activeProvider === 'codex' ? 'Codex' : 'Gemini')}`
+            : `Model: ${activeModel || (activeProvider === 'codex' ? 'Codex' : 'Gemini')}`
+        }</span>
         <button
           type="submit"
           className={[styles.actionButton, styles.actionButtonPrimary, actionThemeClass].join(' ').trim()}
@@ -435,7 +677,6 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
         >
           <span className={styles.actionButtonIcon}><ModelGlyph /></span>
           <span>{sending ? t.sending : t.send}</span>
-          <span className={styles.sendProviderTag}>{activeProvider === 'codex' ? 'Codex' : 'Gemini'} {t.model}</span>
         </button>
       </form>
 
@@ -463,6 +704,9 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
                   const next = value === 'gemini' ? 'gemini' : 'codex'
                   setSettings((prev) => prev ? { ...prev, activeProvider: next } : prev)
                   void loadDialogState(next)
+                  void loadModels(next).catch(() => {
+                    // keep fallback options
+                  })
                 }}
               />
             </div>
@@ -490,6 +734,15 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
                     onChange={(event) => setSettings((prev) => prev ? { ...prev, codexArgs: parseArgsInput(event.target.value) } : prev)}
                   />
                 </label>
+                <div className={styles.field}>
+                  {t.codexModel}
+                  <OptionSelect
+                    theme={props.theme}
+                    value={settings.codexModel}
+                    options={codexModelOptions}
+                    onChange={(value) => setSettings((prev) => prev ? { ...prev, codexModel: value } : prev)}
+                  />
+                </div>
               </>
             ) : (
               <>
@@ -514,6 +767,15 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
                     onChange={(event) => setSettings((prev) => prev ? { ...prev, geminiArgs: parseArgsInput(event.target.value) } : prev)}
                   />
                 </label>
+                <div className={styles.field}>
+                  {t.geminiModel}
+                  <OptionSelect
+                    theme={props.theme}
+                    value={settings.geminiModel}
+                    options={geminiModelOptions}
+                    onChange={(value) => setSettings((prev) => prev ? { ...prev, geminiModel: value } : prev)}
+                  />
+                </div>
               </>
             )}
             <label className={styles.checkboxRow}>
@@ -536,6 +798,62 @@ export function TerminalAgentWidget(props: WidgetRenderProps) {
               <Button type="button" variant="ghost" onClick={() => setSettingsOpen(false)}>{t.close}</Button>
               <Button type="button" onClick={() => void saveSettings()}>{t.save}</Button>
             </div>
+        </ModalSurface>
+      ) : null}
+
+      {dialogsOpen ? (
+        <ModalSurface
+          open={dialogsOpen}
+          onClose={() => setDialogsOpen(false)}
+          ariaLabel={t.selectDialog}
+          theme={props.theme}
+          panelClassName={styles.dialogsPanel}
+        >
+          <div className={styles.settingsHeader}>
+            <h4>{t.selectDialog}</h4>
+            <IconCircle type="button" theme={props.theme} title={t.cancel} onClick={() => setDialogsOpen(false)}>
+              ✕
+            </IconCircle>
+          </div>
+          <div className={styles.dialogsTableWrap}>
+            <table className={styles.dialogsTable}>
+              <thead>
+                <tr>
+                  <th>{t.dialogIdCol}</th>
+                  <th>{t.dialogCreatedCol}</th>
+                  <th>{t.dialogStatusCol}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dialogRefs.length === 0 ? (
+                  <tr>
+                    <td colSpan={3}>{dialogsLoading ? t.sending : t.emptyDialogs}</td>
+                  </tr>
+                ) : dialogRefs.map((item) => (
+                  <tr
+                    key={item.providerSessionRef}
+                    className={selectedDialogRef === item.providerSessionRef ? styles.dialogRowActive : ''}
+                    onClick={() => setSelectedDialogRef(item.providerSessionRef)}
+                  >
+                    <td>{item.providerSessionRef}</td>
+                    <td>{new Date(item.createdAt).toLocaleString()}</td>
+                    <td>{item.lastStatus || 'done'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.settingsActions}>
+            <Button type="button" variant="ghost" onClick={() => setDialogsOpen(false)}>{t.cancel}</Button>
+            <Button
+              type="button"
+              className={styles.acceptButton}
+              onClick={() => void selectDialog()}
+              disabled={!selectedDialogRef}
+            >
+              {t.accept}
+            </Button>
+          </div>
         </ModalSurface>
       ) : null}
     </div>

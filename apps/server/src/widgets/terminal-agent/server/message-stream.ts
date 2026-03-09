@@ -17,6 +17,27 @@ function toText(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
 
+function withModelArgs(baseArgs: string[], model: string) {
+  const next = [...baseArgs]
+  const trimmedModel = model.trim()
+  if (!trimmedModel) {
+    return next
+  }
+
+  const hasModelArg = next.some((entry, index) => {
+    if (entry === '--model' || entry === '-m') {
+      return true
+    }
+    return entry.startsWith('--model=') || (entry === '-m' && typeof next[index + 1] === 'string')
+  })
+
+  if (!hasModelArg) {
+    next.push('--model', trimmedModel)
+  }
+
+  return next
+}
+
 export async function handleTerminalAgentMessageStream(input: {
   request: Request
   agentId: string
@@ -36,14 +57,14 @@ export async function handleTerminalAgentMessageStream(input: {
   const providerSettings = input.provider === 'codex'
     ? {
         apiKey: settings.codexApiKey,
-        commandPath: settings.codexCommand,
-        commandArgs: settings.codexArgs,
-      }
-    : {
-        apiKey: settings.geminiApiKey,
-        commandPath: settings.geminiCommand,
-        commandArgs: settings.geminiArgs,
-      }
+      commandPath: settings.codexCommand,
+      commandArgs: withModelArgs(settings.codexArgs, settings.codexModel),
+    }
+  : {
+      apiKey: settings.geminiApiKey,
+      commandPath: settings.geminiCommand,
+      commandArgs: withModelArgs(settings.geminiArgs, settings.geminiModel),
+    }
 
   markDialogStatus({
     agentId: input.agentId,

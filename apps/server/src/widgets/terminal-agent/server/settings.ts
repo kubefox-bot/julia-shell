@@ -1,13 +1,15 @@
 import {
   getTerminalAgentDialogState,
   getTerminalAgentSettings,
+  listTerminalAgentDialogRefs,
   saveTerminalAgentSettings,
   type TerminalAgentProvider,
   clearTerminalAgentDialogState,
   upsertTerminalAgentDialogState,
+  upsertTerminalAgentDialogRef,
 } from '../../../core/db/terminal-agent-repository'
 import { PROVIDERS, WIDGET_ID } from './constants'
-import type { TerminalAgentDialogStatePayload, TerminalAgentSettingsPayload } from './types'
+import type { TerminalAgentDialogRefItemPayload, TerminalAgentDialogStatePayload, TerminalAgentSettingsPayload } from './types'
 
 export function buildTerminalAgentSettingsPayload(agentId: string): TerminalAgentSettingsPayload {
   const settings = getTerminalAgentSettings(agentId, WIDGET_ID)
@@ -20,8 +22,10 @@ export function buildTerminalAgentSettingsPayload(agentId: string): TerminalAgen
     geminiApiKey: settings.geminiApiKey,
     codexCommand: settings.codexCommand,
     codexArgs: settings.codexArgs,
+    codexModel: settings.codexModel,
     geminiCommand: settings.geminiCommand,
     geminiArgs: settings.geminiArgs,
+    geminiModel: settings.geminiModel,
     useShellFallback: settings.useShellFallback,
     shellOverride: settings.shellOverride,
   }
@@ -33,8 +37,10 @@ export function updateTerminalAgentSettings(agentId: string, input: {
   geminiApiKey?: string
   codexCommand?: string
   codexArgs?: string[]
+  codexModel?: string
   geminiCommand?: string
   geminiArgs?: string[]
+  geminiModel?: string
   useShellFallback?: boolean
   shellOverride?: string
 }) {
@@ -49,8 +55,10 @@ export function updateTerminalAgentSettings(agentId: string, input: {
     geminiApiKey: typeof input.geminiApiKey === 'string' ? input.geminiApiKey : current.geminiApiKey,
     codexCommand: typeof input.codexCommand === 'string' ? input.codexCommand : current.codexCommand,
     codexArgs: Array.isArray(input.codexArgs) ? input.codexArgs : current.codexArgs,
+    codexModel: typeof input.codexModel === 'string' ? input.codexModel : current.codexModel,
     geminiCommand: typeof input.geminiCommand === 'string' ? input.geminiCommand : current.geminiCommand,
     geminiArgs: Array.isArray(input.geminiArgs) ? input.geminiArgs : current.geminiArgs,
+    geminiModel: typeof input.geminiModel === 'string' ? input.geminiModel : current.geminiModel,
     useShellFallback: typeof input.useShellFallback === 'boolean' ? input.useShellFallback : current.useShellFallback,
     shellOverride: typeof input.shellOverride === 'string' ? input.shellOverride : current.shellOverride,
   })
@@ -95,4 +103,40 @@ export function markDialogStatus(input: {
     status: input.status,
     lastError: input.lastError,
   })
+
+  if (input.providerSessionRef) {
+    upsertTerminalAgentDialogRef({
+      agentId: input.agentId,
+      widgetId: WIDGET_ID,
+      provider: input.provider,
+      providerSessionRef: input.providerSessionRef,
+      lastStatus: input.status,
+    })
+  }
+}
+
+export function listTerminalAgentDialogsPayload(agentId: string, provider: TerminalAgentProvider): TerminalAgentDialogRefItemPayload[] {
+  return listTerminalAgentDialogRefs(agentId, WIDGET_ID, provider).map((row) => ({
+    providerSessionRef: row.providerSessionRef,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    lastStatus: row.lastStatus,
+  }))
+}
+
+export function selectTerminalAgentDialog(
+  agentId: string,
+  provider: TerminalAgentProvider,
+  providerSessionRef: string
+) {
+  upsertTerminalAgentDialogState({
+    agentId,
+    widgetId: WIDGET_ID,
+    provider,
+    providerSessionRef,
+    status: 'resuming',
+    lastError: null,
+  })
+
+  return getTerminalAgentDialogStatePayload(agentId, provider)
 }
