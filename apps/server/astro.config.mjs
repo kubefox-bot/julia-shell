@@ -17,7 +17,9 @@ export default defineConfig({
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
-        '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url))
+        '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url)),
+        '@lls': fileURLToPath(new URL('./src/domains/llm', import.meta.url)),
+        '@shared': fileURLToPath(new URL('./src/shared', import.meta.url))
       }
     },
     build: {

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Button } from '../../../../shared/ui/Button';
-import { IconButton } from '../../../../shared/ui/IconButton';
+import { Button } from '@shared/ui/Button';
+import { IconButton } from '@shared/ui/IconButton';
 import type { DisplayLocale } from '../../../../entities/widget/model/types';
 import { getShellText } from '../../lib/i18n';
 import { useShellLayoutViewModel } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import { ShellAgentStatusOverlay } from './ShellAgentStatusOverlay';
 import styles from '../ShellApp.module.scss';
-import { resolveDisplayLocale } from '../../../../shared/lib/locale';
+import { resolveDisplayLocale } from '@shared/lib/locale';
 
 type ShellHeaderActionsProps = {
   initialLocale: DisplayLocale;

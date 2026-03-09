@@ -2,6 +2,7 @@ export const PASSPORT_LAN_FALLBACK_JWT_SECRET = 'julia-agent-lan-insecure-secret
 export const PASSPORT_ACCESS_COOKIE_NAME = 'julia_access_token';
 export const PASSPORT_ANONYMOUS_AGENT_ID = 'public-anonymous';
 export const PASSPORT_WIDGET_ID_TRANSCRIBE = 'com.yulia.transcribe';
+export const PASSPORT_WIDGET_ID_TERMINAL_AGENT = 'com.yulia.terminal-agent';
 
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;

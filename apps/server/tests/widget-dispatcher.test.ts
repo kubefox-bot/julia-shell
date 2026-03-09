@@ -13,4 +13,10 @@ describe('widget dispatcher registry', () => {
     const resolved = await resolveWidgetHandler('com.yulia.weather', 'GET', 'unknown-action');
     expect(resolved).toBeNull();
   });
+
+  it('finds terminal-agent settings handler', async () => {
+    const resolved = await resolveWidgetHandler('com.yulia.terminal-agent', 'GET', 'settings');
+
+    expect(resolved).not.toBeNull();
+  });
 });

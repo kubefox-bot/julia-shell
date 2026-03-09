@@ -1,4 +1,4 @@
-import { nowIso } from '@/shared/lib/time';
+import { nowIso } from '@shared/lib/time';
 
 export type PassportUiStatus = 'connected' | 'connected_dev' | 'unauthorized' | 'disconnected';
 

@@ -6,7 +6,7 @@ import {
   PASSPORT_VALIDATION_CATALOG,
   parseRequestBody,
 } from '@passport/server/validation'
-import { jsonResponse, readJsonBody } from '../../../../../shared/lib/http'
+import { jsonResponse, readJsonBody } from '@shared/lib/http'
 
 export const POST: APIRoute = async ({ request }) => {
   if (!(await isPassportAdminAuthorized(request))) {

@@ -22,7 +22,7 @@ import { listDiscoveredWidgets } from '../registry/registry';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
 const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
-const PASSPORT_REQUIRED_WIDGET_IDS = new Set(['com.yulia.transcribe']);
+const PASSPORT_REQUIRED_WIDGET_IDS = new Set(['com.yulia.transcribe', 'com.yulia.terminal-agent']);
 const MIN_SHELL_COLUMNS = 1;
 const MAX_SHELL_COLUMNS = 12;
 

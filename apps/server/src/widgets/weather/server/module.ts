@@ -1,6 +1,6 @@
-import { getWeatherCache, upsertWeatherCache } from '../../../core/db/weather-repository';
+import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
-import { jsonResponse } from '../../../shared/lib/http';
+import { jsonResponse } from '@shared/lib/http';
 
 const BATUMI_LATITUDE = 41.65;
 const BATUMI_LONGITUDE = 41.64;

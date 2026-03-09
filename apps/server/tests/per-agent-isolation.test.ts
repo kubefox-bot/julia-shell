@@ -7,7 +7,7 @@ import {
   createTranscribeJob,
   listRecentTranscribeJobs,
   saveTranscribeWidgetSettings
-} from '../src/core/db/transcribe-repository';
+} from '../src/widgets/transcribe/server/repository';
 import { resetDbCache } from '../src/core/db/shared';
 
 let tempDir = '';

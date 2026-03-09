@@ -1,5 +1,5 @@
 import { InfisicalSDK } from '@infisical/sdk'
-import { logger } from '../../shared/lib/logger'
+import { logger } from '@shared/lib/logger'
 import type { InfisicalConfig, SecretEntry } from './types'
 import { getInfisicalConfig } from './utils/getInfisicalConfig'
 import { initSecrets } from './utils/initSecrets'
