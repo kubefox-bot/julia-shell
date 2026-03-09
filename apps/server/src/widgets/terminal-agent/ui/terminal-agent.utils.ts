@@ -1,9 +1,5 @@
 import type { ParsedSseChunk, Provider } from './terminal-agent.types'
 
-export function toText(value: unknown) {
-  return typeof value === 'string' ? value : ''
-}
-
 export function parseSseEventChunk(rawEvent: string): ParsedSseChunk | null {
   const lines = rawEvent.split('\n')
   let eventName = 'message'

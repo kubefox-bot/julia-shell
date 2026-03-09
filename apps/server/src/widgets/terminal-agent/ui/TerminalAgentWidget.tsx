@@ -23,9 +23,9 @@ import {
   normalizeForCompare,
   parseArgsInput,
   parseSseEventChunk,
-  toText,
 } from './terminal-agent.utils'
 import styles from './TerminalAgentWidget.module.scss'
+import { toText } from '@/shared/utils'
 
 export function TerminalAgentWidget(props: WidgetRenderProps) {
   const t = terminalAgentDictionary[props.locale]

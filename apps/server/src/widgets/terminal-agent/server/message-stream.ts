@@ -7,15 +7,20 @@ import { WIDGET_ID } from './constants'
 import { markDialogStatus } from './settings'
 import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { toSseEvent } from './utils'
+import type { BusPayload, ProviderSettingsShape } from './message-stream.type'
+import {
+  DIALOG_TITLE_MAX,
+  GEMINI_API_KEY_MISSING_MESSAGE,
+  GEMINI_QUOTA_MESSAGE,
+  PROVIDER_EXIT_CODE_41,
+  STREAM_IDLE_TIMEOUT_MS,
+  TOOL_DETAIL_MAX,
+  UNKNOWN_AGENT_ERROR_MESSAGE,
+} from './message-stream.constants'
+import { toText } from '@/shared/utils'
 
-type BusPayload = {
-  type?: string
-  payload?: Record<string, unknown>
-}
 
-function toText(value: unknown) {
-  return typeof value === 'string' ? value : ''
-}
+
 
 function withModelArgs(baseArgs: string[], model: string) {
   const next = [...baseArgs]
@@ -38,11 +43,25 @@ function withModelArgs(baseArgs: string[], model: string) {
   return next
 }
 
-const STREAM_IDLE_TIMEOUT_MS = 20_000
-const DIALOG_TITLE_MAX = 120
-const TOOL_DETAIL_MAX = 320
-const GEMINI_QUOTA_MESSAGE = 'Gemini quota exceeded. Check billing/limits and retry later.'
-const GEMINI_API_KEY_MISSING_MESSAGE = 'Gemini API key is missing. Set GEMINI_API_KEY and retry later.'
+const providerFieldMap: Record<TerminalAgentProvider, {
+  apiKeyField: 'codexApiKey' | 'geminiApiKey'
+  commandField: 'codexCommand' | 'geminiCommand'
+  argsField: 'codexArgs' | 'geminiArgs'
+  modelField: 'codexModel' | 'geminiModel'
+}> = {
+  codex: {
+    apiKeyField: 'codexApiKey',
+    commandField: 'codexCommand',
+    argsField: 'codexArgs',
+    modelField: 'codexModel',
+  },
+  gemini: {
+    apiKeyField: 'geminiApiKey',
+    commandField: 'geminiCommand',
+    argsField: 'geminiArgs',
+    modelField: 'geminiModel',
+  },
+}
 
 function toDialogTitle(message: string) {
   const compact = message.trim().replace(/\s+/g, ' ')
@@ -99,6 +118,33 @@ function shouldHideToolDetail(value: string) {
     || lower.includes('geminichat.')
 }
 
+function getProviderApiKey(provider: TerminalAgentProvider, settings: ProviderSettingsShape) {
+  const fields = providerFieldMap[provider]
+  return settings[fields.apiKeyField]
+}
+
+function selectDispatchSettings(input: {
+  provider: TerminalAgentProvider
+  tokenSettings: ProviderSettingsShape
+  onlineSettings: ProviderSettingsShape
+}) {
+  const candidates = [input.tokenSettings, input.onlineSettings, input.tokenSettings]
+  return candidates.find((entry) => getProviderApiKey(input.provider, entry).trim()) ?? input.tokenSettings
+}
+
+function getProviderDispatchConfig(provider: TerminalAgentProvider, settings: ProviderSettingsShape) {
+  const fields = providerFieldMap[provider]
+  const commandArgs = withModelArgs(
+    settings[fields.argsField],
+    settings[fields.modelField],
+  )
+  return {
+    apiKey: settings[fields.apiKeyField],
+    commandPath: settings[fields.commandField],
+    commandArgs,
+  }
+}
+
 export async function handleTerminalAgentMessageStream(input: {
   request: Request
   agentId: string
@@ -114,34 +160,17 @@ export async function handleTerminalAgentMessageStream(input: {
   const onlineAgentSettings = onlineAgent.agentId === input.agentId
     ? tokenSettings
     : getTerminalAgentSettings(onlineAgent.agentId, WIDGET_ID)
-
-  const tokenProviderKey = input.provider === 'codex'
-    ? tokenSettings.codexApiKey
-    : tokenSettings.geminiApiKey
-  const onlineProviderKey = input.provider === 'codex'
-    ? onlineAgentSettings.codexApiKey
-    : onlineAgentSettings.geminiApiKey
-  const settings = tokenProviderKey.trim()
-    ? tokenSettings
-    : onlineProviderKey.trim()
-      ? onlineAgentSettings
-      : tokenSettings
+  const settings = selectDispatchSettings({
+    provider: input.provider,
+    tokenSettings,
+    onlineSettings: onlineAgentSettings,
+  })
 
   const currentState = getTerminalAgentDialogState(input.agentId, WIDGET_ID, input.provider)
   const dialogId = randomUUID()
   const topic = `agent:widget:${WIDGET_ID}:${dialogId}`
 
-  const providerSettings = input.provider === 'codex'
-    ? {
-        apiKey: settings.codexApiKey,
-      commandPath: settings.codexCommand,
-      commandArgs: withModelArgs(settings.codexArgs, settings.codexModel),
-    }
-  : {
-      apiKey: settings.geminiApiKey,
-      commandPath: settings.geminiCommand,
-      commandArgs: withModelArgs(settings.geminiArgs, settings.geminiModel),
-    }
+  const providerSettings = getProviderDispatchConfig(input.provider, settings)
 
   markDialogStatus({
     agentId: input.agentId,
@@ -229,48 +258,61 @@ export async function handleTerminalAgentMessageStream(input: {
           const status = toText(payload.status) || 'running'
           const rawDetail = toText(payload.detail)
           if (status === 'tool_call') {
-            if (input.provider === 'gemini' && isGeminiApiKeyMissingDetail(rawDetail)) {
-              geminiApiKeyDetected = true
-              if (geminiApiKeyHintReported) {
-                return
-              }
-              geminiApiKeyHintReported = true
-              const missingApiKeyPayload = {
-                status,
-                detail: GEMINI_API_KEY_MISSING_MESSAGE,
-              }
-              markDialogStatus({
-                agentId: input.agentId,
-                provider: input.provider,
-                status,
-                lastError: null,
-              })
-              send('status', missingApiKeyPayload)
-              return
-            }
-            if (input.provider === 'gemini' && geminiApiKeyDetected && isGeminiApiKeyFollowupDetail(rawDetail)) {
-              return
-            }
-            if (isGeminiQuotaDetail(rawDetail)) {
-              quotaDetected = true
-              if (quotaHintReported) {
-                return
-              }
-              quotaHintReported = true
-              const quotaPayload = {
-                status,
-                detail: GEMINI_QUOTA_MESSAGE,
-              }
-              markDialogStatus({
-                agentId: input.agentId,
-                provider: input.provider,
-                status,
-                lastError: null,
-              })
-              send('status', quotaPayload)
-              return
-            }
-            if (shouldHideToolDetail(rawDetail)) {
+            const toolCallRules = [
+              {
+                when: () => input.provider === 'gemini' && isGeminiApiKeyMissingDetail(rawDetail),
+                run: () => {
+                  geminiApiKeyDetected = true
+                  if (geminiApiKeyHintReported) {
+                    return true
+                  }
+                  geminiApiKeyHintReported = true
+                  markDialogStatus({
+                    agentId: input.agentId,
+                    provider: input.provider,
+                    status,
+                    lastError: null,
+                  })
+                  send('status', {
+                    status,
+                    detail: GEMINI_API_KEY_MISSING_MESSAGE,
+                  })
+                  return true
+                },
+              },
+              {
+                when: () => input.provider === 'gemini' && geminiApiKeyDetected && isGeminiApiKeyFollowupDetail(rawDetail),
+                run: () => true,
+              },
+              {
+                when: () => isGeminiQuotaDetail(rawDetail),
+                run: () => {
+                  quotaDetected = true
+                  if (quotaHintReported) {
+                    return true
+                  }
+                  quotaHintReported = true
+                  markDialogStatus({
+                    agentId: input.agentId,
+                    provider: input.provider,
+                    status,
+                    lastError: null,
+                  })
+                  send('status', {
+                    status,
+                    detail: GEMINI_QUOTA_MESSAGE,
+                  })
+                  return true
+                },
+              },
+              {
+                when: () => shouldHideToolDetail(rawDetail),
+                run: () => true,
+              },
+            ] as const
+
+            const matchedRule = toolCallRules.find((rule) => rule.when())
+            if (matchedRule?.run()) {
               return
             }
           }
@@ -330,15 +372,22 @@ export async function handleTerminalAgentMessageStream(input: {
         }
 
         if (eventType === 'error') {
-          const rawMessage = toText(payload.message) || 'Unknown agent error.'
-          const message = (quotaDetected || isGeminiQuotaDetail(rawMessage))
-            ? GEMINI_QUOTA_MESSAGE
-            : (input.provider === 'gemini' && (
-                geminiApiKeyDetected
-                || rawMessage.toLowerCase().includes('provider exited with code: 41')
-              ))
-              ? GEMINI_API_KEY_MISSING_MESSAGE
-            : rawMessage
+          const rawMessage = toText(payload.message) || UNKNOWN_AGENT_ERROR_MESSAGE
+          const errorMappers = [
+            (message: string) => (quotaDetected || isGeminiQuotaDetail(message)) ? GEMINI_QUOTA_MESSAGE : null,
+            (message: string) => {
+              if (input.provider !== 'gemini') {
+                return null
+              }
+              return geminiApiKeyDetected || message.toLowerCase().includes(PROVIDER_EXIT_CODE_41)
+                ? GEMINI_API_KEY_MISSING_MESSAGE
+                : null
+            },
+          ] as const
+          const message = errorMappers
+            .map((mapError) => mapError(rawMessage))
+            .find((mapped) => typeof mapped === 'string')
+            ?? rawMessage
           markDialogStatus({
             agentId: input.agentId,
             provider: input.provider,
