@@ -42,6 +42,7 @@ const STREAM_IDLE_TIMEOUT_MS = 20_000
 const DIALOG_TITLE_MAX = 120
 const TOOL_DETAIL_MAX = 320
 const GEMINI_QUOTA_MESSAGE = 'Gemini quota exceeded. Check billing/limits and retry later.'
+const GEMINI_API_KEY_MISSING_MESSAGE = 'Gemini API key is missing. Set GEMINI_API_KEY and retry later.'
 
 function toDialogTitle(message: string) {
   const compact = message.trim().replace(/\s+/g, ' ')
@@ -70,6 +71,21 @@ function isGeminiQuotaDetail(value: string) {
     || text.includes('code: 429')
 }
 
+function isGeminiApiKeyMissingDetail(value: string) {
+  const text = value.toLowerCase()
+  return text.includes('must specify the gemini_api_key environment variable')
+    || (
+      text.includes('gemini_api_key')
+      && text.includes('environment variable')
+      && text.includes('must specify')
+    )
+}
+
+function isGeminiApiKeyFollowupDetail(value: string) {
+  const text = value.toLowerCase()
+  return text.includes('update your environment and try again')
+}
+
 function shouldHideToolDetail(value: string) {
   const text = value.trim()
   if (!text) {
@@ -94,7 +110,23 @@ export async function handleTerminalAgentMessageStream(input: {
     return jsonResponse({ error: 'agent_offline' }, 503)
   }
 
-  const settings = getTerminalAgentSettings(input.agentId, WIDGET_ID)
+  const tokenSettings = getTerminalAgentSettings(input.agentId, WIDGET_ID)
+  const onlineAgentSettings = onlineAgent.agentId === input.agentId
+    ? tokenSettings
+    : getTerminalAgentSettings(onlineAgent.agentId, WIDGET_ID)
+
+  const tokenProviderKey = input.provider === 'codex'
+    ? tokenSettings.codexApiKey
+    : tokenSettings.geminiApiKey
+  const onlineProviderKey = input.provider === 'codex'
+    ? onlineAgentSettings.codexApiKey
+    : onlineAgentSettings.geminiApiKey
+  const settings = tokenProviderKey.trim()
+    ? tokenSettings
+    : onlineProviderKey.trim()
+      ? onlineAgentSettings
+      : tokenSettings
+
   const currentState = getTerminalAgentDialogState(input.agentId, WIDGET_ID, input.provider)
   const dialogId = randomUUID()
   const topic = `agent:widget:${WIDGET_ID}:${dialogId}`
@@ -126,6 +158,8 @@ export async function handleTerminalAgentMessageStream(input: {
       let idleTimer: ReturnType<typeof setTimeout> | null = null
       let quotaHintReported = false
       let quotaDetected = false
+      let geminiApiKeyHintReported = false
+      let geminiApiKeyDetected = false
 
       const send = (event: string, payload: Record<string, unknown>) => {
         if (closed) {
@@ -195,6 +229,28 @@ export async function handleTerminalAgentMessageStream(input: {
           const status = toText(payload.status) || 'running'
           const rawDetail = toText(payload.detail)
           if (status === 'tool_call') {
+            if (input.provider === 'gemini' && isGeminiApiKeyMissingDetail(rawDetail)) {
+              geminiApiKeyDetected = true
+              if (geminiApiKeyHintReported) {
+                return
+              }
+              geminiApiKeyHintReported = true
+              const missingApiKeyPayload = {
+                status,
+                detail: GEMINI_API_KEY_MISSING_MESSAGE,
+              }
+              markDialogStatus({
+                agentId: input.agentId,
+                provider: input.provider,
+                status,
+                lastError: null,
+              })
+              send('status', missingApiKeyPayload)
+              return
+            }
+            if (input.provider === 'gemini' && geminiApiKeyDetected && isGeminiApiKeyFollowupDetail(rawDetail)) {
+              return
+            }
             if (isGeminiQuotaDetail(rawDetail)) {
               quotaDetected = true
               if (quotaHintReported) {
@@ -277,6 +333,11 @@ export async function handleTerminalAgentMessageStream(input: {
           const rawMessage = toText(payload.message) || 'Unknown agent error.'
           const message = (quotaDetected || isGeminiQuotaDetail(rawMessage))
             ? GEMINI_QUOTA_MESSAGE
+            : (input.provider === 'gemini' && (
+                geminiApiKeyDetected
+                || rawMessage.toLowerCase().includes('provider exited with code: 41')
+              ))
+              ? GEMINI_API_KEY_MISSING_MESSAGE
             : rawMessage
           markDialogStatus({
             agentId: input.agentId,
