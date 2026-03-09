@@ -1,17 +1,18 @@
 ---
 import '../shared/styles/global.scss';
-import type { ResolvedShellTheme } from '../entities/widget/model/types';
+import type { DisplayLocale, ResolvedShellTheme } from '../entities/widget/model/types';
 
 interface Props {
   title: string;
   shellTheme?: ResolvedShellTheme;
+  shellLocale?: DisplayLocale;
 }
 
-const { title, shellTheme } = Astro.props;
+const { title, shellTheme, shellLocale } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="ru" data-shell-theme={shellTheme}>
+<html lang={shellLocale ?? 'ru'} data-shell-theme={shellTheme}>
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content="Yulia Personal Assistant" />

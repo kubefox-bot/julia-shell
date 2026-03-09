@@ -42,10 +42,6 @@ export function Meta({ initialNowIso, initialLocale }: MetaProps) {
   }, [seedNowMs]);
 
   useEffect(() => {
-    const state = useShellStore.getState();
-    const resolved = resolveDisplayLocale(state.layoutSettings.locale);
-    setLocale(resolved);
-
     const unsubscribe = useShellStore.subscribe((nextState, prevState) => {
       const nextLocale = resolveDisplayLocale(nextState.layoutSettings.locale);
       const prevLocale = resolveDisplayLocale(prevState.layoutSettings.locale);

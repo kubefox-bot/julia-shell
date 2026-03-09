@@ -11,6 +11,7 @@ import { getShellSettings } from '../core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { resolveDisplayLocale } from '../shared/lib/locale';
+import { buildLocaleCookieHeader, parseLocaleCookie } from '../shared/lib/locale-cookie';
 import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from '../app/shell/model/constants';
 import type { ResolvedShellTheme } from '../entities/widget/model/types';
 
@@ -23,9 +24,21 @@ if (passportContext.context?.setCookieHeader) {
 }
 const hasPassportAccess = Boolean(passportContext.context);
 const initialAgentId = passportContext.context?.agentId ?? PASSPORT_ANONYMOUS_AGENT_ID;
-const initialShellSettings = await getShellSettings(initialAgentId, { hasPassportAccess });
+const dbShellSettings = await getShellSettings(initialAgentId, { hasPassportAccess });
 const initialNowIso = new Date().toISOString();
-const initialDisplayLocale = resolveDisplayLocale(initialShellSettings.layoutSettings.locale);
+const cookieLocale = parseLocaleCookie(Astro.request.headers.get('cookie'));
+const initialDisplayLocale = cookieLocale ?? resolveDisplayLocale(dbShellSettings.layoutSettings.locale);
+const initialShellSettings = {
+  ...dbShellSettings,
+  layoutSettings: {
+    ...dbShellSettings.layoutSettings,
+    locale: initialDisplayLocale
+  }
+};
+Astro.response.headers.append(
+  'Set-Cookie',
+  buildLocaleCookieHeader({ locale: initialDisplayLocale, request: Astro.request })
+);
 const initialNow = new Date(initialNowIso);
 const initialNowLocale = DateTime.fromJSDate(initialNow).setLocale(initialDisplayLocale === 'ru' ? 'ru' : 'en');
 const initialQuote = getDailyQuote(initialDisplayLocale, initialNowLocale);
@@ -43,7 +56,7 @@ const resolvedShellTheme: ResolvedShellTheme =
 
 ---
 
-<Layout title={title} shellTheme={resolvedShellTheme}>
+<Layout title={title} shellTheme={resolvedShellTheme} shellLocale={initialDisplayLocale}>
   <div class="shellBootStage">
     <div id="shell-boot-overlay" class="shellBootOverlay" aria-hidden="true">
       <div class="shellBootOverlayInner">
@@ -62,7 +75,6 @@ const resolvedShellTheme: ResolvedShellTheme =
       client:load
       initialShellSettings={initialShellSettings}
       initialNowIso={initialNowIso}
-      initialBrowserLocale={initialDisplayLocale}
     />
   </div>
 </Layout>

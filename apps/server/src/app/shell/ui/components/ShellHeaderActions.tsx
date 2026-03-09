@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../../../../shared/ui/Button';
 import { IconButton } from '../../../../shared/ui/IconButton';
-import { useShellI18n, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
+import type { DisplayLocale } from '../../../../entities/widget/model/types';
+import { getShellText } from '../../lib/i18n';
+import { useShellLayoutViewModel } from '../../model/selectors';
 import { useShellStore } from '../../model/store';
 import { ShellAgentStatusOverlay } from './ShellAgentStatusOverlay';
 import styles from '../ShellApp.module.scss';
+import { resolveDisplayLocale } from '../../../../shared/lib/locale';
 
-export function ShellHeaderActions() {
-  const { t } = useShellI18n();
-  const activeLocale = useShellLocale();
+type ShellHeaderActionsProps = {
+  initialLocale: DisplayLocale;
+};
+
+export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
+  const [activeLocale, setActiveLocale] = useState<DisplayLocale>(initialLocale);
   const { hasUnsavedChanges } = useShellLayoutViewModel();
   const isEditMode = useShellStore((state) => state.isEditMode);
   const isSaving = useShellStore((state) => state.isSaving);
@@ -22,9 +28,30 @@ export function ShellHeaderActions() {
   const passportStatus = useShellStore((state) => state.passportStatus);
   const [isAgentOverlayOpen, setIsAgentOverlayOpen] = useState(false);
 
+  useEffect(() => {
+    const unsubscribe = useShellStore.subscribe((nextState, prevState) => {
+      const nextLocale = resolveDisplayLocale(nextState.layoutSettings.locale);
+      const prevLocale = resolveDisplayLocale(prevState.layoutSettings.locale);
+      if (nextLocale !== prevLocale) {
+        setActiveLocale(nextLocale);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const themeToggleTitle =
-    theme === 'auto' ? t('switchToDay') : theme === 'day' ? t('switchToNight') : t('switchToAutoTheme');
-  const localeToggleTitle = activeLocale === 'ru' ? t('switchToEnglish') : t('switchToRussian');
+    theme === 'auto'
+      ? getShellText(activeLocale, 'switchToDay')
+      : theme === 'day'
+        ? getShellText(activeLocale, 'switchToNight')
+        : getShellText(activeLocale, 'switchToAutoTheme');
+  const localeToggleTitle =
+    activeLocale === 'ru'
+      ? getShellText(activeLocale, 'switchToEnglish')
+      : getShellText(activeLocale, 'switchToRussian');
   const agentStatus = passportStatus?.status ?? 'disconnected';
   const agentLampClass =
     agentStatus === 'connected' || agentStatus === 'connected_dev'
@@ -40,10 +67,14 @@ export function ShellHeaderActions() {
           <div className={styles.headerMetaItem}>
             <div className={styles.headerActionsPanel}>
               <div className={styles.headerActions}>
-                <IconButton type="button" onClick={() => setIsAgentOverlayOpen(true)} title={t('openAgentStatus')}>
+                <IconButton
+                  type="button"
+                  onClick={() => setIsAgentOverlayOpen(true)}
+                  title={getShellText(activeLocale, 'openAgentStatus')}
+                >
                   <span className={`${styles.agentLamp} ${styles.agentActionLamp} ${agentLampClass}`} aria-hidden="true" />
                 </IconButton>
-                <IconButton type="button" onClick={openSettings} title={t('settings')}>
+                <IconButton type="button" onClick={openSettings} title={getShellText(activeLocale, 'settings')}>
                   ⚙️
                 </IconButton>
                 <IconButton type="button" onClick={() => void toggleLocale()} title={localeToggleTitle}>
@@ -53,16 +84,16 @@ export function ShellHeaderActions() {
                   {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
                 </IconButton>
                 {!isEditMode ? (
-                  <IconButton type="button" onClick={startEdit} title={t('editGrid')}>
+                  <IconButton type="button" onClick={startEdit} title={getShellText(activeLocale, 'editGrid')}>
                     ✎
                   </IconButton>
                 ) : (
                   <>
                     <Button type="button" variant="secondary" onClick={cancelEdit} disabled={isSaving}>
-                      {t('cancel')}
+                      {getShellText(activeLocale, 'cancel')}
                     </Button>
                     <Button type="button" onClick={() => void saveLayout()} disabled={isSaving || !hasUnsavedChanges}>
-                      {isSaving ? t('saving') : t('save')}
+                      {isSaving ? getShellText(activeLocale, 'saving') : getShellText(activeLocale, 'save')}
                     </Button>
                   </>
                 )}

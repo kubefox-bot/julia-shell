@@ -10,26 +10,16 @@ import styles from './ShellApp.module.scss'
 type ShellAppProps = {
   initialShellSettings?: ShellSettingsResponse
   initialNowIso?: string
-  initialBrowserLocale?: string
 }
 
-export function ShellApp({ initialShellSettings, initialNowIso, initialBrowserLocale }: ShellAppProps) {
+export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps) {
   const hasSeededClockRef = useRef(false)
-  const hasSeededBrowserLocaleRef = useRef(false)
   const hasSeededShellStateRef = useRef(false)
 
   if (!hasSeededClockRef.current && initialNowIso) {
     useShellStore.setState({ nowIso: initialNowIso })
     hasSeededClockRef.current = true
   }
-
-  if (!hasSeededBrowserLocaleRef.current && initialBrowserLocale) {
-    useShellStore.setState((state) =>
-      state.browserLocale ? {} : { browserLocale: initialBrowserLocale }
-    )
-    hasSeededBrowserLocaleRef.current = true
-  }
-
   if (!hasSeededShellStateRef.current && initialShellSettings) {
     useShellStore.setState((state) => buildShellStatePatch(state, initialShellSettings))
     hasSeededShellStateRef.current = true
@@ -120,7 +110,7 @@ export function ShellApp({ initialShellSettings, initialNowIso, initialBrowserLo
 
   return (
     <div className={styles.shellRoot} data-theme={theme}>
-      <ShellHeaderActions />
+      <ShellHeaderActions initialLocale={initialShellSettings?.layoutSettings.locale ?? 'ru'} />
       {!showBootSkeleton && error ? (
         <p className={styles.error}>
           {t('error')}: {error}

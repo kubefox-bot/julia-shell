@@ -3,6 +3,8 @@ import { fetchShellSettings, toggleModule as toggleModuleRequest } from '../../l
 import { SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS } from '../constants'
 import { buildShellStatePatch } from '../store-helpers'
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types'
+import type { ShellLocale } from '../../../../entities/widget/model/types'
+import { readLocaleCookieFromDocument } from '../../../../shared/lib/locale-cookie'
 
 export type ShellDataSlice = Pick<
   ShellStoreState,
@@ -23,6 +25,11 @@ export type ShellDataSlice = Pick<
     'hydrateShell' | 'setBrowserLocale' | 'tickNow' | 'clearError' | 'loadShell' | 'toggleModule'
   >
 
+function resolveInitialShellLocale(): ShellLocale {
+  return  readLocaleCookieFromDocument() ?? "ru";
+
+}
+
 export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSlice> = (
   set,
   get
@@ -39,7 +46,7 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
   layoutSettings: {
     desktopColumns: 12,
     mobileColumns: 1,
-    locale: 'ru',
+    locale: resolveInitialShellLocale(),
     theme: 'auto',
   },
   statusPollIntervalMs: SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS,

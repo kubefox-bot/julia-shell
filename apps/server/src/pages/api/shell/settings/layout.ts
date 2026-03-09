@@ -3,6 +3,7 @@ import { updateLayoutSettings } from '../../../../core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';
+import { buildLocaleCookieHeader } from '../../../../shared/lib/locale-cookie';
 import { jsonResponse, readJsonBody } from '../../../../shared/lib/http';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -28,5 +29,12 @@ export const POST: APIRoute = async ({ request }) => {
     layout: body.layout
   });
 
-  return withSetCookie(jsonResponse(result), resolvedAuth.context?.setCookieHeader ?? null);
+  const response = withSetCookie(jsonResponse(result), resolvedAuth.context?.setCookieHeader ?? null);
+  const headers = new Headers(response.headers);
+  headers.append('Set-Cookie', buildLocaleCookieHeader({ locale: result.layoutSettings.locale, request }));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
 };
