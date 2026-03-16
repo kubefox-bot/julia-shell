@@ -5,6 +5,7 @@ import { readRuntimeEnv } from '@core/env'
 import { invalidateWidgetRegistryCache } from '@core/registry/registry'
 import { moduleBus } from '@shared/lib/module-bus'
 import { nowIso, nowMillis, toIsoFromMillis } from '@shared/lib/time'
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { resolvePassportJwtSecret } from '../config/jwt-secret'
 import { resolvePassportHeartbeatTimeoutMs } from '../config/health'
 import { verifyAccessJwt } from '../jwt'
@@ -18,8 +19,6 @@ const PROTOCOL_VERSION = '1.0.0'
 const DEFAULT_SESSION_ID = 'session'
 const UNAUTHORIZED_MESSAGE = 'Invalid access token.'
 const GRPC_BIND_HOST = '0.0.0.0'
-const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe'
-const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent'
 
 type RuntimeWidgetEvent = {
   widgetId: string

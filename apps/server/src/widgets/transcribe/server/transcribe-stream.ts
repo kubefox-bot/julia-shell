@@ -3,6 +3,11 @@ import { getTranscribeWidgetSettings, updateTranscribeJobProgress } from './repo
 import { readRuntimeEnv } from '@core/env'
 import { jsonResponse } from '@shared/lib/http'
 import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status'
+import {
+  TRANSCRIBE_PROGRESS_INITIAL_PERCENT,
+  TRANSCRIBE_PROGRESS_MAX_PERCENT,
+  TRANSCRIBE_PROGRESS_MIN_PERCENT,
+} from '../progress'
 import { isTranscribeDevBypassMode } from './agent-mode'
 import { handleAgentTranscribeStream } from './agent-transcribe-stream'
 import { MOCK_GEMINI_MODEL, WIDGET_ID } from './constants'
@@ -10,10 +15,6 @@ import { resolveApiKeyState } from './settings'
 import { runTranscribeStream } from './transcribe-stream-runner'
 import type { RunTranscribeStreamInput, StreamRuntime } from './transcribe-stream-types'
 import { buildGeminiModelCandidates, resolveConfiguredModel, toSseEvent } from './utils'
-
-const INITIAL_PROGRESS_PERCENT = Number('-1')
-const MAX_PROGRESS_PERCENT = Number('100')
-const MIN_PROGRESS_PERCENT = Number('0')
 
 function createValidationErrorResponse() {
   return jsonResponse({ error: 'folderPath or filePaths is required.' }, HTTP_STATUS_BAD_REQUEST)
@@ -96,10 +97,13 @@ function createStreamRuntime(input: {
 }
 
 function createSendProgress(runtime: StreamRuntime, getJobId: () => string) {
-  let lastProgress = INITIAL_PROGRESS_PERCENT
+  let lastProgress = TRANSCRIBE_PROGRESS_INITIAL_PERCENT
 
   return (percent: number, stage: string) => {
-    const normalized = Math.max(MIN_PROGRESS_PERCENT, Math.min(MAX_PROGRESS_PERCENT, Math.round(percent)))
+    const normalized = Math.max(
+      TRANSCRIBE_PROGRESS_MIN_PERCENT,
+      Math.min(TRANSCRIBE_PROGRESS_MAX_PERCENT, Math.round(percent))
+    )
     const monotonic = Math.max(lastProgress, normalized)
     if (monotonic === lastProgress) {
       return

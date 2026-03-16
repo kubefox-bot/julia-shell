@@ -3,11 +3,10 @@ import type { StoreApi } from 'zustand/vanilla'
 import { isSupportedAudioEntry } from '../helpers'
 import { openTranscribeStream, readTranscript } from '../lib/transcribe-api'
 import { consumeTranscribeStream } from '../lib/transcribe-stream'
+import { TRANSCRIBE_PROGRESS_MAX_PERCENT } from '../../progress'
 import type { TranscribeStore } from '../model/store'
 import type { BrowserEntry, StatusDescriptor } from '../model/types'
 import type { LoadPathOptions } from './types'
-
-const MAX_PROGRESS_PERCENT = 100
 
 type SetStatus = (key: StatusDescriptor['key'], vars?: Record<string, string | number>) => void
 type TypewriterController = {
@@ -97,7 +96,7 @@ export function useTranscribeSetupActions(input: SetupActionsInput) {
       await consumeTranscribeStream(stream, {
         onProgress: (percent, stage) => {
           input.store.getState().updateProgress(
-            Math.max(0, Math.min(MAX_PROGRESS_PERCENT, Math.round(percent))),
+            Math.max(0, Math.min(TRANSCRIBE_PROGRESS_MAX_PERCENT, Math.round(percent))),
             stage
           )
         },
@@ -124,7 +123,7 @@ export function useTranscribeSetupActions(input: SetupActionsInput) {
 
           input.store.setState({
             isTranscribing: false,
-            progress: MAX_PROGRESS_PERCENT,
+            progress: TRANSCRIBE_PROGRESS_MAX_PERCENT,
             progressStage: 'progressDone',
             actionsLocked: false,
           })

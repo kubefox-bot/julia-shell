@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
 import { requestJson } from '@shared/lib/request';
+import { WEATHER_WIDGET_ID } from '@/widgets';
 import { WEATHER_WIDGET_META } from '../meta';
 import styles from './WeatherWidget.module.scss';
 
@@ -24,6 +25,7 @@ type WeatherPayload = {
 
 const FORECAST_DATE_FORMATTER = DateTime.DATE_MED_WITH_WEEKDAY;
 const META_DATE_FORMATTER = 'dd.MM, HH:mm';
+const WEATHER_WIDGET_ROUTE_PREFIX = `/api/widget/${WEATHER_WIDGET_ID}`;
 
 function describeWeatherCode(code: number) {
   const labels: Record<number, string> = {
@@ -55,8 +57,8 @@ function describeWeatherCode(code: number) {
 
 async function loadForecast(refresh = false) {
   const endpoint = refresh
-    ? '/api/widget/com.yulia.weather/refresh'
-    : '/api/widget/com.yulia.weather/forecast';
+    ? `${WEATHER_WIDGET_ROUTE_PREFIX}/refresh`
+    : `${WEATHER_WIDGET_ROUTE_PREFIX}/forecast`;
 
   return requestJson<WeatherPayload>(endpoint, {
     method: refresh ? 'POST' : 'GET',

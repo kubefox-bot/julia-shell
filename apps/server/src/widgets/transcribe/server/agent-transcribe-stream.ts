@@ -9,11 +9,10 @@ import { jsonResponse } from '@shared/lib/http';
 import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status';
 import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
+import { TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT } from '../progress';
 import { handleAgentBusEvent, type AgentEventPayload } from './agent-transcribe-events';
 import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';
-
-const JOB_CREATED_PROGRESS_PERCENT = Number('2');
 
 function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: string }) {
   const explicit = input.folderPath.trim();
@@ -128,7 +127,7 @@ export async function handleAgentTranscribeStream(
       };
 
       send('progress', {
-        percent: JOB_CREATED_PROGRESS_PERCENT,
+        percent: TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT,
         stage: 'progressJobCreated',
         jobId,
       });

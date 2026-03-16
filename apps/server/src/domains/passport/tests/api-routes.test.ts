@@ -4,8 +4,7 @@ import {
   HTTP_STATUS_OK,
   HTTP_STATUS_UNAUTHORIZED
 } from '@shared/lib/http-status';
-
-const ACCESS_TOKEN_TTL_SECONDS = 3600;
+import { PASSPORT_ACCESS_TTL_SECONDS } from '../server/config/consts';
 
 const enrollPassportAgentMock = vi.hoisted(() => vi.fn());
 const refreshPassportSessionMock = vi.hoisted(() => vi.fn());
@@ -70,7 +69,7 @@ describe('passport api routes', () => {
       agentId: 'agent-a',
       accessJwt: 'access-jwt',
       refreshToken: 'refresh-token',
-      expiresIn: ACCESS_TOKEN_TTL_SECONDS
+      expiresIn: PASSPORT_ACCESS_TTL_SECONDS
     });
 
     const response = await enrollPost({
@@ -92,7 +91,7 @@ describe('passport api routes', () => {
       agent_id: 'agent-a',
       access_jwt: 'access-jwt',
       refresh_token: 'refresh-token',
-      expires_in: ACCESS_TOKEN_TTL_SECONDS
+      expires_in: PASSPORT_ACCESS_TTL_SECONDS
     });
   });
 

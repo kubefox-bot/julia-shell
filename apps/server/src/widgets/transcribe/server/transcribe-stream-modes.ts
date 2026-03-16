@@ -8,6 +8,14 @@ import {
   PROMPT_PATH,
   WIDGET_ID,
 } from './constants'
+import {
+  TRANSCRIBE_PROGRESS_MAX_PERCENT,
+  TRANSCRIBE_STREAMING_PROGRESS_MAX_PERCENT,
+  TRANSCRIBE_STREAMING_PROGRESS_START_PERCENT,
+  TRANSCRIBE_TOKEN_PROGRESS_MIN_STEP,
+  TRANSCRIBE_TOKEN_PROGRESS_STEP_DIVISOR,
+  TRANSCRIBE_UPLOAD_PROGRESS_PERCENT,
+} from '../progress'
 import { startGeminiStream } from './gemini'
 import { runMockTranscription } from './mock'
 import type {
@@ -16,13 +24,6 @@ import type {
   TranscribeJobContext,
 } from './transcribe-stream-types'
 import type { UploadedGeminiFile } from './types'
-
-const UPLOAD_PROGRESS_PERCENT = 60
-const TRANSCRIBING_PROGRESS_START_PERCENT = 72
-const TRANSCRIBING_PROGRESS_MAX_PERCENT = 98
-const MAX_PROGRESS_PERCENT = 100
-const TOKEN_PROGRESS_STEP_DIVISOR = 120
-const MIN_TOKEN_PROGRESS_STEP = 1
 
 function emitCompleted(agentId: string, jobId: string, model: string, sourceFile: string, savePath: string) {
   appendTranscribeOutboxEvent({
@@ -72,7 +73,7 @@ export async function handleMock(
 
 async function collectGeminiTranscript(input: RunTranscribeStreamInput, model: string, jobId: string, response: Awaited<ReturnType<typeof startGeminiStream>>['response']) {
   let transcript = ''
-  let rollingProgress = TRANSCRIBING_PROGRESS_START_PERCENT
+  let rollingProgress = TRANSCRIBE_STREAMING_PROGRESS_START_PERCENT
 
   for await (const chunk of response) {
     if (input.runtime.isAborted()) {
@@ -84,8 +85,11 @@ async function collectGeminiTranscript(input: RunTranscribeStreamInput, model: s
     }
     transcript += text
     rollingProgress = Math.min(
-      TRANSCRIBING_PROGRESS_MAX_PERCENT,
-      rollingProgress + Math.max(MIN_TOKEN_PROGRESS_STEP, Math.ceil(text.length / TOKEN_PROGRESS_STEP_DIVISOR))
+      TRANSCRIBE_STREAMING_PROGRESS_MAX_PERCENT,
+      rollingProgress + Math.max(
+        TRANSCRIBE_TOKEN_PROGRESS_MIN_STEP,
+        Math.ceil(text.length / TRANSCRIBE_TOKEN_PROGRESS_STEP_DIVISOR)
+      )
     )
     input.runtime.sendProgress(rollingProgress, 'progressTranscribing')
     input.runtime.send('token', { text, model, jobId })
@@ -107,14 +111,14 @@ export async function handleGemini(
     throw new Error('GEMINI_API_KEY is missing in settings, env, or Infisical.')
   }
 
-  input.runtime.sendProgress(UPLOAD_PROGRESS_PERCENT, 'progressUploading')
+  input.runtime.sendProgress(TRANSCRIBE_UPLOAD_PROGRESS_PERCENT, 'progressUploading')
   const ai = new GoogleGenAI({ apiKey: input.apiKey })
   artifacts.uploadedFile = (await ai.files.upload({
     file: artifacts.convertedAudioPath,
     config: { mimeType: GEMINI_UPLOAD_MIME, displayName: path.basename(artifacts.convertedAudioPath) },
   })) as UploadedGeminiFile
 
-  input.runtime.sendProgress(TRANSCRIBING_PROGRESS_START_PERCENT, 'progressTranscribing')
+  input.runtime.sendProgress(TRANSCRIBE_STREAMING_PROGRESS_START_PERCENT, 'progressTranscribing')
   const streamResult = await startGeminiStream(ai, prompt, artifacts.uploadedFile, input.geminiModelCandidates)
   const transcript = await collectGeminiTranscript(
     input,
@@ -128,7 +132,7 @@ export async function handleGemini(
 
   const savePath = path.join(context.resolvedFolderPath, `${context.primaryBaseName}.txt`)
   await fs.writeFile(savePath, transcript, 'utf8')
-  input.runtime.sendProgress(MAX_PROGRESS_PERCENT, 'progressDone')
+  input.runtime.sendProgress(TRANSCRIBE_PROGRESS_MAX_PERCENT, 'progressDone')
   completeTranscribeJob(context.jobId, savePath)
   emitCompleted(input.agentId, context.jobId, streamResult.model, context.canonicalSourceFile, savePath)
   input.runtime.send('done', {

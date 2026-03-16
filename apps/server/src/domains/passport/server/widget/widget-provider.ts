@@ -1,16 +1,16 @@
 import { readRuntimeEnv } from '@core/env'
-import { PASSPORT_WIDGET_ID_TERMINAL_AGENT, PASSPORT_WIDGET_ID_TRANSCRIBE } from '../config/consts'
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import type { PassportRequestContext } from '../context'
 import { passportRuntime } from '../runtime/runtime'
 import type { PassportWidgetProviderSnapshot } from '../types'
 import { isPassportProtectedWidget } from './widget-policy'
 
 function resolveRequiresOnlineAgent(widgetId: string) {
-  if (widgetId === PASSPORT_WIDGET_ID_TERMINAL_AGENT) {
+  if (widgetId === TERMINAL_AGENT_WIDGET_ID) {
     return true
   }
 
-  if (widgetId !== PASSPORT_WIDGET_ID_TRANSCRIBE) {
+  if (widgetId !== TRANSCRIBE_WIDGET_ID) {
     return false
   }
 
@@ -29,7 +29,7 @@ export function resolvePassportWidgetProviderSnapshot(
   const requiresOnlineAgent = resolveRequiresOnlineAgent(widgetId)
   const hasOnlineAgent = Boolean(passportRuntime.getOnlineAgentSession(context?.agentId))
 
-  if (widgetId !== PASSPORT_WIDGET_ID_TRANSCRIBE && widgetId !== PASSPORT_WIDGET_ID_TERMINAL_AGENT) {
+  if (widgetId !== TRANSCRIBE_WIDGET_ID && widgetId !== TERMINAL_AGENT_WIDGET_ID) {
     return {
       widgetId,
       status: 'unsupported_widget',

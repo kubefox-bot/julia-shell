@@ -5,14 +5,13 @@ import {
   touchRecentFolder,
 } from './repository'
 import { DEFAULT_GEMINI_MODEL, TOOLS_ROOT, WIDGET_ID } from './constants'
+import { TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT } from '../progress'
 import { prepareAudioForTranscription } from './ffmpeg'
 import type { RunTranscribeStreamInput, TranscribeJobContext } from './transcribe-stream-types'
 import { findBinary, getHostPlatform, resolveSelection } from './utils'
 
-const JOB_CREATED_PROGRESS_PERCENT = 2
-
 export async function createJobContext(input: RunTranscribeStreamInput): Promise<TranscribeJobContext> {
-  input.runtime.sendProgress(JOB_CREATED_PROGRESS_PERCENT, 'progressCheckingSelection')
+  input.runtime.sendProgress(TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT, 'progressCheckingSelection')
   const selection = await resolveSelection(input.folderPath, input.filePath, input.filePaths)
   const { filePaths, canonicalSourceFile, resolvedFolderPath } = selection
   const primaryBaseName = path.parse(canonicalSourceFile).name
@@ -54,7 +53,11 @@ export async function createJobContext(input: RunTranscribeStreamInput): Promise
     payload: { stage: 'started' },
   })
 
-  input.runtime.send('progress', { percent: JOB_CREATED_PROGRESS_PERCENT, stage: 'progressJobCreated', jobId })
+  input.runtime.send('progress', {
+    percent: TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT,
+    stage: 'progressJobCreated',
+    jobId,
+  })
   return { ...selection, primaryBaseName, jobId }
 }
 

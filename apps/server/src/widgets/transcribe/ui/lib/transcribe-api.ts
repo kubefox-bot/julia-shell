@@ -1,5 +1,6 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
 import { defineQuery, requestBody, requestJson } from '@shared/lib/request'
+import { TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { TRANSCRIBE_WIDGET_META } from '../../meta'
 import type {
   FsListResponse,
@@ -7,6 +8,8 @@ import type {
   TranscriptSaveResponse,
   WidgetProviderResponse
 } from './types'
+
+const TRANSCRIBE_WIDGET_ROUTE_PREFIX = `/api/widget/${TRANSCRIBE_WIDGET_ID}`
 
 function readAliases(data: unknown) {
   if (typeof data !== 'object' || data === null || !('aliases' in data)) {
@@ -19,20 +22,20 @@ function readAliases(data: unknown) {
 
 export async function fetchTranscribeProvider() {
   return requestJson<WidgetProviderResponse>(
-    '/api/passport/widget/provider?widget_id=com.yulia.transcribe',
+    `/api/passport/widget/provider?widget_id=${encodeURIComponent(TRANSCRIBE_WIDGET_ID)}`,
     { widget: TRANSCRIBE_WIDGET_META },
     'Failed to resolve widget provider state.'
   )
 }
 
 export async function fetchTranscribeSettings() {
-  return requestJson<TranscribeSettingsPayload>('/api/widget/com.yulia.transcribe/settings', {
+  return requestJson<TranscribeSettingsPayload>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/settings`, {
     widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load settings.')
 }
 
 export async function saveTranscribeSettings(payload: { geminiModel: string; apiKey?: string }) {
-  return requestJson<TranscribeSettingsPayload>('/api/widget/com.yulia.transcribe/settings', {
+  return requestJson<TranscribeSettingsPayload>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/settings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -41,7 +44,7 @@ export async function saveTranscribeSettings(payload: { geminiModel: string; api
 }
 
 export async function fetchTranscribeFolder(path: string) {
-  const typed = await requestJson<FsListResponse>('/api/widget/com.yulia.transcribe/fs-list', {
+  const typed = await requestJson<FsListResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/fs-list`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path }),
@@ -55,7 +58,7 @@ export async function fetchTranscribeFolder(path: string) {
 }
 
 export async function fetchSpeakerAliases() {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>('/api/widget/com.yulia.transcribe/speaker-aliases', {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/speaker-aliases`, {
     widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load speaker aliases.')
 
@@ -63,7 +66,7 @@ export async function fetchSpeakerAliases() {
 }
 
 export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>('/api/widget/com.yulia.transcribe/speaker-aliases', {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/speaker-aliases`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ aliases }),
@@ -78,7 +81,7 @@ export async function readTranscript(payload: {
   folderPath: string | null
   txtPath: string
 }) {
-  return requestJson<TranscriptReadResponse>('/api/widget/com.yulia.transcribe/transcript-read', {
+  return requestJson<TranscriptReadResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcript-read`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -92,7 +95,7 @@ export async function saveTranscript(payload: {
   txtPath: string | null
   transcript: string
 }) {
-  return requestJson<TranscriptSaveResponse>('/api/widget/com.yulia.transcribe/transcript-save', {
+  return requestJson<TranscriptSaveResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcript-save`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -104,7 +107,7 @@ export async function openTranscribeStream(payload: {
   folderPath: string
   filePaths: string[]
 }) {
-  return requestBody('/api/widget/com.yulia.transcribe/transcribe-stream', {
+  return requestBody(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcribe-stream`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

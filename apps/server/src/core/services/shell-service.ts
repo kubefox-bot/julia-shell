@@ -1,4 +1,5 @@
 // biome-ignore lint/nursery/noExcessiveLinesPerFile: Shell policy and layout orchestration are temporarily colocated.
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { WIDGET_SIZE_SET } from '@/entities/widget/model';
 import type {
   HostPlatform,
@@ -9,10 +10,6 @@ import type {
 } from '../../entities/widget/model/types';
 import { readRuntimeEnv } from '../env';
 import { passportRuntime } from '@passport/server/runtime';
-import {
-  PASSPORT_WIDGET_ID_TERMINAL_AGENT,
-  PASSPORT_WIDGET_ID_TRANSCRIBE
-} from '@passport/server/config/consts';
 import {
   ensureDefaultLayoutItem,
   ensureDefaultModuleState,
@@ -27,8 +24,8 @@ import { listDiscoveredWidgets } from '../registry/registry';
 
 const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
 const PASSPORT_REQUIRED_WIDGET_IDS = new Set([
-  PASSPORT_WIDGET_ID_TRANSCRIBE,
-  PASSPORT_WIDGET_ID_TERMINAL_AGENT
+  TRANSCRIBE_WIDGET_ID,
+  TERMINAL_AGENT_WIDGET_ID
 ]);
 const MIN_SHELL_COLUMNS = 1;
 const MAX_SHELL_COLUMNS = 12;
@@ -87,11 +84,11 @@ export async function ensureCoreDefaults(agentId: string) {
 }
 
 function requiresCurrentOnlineAgent(widgetId: string) {
-  if (widgetId === PASSPORT_WIDGET_ID_TERMINAL_AGENT) {
+  if (widgetId === TERMINAL_AGENT_WIDGET_ID) {
     return true;
   }
 
-  if (widgetId !== PASSPORT_WIDGET_ID_TRANSCRIBE) {
+  if (widgetId !== TRANSCRIBE_WIDGET_ID) {
     return false;
   }
 

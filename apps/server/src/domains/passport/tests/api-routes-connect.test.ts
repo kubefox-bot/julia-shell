@@ -3,8 +3,7 @@ import {
   HTTP_STATUS_CONFLICT,
   HTTP_STATUS_OK
 } from '@shared/lib/http-status'
-
-const ACCESS_TOKEN_TTL_SECONDS = 3600
+import { PASSPORT_ACCESS_TTL_SECONDS } from '../server/config/consts'
 
 const issuePassportBrowserAccessMock = vi.hoisted(() => vi.fn())
 const getAgentStatusSnapshotMock = vi.hoisted(() => vi.fn())
@@ -86,7 +85,7 @@ describe('passport api routes connect', () => {
     issuePassportBrowserAccessMock.mockResolvedValue({
       agentId: 'agent-b',
       accessJwt: 'browser-jwt',
-      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      expiresIn: PASSPORT_ACCESS_TTL_SECONDS,
     })
     getAgentStatusSnapshotMock.mockReturnValue({
       status: 'connected',
