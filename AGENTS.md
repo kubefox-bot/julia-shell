@@ -316,7 +316,8 @@ Linting / typing:
 
 ## Engineering Rules
 - for TS/TSX date/time logic use `luxon`; avoid direct `Date`, `Date.now()`, and manual `toISOString()` inside app code.
-- for fallible domain/config/repository/integration flows prefer `neverthrow` `Result` over ad-hoc throw/catch chains in the middle of the flow.
+- for fallible domain/config/repository/integration flows use `neverthrow` (`Result` / `ResultAsync`) instead of ad-hoc throw/catch in the middle of the flow.
+- when branching on `Result`, prefer `result.match(okHandler, errHandler)` over manual `isOk()/isErr()` checks where practical.
 - for outgoing HTTP in TS/TSX use the shared `ky`-based request layer under `apps/server/src/shared/lib/request.ts`; do not add new direct `fetch` wrappers.
 - client read APIs should stay TanStack Query-ready:
   - export pure request functions,
@@ -327,8 +328,14 @@ Linting / typing:
 - widget IDs/routes should be read from shared widget constants/helpers (`apps/server/src/widgets/constants.ts`) instead of hardcoded literals.
 - for deterministic resolution logic (platform/status/widget behavior), prefer `Map`/`Record` resolvers over if/else chains.
 - avoid long/cascading ternary expressions; prefer `Record` maps, named resolver helpers, or explicit branches.
-- one file should have one main responsibility/exported unit; split large features by meaning, not by arbitrary line counts.
-- keep feature folders decomposed by subdomain/component; each runtime TS/TSX folder should expose `index.ts` as its entrypoint where that folder is a public module boundary.
+- if a helper is reused by multiple features/domains, move it to shared (`apps/server/src/shared/*`) instead of duplicating local implementations.
+- one file should contain one primary unit only:
+  - either one main function,
+  - or one main class.
+- if logic is related by meaning, decompose it into a dedicated feature folder and split by responsibility into separate files.
+- organize related code hierarchically by feature/subfeature (no flat mixed files for complex areas).
+- keep feature folders decomposed by subdomain/component.
+- each runtime TS/TSX folder should expose `index.ts` as its entrypoint where that folder is a public module boundary.
 - keep `@app/*`, `@core/*`, `@shared/*`, and `@passport/*` aliases as the default cross-feature import style inside `apps/server/src`.
 
 ## Quality Gate (Current)
