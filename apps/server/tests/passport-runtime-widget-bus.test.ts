@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetDbCache } from '../src/core/db/shared';
 import { PassportRuntime } from '../src/domains/passport/server/runtime/runtime';
 import { moduleBus } from '../src/shared/lib/module-bus';
+import { TRANSCRIBE_WIDGET_ID } from '../src/widgets';
 
 type RuntimeInternals = {
   publishWidgetPayload: (input: {
@@ -42,13 +43,13 @@ describe('passport runtime widget bus transport', () => {
       agentId: 'agent-a',
       sessionId: 'session-a',
       jobId: 'job-a',
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       eventType: 'progress',
       payload: { percent: 10 }
     });
     unsubscribe();
 
-    expect(topics).toContain('agent:widget:com.yulia.transcribe:job-a');
+    expect(topics).toContain(`agent:widget:${TRANSCRIBE_WIDGET_ID}:job-a`);
     expect(topics).not.toContain('agent:transcribe:job-a');
   });
 });

@@ -1,19 +1,13 @@
-import type { LayoutItem } from '../../../entities/widget/model/types';
+import type { LayoutItem } from '@/entities/widget/model/types';
 import type { ShellSettingsResponse } from '../model/types';
+import { defineQuery, requestJson } from '@shared/lib/request'
 
-async function safeJson<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = (data as { error?: string })?.error ?? `Request failed with ${response.status}`;
-    throw new Error(message);
-  }
-
-  return data as T;
+export const shellQueryKeys = {
+  settings: () => ['shell', 'settings'] as const,
 }
 
 export async function fetchShellSettings() {
-  const response = await fetch('/api/shell/settings');
-  return safeJson<ShellSettingsResponse>(response);
+  return requestJson<ShellSettingsResponse>('/api/shell/settings')
 }
 
 export async function saveShellLayout(payload: {
@@ -23,19 +17,17 @@ export async function saveShellLayout(payload: {
   theme: 'auto' | 'day' | 'night';
   layout: LayoutItem[];
 }) {
-  const response = await fetch('/api/shell/settings/layout', {
+  return requestJson<ShellSettingsResponse>('/api/shell/settings/layout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  });
-
-  return safeJson<ShellSettingsResponse>(response);
+  })
 }
 
 export async function toggleModule(widgetId: string, enabled: boolean) {
-  const response = await fetch(`/api/shell/modules/${encodeURIComponent(widgetId)}/${enabled ? 'enable' : 'disable'}`, {
+  return requestJson<{ module: unknown }>(`/api/shell/modules/${encodeURIComponent(widgetId)}/${enabled ? 'enable' : 'disable'}`, {
     method: 'POST'
-  });
-
-  return safeJson<{ module: unknown }>(response);
+  })
 }
+
+export const shellSettingsQuery = defineQuery(shellQueryKeys.settings(), fetchShellSettings)

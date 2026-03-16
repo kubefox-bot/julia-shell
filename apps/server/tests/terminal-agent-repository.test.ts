@@ -11,6 +11,7 @@ import {
 } from '../src/domains/llm/server/repository/terminal-agent-repository'
 import { updateTerminalAgentSettings } from '../src/widgets/terminal-agent/server/settings'
 import { resetDbCache } from '../src/core/db/shared'
+import { TERMINAL_AGENT_WIDGET_ID } from '../src/widgets'
 
 let tempDir = ''
 
@@ -31,7 +32,7 @@ describe('terminal-agent repository', () => {
 
     saveTerminalAgentSettings({
       agentId,
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       activeProvider: 'gemini',
       codexApiKey: 'codex-key',
       geminiApiKey: 'gemini-key',
@@ -47,7 +48,7 @@ describe('terminal-agent repository', () => {
 
     upsertTerminalAgentDialogState({
       agentId,
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       provider: 'gemini',
       providerSessionRef: 'gem-tag-1',
       status: 'done',
@@ -56,26 +57,26 @@ describe('terminal-agent repository', () => {
 
     upsertTerminalAgentDialogState({
       agentId,
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       provider: 'codex',
       providerSessionRef: 'codex-session-1',
       status: 'done',
       lastError: null,
     })
 
-    const settings = getTerminalAgentSettings(agentId, 'com.yulia.terminal-agent')
+    const settings = getTerminalAgentSettings(agentId, TERMINAL_AGENT_WIDGET_ID)
     expect(settings.activeProvider).toBe('gemini')
     expect(settings.useShellFallback).toBe(true)
     expect(settings.shellOverride).toBe('pwsh')
 
-    const geminiState = getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'gemini')
-    const codexState = getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'codex')
+    const geminiState = getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'gemini')
+    const codexState = getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'codex')
 
     expect(geminiState.providerSessionRef).toBe('gem-tag-1')
     expect(codexState.providerSessionRef).toBe('codex-session-1')
 
-    clearTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'gemini')
-    expect(getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'gemini').providerSessionRef).toBe('')
+    clearTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'gemini')
+    expect(getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'gemini').providerSessionRef).toBe('')
   })
 
   it('resets continuity state when active provider changes', () => {
@@ -83,7 +84,7 @@ describe('terminal-agent repository', () => {
 
     upsertTerminalAgentDialogState({
       agentId,
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       provider: 'gemini',
       providerSessionRef: 'gem-resume',
       status: 'done',
@@ -91,7 +92,7 @@ describe('terminal-agent repository', () => {
     })
     upsertTerminalAgentDialogState({
       agentId,
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       provider: 'codex',
       providerSessionRef: 'codex-resume',
       status: 'done',
@@ -100,9 +101,9 @@ describe('terminal-agent repository', () => {
 
     updateTerminalAgentSettings(agentId, { activeProvider: 'gemini' })
 
-    expect(getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'gemini').providerSessionRef).toBe('')
-    expect(getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'gemini').status).toBe('idle')
-    expect(getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'codex').providerSessionRef).toBe('')
-    expect(getTerminalAgentDialogState(agentId, 'com.yulia.terminal-agent', 'codex').status).toBe('idle')
+    expect(getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'gemini').providerSessionRef).toBe('')
+    expect(getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'gemini').status).toBe('idle')
+    expect(getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'codex').providerSessionRef).toBe('')
+    expect(getTerminalAgentDialogState(agentId, TERMINAL_AGENT_WIDGET_ID, 'codex').status).toBe('idle')
   })
 })

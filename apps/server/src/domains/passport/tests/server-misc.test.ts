@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const secretsGetMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@/core/secrets/secrets', () => ({
+vi.mock('@core/secrets/secrets', () => ({
   secrets: {
     get: secretsGetMock
   }
@@ -31,9 +31,11 @@ describe('passport server config/admin/crypto helpers', () => {
     await expect(resolvePassportJwtSecret()).resolves.toBe('secret-from-store');
   });
 
-  it('falls back to LAN secret when AGENT_JWT_SECRET is missing', async () => {
+  it('throws when AGENT_JWT_SECRET is missing', async () => {
     secretsGetMock.mockResolvedValue(null);
-    await expect(resolvePassportJwtSecret()).resolves.toBe('julia-agent-lan-insecure-secret');
+    await expect(resolvePassportJwtSecret()).rejects.toThrow(
+      'Missing required startup secret: AGENT_JWT_SECRET'
+    );
   });
 
   it('validates admin token with constant-time comparison', async () => {

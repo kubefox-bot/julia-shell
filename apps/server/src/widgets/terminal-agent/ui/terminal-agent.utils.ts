@@ -1,30 +1,5 @@
-import type { ParsedSseChunk, Provider } from './terminal-agent.types'
-
-export function parseSseEventChunk(rawEvent: string): ParsedSseChunk | null {
-  const lines = rawEvent.split('\n')
-  let eventName = 'message'
-  const dataLines: string[] = []
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd()
-    if (line.startsWith('event:')) {
-      eventName = line.slice(6).trim()
-    } else if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trimStart())
-    }
-  }
-
-  if (dataLines.length === 0) {
-    return null
-  }
-
-  try {
-    const payload = JSON.parse(dataLines.join('\n')) as Record<string, unknown>
-    return { eventName, payload }
-  } catch {
-    return null
-  }
-}
+import type { Provider } from './terminal-agent.types'
+export { parseSseEventChunk } from '@shared/lib/sse'
 
 export function parseArgsInput(value: string) {
   return value

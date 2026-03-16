@@ -10,6 +10,10 @@ import {
   retryPassportStatus
 } from '../client/api';
 
+function toRequest(input: RequestInfo | URL) {
+  return input instanceof Request ? input : new Request(String(input));
+}
+
 describe('passport client api', () => {
   const originalFetch = globalThis.fetch;
 
@@ -30,7 +34,14 @@ describe('passport client api', () => {
 
     const payload = await fetchPassportStatus();
     expect(payload.status).toBe('connected');
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/passport/agent/status');
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    const fetchMock = globalThis.fetch as unknown as {
+      mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> }
+    };
+    const [url] = fetchMock.mock.calls[0];
+    const request = toRequest(url);
+    expect(request.url).toContain('/api/passport/agent/status');
+    expect(request.headers.get('x-request-id')).toBeTruthy();
   });
 
   it('throws on failed retry status response', async () => {
@@ -57,7 +68,13 @@ describe('passport client api', () => {
 
     const payload = await fetchPassportOnlineAgents();
     expect(payload.agents[0]?.agentId).toBe('agent-a');
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/passport/agent/status/list');
+    const fetchMock = globalThis.fetch as unknown as {
+      mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> }
+    };
+    const [url] = fetchMock.mock.calls[0];
+    const request = toRequest(url);
+    expect(request.url).toContain('/api/passport/agent/status/list');
+    expect(request.headers.get('x-request-id')).toBeTruthy();
   });
 
   it('posts selected agent to connect endpoint', async () => {
@@ -72,9 +89,13 @@ describe('passport client api', () => {
 
     const payload = await connectPassportAgent('agent-b');
     expect(payload.agentId).toBe('agent-b');
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/passport/agent/status/connect', expect.objectContaining({
-      method: 'POST'
-    }));
+    const fetchMock = globalThis.fetch as unknown as {
+      mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> }
+    };
+    const [url] = fetchMock.mock.calls[0];
+    const request = toRequest(url);
+    expect(request.url).toContain('/api/passport/agent/status/connect');
+    expect(request.method).toBe('POST');
   });
 });
 

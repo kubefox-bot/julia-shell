@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as shellApi from '../src/app/shell/lib/api'
 import { createShellStore } from '../src/app/shell/model/store'
 import type { ShellSettingsResponse } from '../src/app/shell/model/types'
+import { TRANSCRIBE_WIDGET_ID, WEATHER_WIDGET_ID } from '../src/widgets'
 
 vi.mock('../src/app/shell/lib/api', () => ({
   fetchShellSettings: vi.fn(),
@@ -19,12 +20,12 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
       theme: 'auto',
     },
     layout: [
-      { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' },
+      { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' },
+      { widgetId: TRANSCRIBE_WIDGET_ID, order: 1, size: 'large' },
     ],
     modules: [
       {
-        id: 'com.yulia.weather',
+        id: WEATHER_WIDGET_ID,
         name: 'Weather',
         version: '1.0.0',
         description: 'Weather widget',
@@ -37,7 +38,7 @@ function createResponse(overrides?: Partial<ShellSettingsResponse>): ShellSettin
         supportedSizes: ['small', 'medium', 'large'],
       },
       {
-        id: 'com.yulia.transcribe',
+        id: TRANSCRIBE_WIDGET_ID,
         name: 'Transcribe',
         version: '1.0.0',
         description: 'Transcribe widget',
@@ -87,7 +88,7 @@ describe('shell store', () => {
     await store.getState().loadShell()
 
     store.getState().startEdit()
-    store.getState().changeWidgetSize('com.yulia.weather', 'small')
+    store.getState().changeWidgetSize(WEATHER_WIDGET_ID, 'small')
     store.getState().cancelEdit()
 
     expect(store.getState().isEditMode).toBe(false)
@@ -99,8 +100,8 @@ describe('shell store', () => {
     vi.mocked(shellApi.saveShellLayout).mockResolvedValue(
       createResponse({
         layout: [
-          { widgetId: 'com.yulia.transcribe', order: 0, size: 'large' },
-          { widgetId: 'com.yulia.weather', order: 1, size: 'medium' },
+          { widgetId: TRANSCRIBE_WIDGET_ID, order: 0, size: 'large' },
+          { widgetId: WEATHER_WIDGET_ID, order: 1, size: 'medium' },
         ],
       })
     )
@@ -108,13 +109,13 @@ describe('shell store', () => {
     const store = createShellStore()
     await store.getState().loadShell()
     store.getState().startEdit()
-    store.getState().startDrag('com.yulia.transcribe')
-    store.getState().overDrag('com.yulia.weather')
+    store.getState().startDrag(TRANSCRIBE_WIDGET_ID)
+    store.getState().overDrag(WEATHER_WIDGET_ID)
     store.getState().endDrag()
     await store.getState().saveLayout()
 
     expect(store.getState().isEditMode).toBe(false)
-    expect(store.getState().layout[0]?.widgetId).toBe('com.yulia.transcribe')
+    expect(store.getState().layout[0]?.widgetId).toBe(TRANSCRIBE_WIDGET_ID)
   })
 
   it('openSettings, closeSettings and saveSettings work with draft values', async () => {
@@ -205,7 +206,7 @@ describe('shell store', () => {
 
     const store = createShellStore()
     await store.getState().loadShell()
-    await store.getState().toggleModule('com.yulia.weather', false)
+    await store.getState().toggleModule(WEATHER_WIDGET_ID, false)
 
     expect(store.getState().modules[0]?.enabled).toBe(false)
   })
@@ -216,11 +217,11 @@ describe('shell store', () => {
     await store.getState().loadShell()
     store.getState().startEdit()
 
-    store.getState().startDrag('com.yulia.transcribe')
-    store.getState().overDrag('com.yulia.weather')
+    store.getState().startDrag(TRANSCRIBE_WIDGET_ID)
+    store.getState().overDrag(WEATHER_WIDGET_ID)
     store.getState().endDrag()
 
-    expect(store.getState().draftLayout[0]?.widgetId).toBe('com.yulia.transcribe')
+    expect(store.getState().draftLayout[0]?.widgetId).toBe(TRANSCRIBE_WIDGET_ID)
     expect(store.getState().activeId).toBeNull()
     expect(store.getState().overId).toBeNull()
   })

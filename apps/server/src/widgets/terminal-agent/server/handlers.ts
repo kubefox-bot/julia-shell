@@ -1,6 +1,7 @@
 import { passportRuntime } from '@passport/server/runtime'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
+import { HTTP_STATUS_BAD_REQUEST } from '@shared/lib/http-status'
 import { z } from 'zod'
 import { getTerminalAgentSettings } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { getLlmModelCatalog } from '../../../domains/llm/server'
@@ -82,7 +83,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       refresh: url.searchParams.get('refresh') ?? undefined,
     })
     if (!parsedQuery.success) {
-      return jsonResponse({ error: 'Invalid query params.' }, 400)
+      return jsonResponse({ error: 'Invalid query params.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     const provider = parsedQuery.data.provider
@@ -108,7 +109,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       : ''
 
     if (!providerSessionRef) {
-      return jsonResponse({ error: 'providerSessionRef is required.' }, 400)
+      return jsonResponse({ error: 'providerSessionRef is required.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     const payload = selectTerminalAgentDialog(agentId, provider, providerSessionRef)
@@ -120,7 +121,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
     const provider = toProvider(body.provider)
 
     if (!message) {
-      return jsonResponse({ error: 'message is required.' }, 400)
+      return jsonResponse({ error: 'message is required.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     return handleTerminalAgentMessageStream({

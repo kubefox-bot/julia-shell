@@ -1,5 +1,6 @@
 import path from 'node:path'
-import { getDataDir } from '../../../core/db/shared'
+import { getDataDir } from '@core/db/shared'
+import { TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { transcribeManifest } from '../manifest'
 
 export const TOOLS_ROOT = path.join(process.cwd(), 'tools')
@@ -11,5 +12,5 @@ export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
 export const FALLBACK_GEMINI_MODEL = 'gemini-2.0-flash'
 export const MOCK_GEMINI_MODEL = 'mock'
 export const SUPPORTED_AUDIO_EXTENSIONS = ['.m4a', '.opus']
-export const WIDGET_ID = transcribeManifest.id
+export const WIDGET_ID = TRANSCRIBE_WIDGET_ID
 export const WIDGET_ENV_NAME = transcribeManifest.envName ?? 'transcribe'

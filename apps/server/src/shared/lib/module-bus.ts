@@ -1,3 +1,5 @@
+import { nowIso } from './time';
+
 type EventPayload = {
   topic: string;
   source: string;
@@ -30,7 +32,7 @@ class ModuleBus {
       topic,
       source,
       payload,
-      timestamp: new Date().toISOString()
+      timestamp: nowIso()
     };
 
     const direct = this.subscriptions.get(topic);

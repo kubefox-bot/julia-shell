@@ -2,40 +2,32 @@ import type {
   PassportOnlineAgentsResponse,
   PassportStatusResponse
 } from './types';
+import { defineQuery, requestJson } from '@shared/lib/request';
 
-async function safeJson<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = (data as { error?: string })?.error ?? `Request failed with ${response.status}`;
-    throw new Error(message);
-  }
-
-  return data as T;
-}
+export const passportQueryKeys = {
+  status: () => ['passport', 'status'] as const,
+  onlineAgents: () => ['passport', 'online-agents'] as const
+};
 
 /**
  * Reads current passport status and performs cookie bootstrap on server side.
  */
 export async function fetchPassportStatus() {
-  const response = await fetch('/api/passport/agent/status');
-  return safeJson<PassportStatusResponse>(response);
+  return requestJson<PassportStatusResponse>('/api/passport/agent/status');
 }
 
 export async function fetchPassportOnlineAgents() {
-  const response = await fetch('/api/passport/agent/status/list');
-  return safeJson<PassportOnlineAgentsResponse>(response);
+  return requestJson<PassportOnlineAgentsResponse>('/api/passport/agent/status/list');
 }
 
 export async function retryPassportStatus() {
-  const response = await fetch('/api/passport/agent/status/retry', {
+  return requestJson<PassportStatusResponse>('/api/passport/agent/status/retry', {
     method: 'POST'
   });
-
-  return safeJson<PassportStatusResponse>(response);
 }
 
 export async function connectPassportAgent(agentId: string) {
-  const response = await fetch('/api/passport/agent/status/connect', {
+  return requestJson<PassportStatusResponse>('/api/passport/agent/status/connect', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -44,6 +36,7 @@ export async function connectPassportAgent(agentId: string) {
       agent_id: agentId
     })
   });
-
-  return safeJson<PassportStatusResponse>(response);
 }
+
+export const passportStatusQuery = defineQuery(passportQueryKeys.status(), fetchPassportStatus);
+export const passportOnlineAgentsQuery = defineQuery(passportQueryKeys.onlineAgents(), fetchPassportOnlineAgents);

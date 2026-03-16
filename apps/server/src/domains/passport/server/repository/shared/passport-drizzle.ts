@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { openDb } from '@/core/db/shared';
+import { openDb } from '@core/db/shared';
 import * as schema from './passport-schema';
 
 export function openPassportSqlite() {

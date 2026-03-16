@@ -1,0 +1,1 @@
+export { ShellSilhouetteGrid } from './ShellSilhouetteGrid'

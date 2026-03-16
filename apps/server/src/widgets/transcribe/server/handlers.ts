@@ -4,18 +4,26 @@ import { passportRuntime } from '@passport/server/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from './repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+} from '@shared/lib/http-status'
 import { isAgentRequiredForTranscribe } from './agent-mode'
 import { WIDGET_ID } from './constants'
 import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
 import { listPathEntries, resolveTranscriptPath } from './utils'
 
+const RECENT_TRANSCRIBE_JOBS_LIMIT = Number('30')
+
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST fs-list': async ({ request, agentId }) => {
     if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession(agentId)) {
       return jsonResponse({
         error: 'agent_offline'
-      }, 503)
+      }, HTTP_STATUS_SERVICE_UNAVAILABLE)
     }
 
     try {
@@ -29,7 +37,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     } catch (error) {
       return jsonResponse({
         error: error instanceof Error ? error.message : 'Failed to list path.'
-      }, 500)
+      }, HTTP_STATUS_INTERNAL_SERVER_ERROR)
     }
   },
   'GET settings': async ({ agentId }) => {
@@ -93,7 +101,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
         error: message.includes('Не найден')
           ? message
           : `Не найден файл стенограммы: ${path.basename(typeof body.txtPath === 'string' ? body.txtPath : body.sourceFile ?? 'transcript.txt')}`
-      }, 404)
+      }, HTTP_STATUS_NOT_FOUND)
     }
   },
   'POST transcript-save': async ({ request, agentId }) => {
@@ -128,11 +136,11 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     } catch (error) {
       return jsonResponse({
         error: error instanceof Error ? error.message : 'Transcript save failed.'
-      }, 400)
+      }, HTTP_STATUS_BAD_REQUEST)
     }
   },
   'GET jobs': async ({ agentId }) => {
-    return jsonResponse({ jobs: listRecentTranscribeJobs(agentId, 30) })
+    return jsonResponse({ jobs: listRecentTranscribeJobs(agentId, RECENT_TRANSCRIBE_JOBS_LIMIT) })
   },
   'POST transcribe-stream': async ({ request, agentId }) => {
     const body = await readJsonBody<{

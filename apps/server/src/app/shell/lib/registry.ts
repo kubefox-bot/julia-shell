@@ -1,4 +1,4 @@
-import { listClientWidgetModules } from '../../../core/registry/client-registry';
+import { listClientWidgetModules } from '@core/registry/client-registry';
 import type { ShellRegistryEntry } from '../model/types';
 
 const clientModules = listClientWidgetModules();

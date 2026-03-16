@@ -9,6 +9,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["src/*"],
+      "@app/*": ["src/app/*"],
+      "@core/*": ["src/core/*"],
       "@passport/*": ["src/domains/passport/*"],
       "@lls/*": ["src/domains/llm/*"],
       "@shared/*": ["src/shared/*"]

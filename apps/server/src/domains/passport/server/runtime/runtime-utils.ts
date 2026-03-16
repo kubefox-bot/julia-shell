@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { readRuntimeEnv } from '@/core/env'
+import { readRuntimeEnv } from '@core/env'
 
 export function isAgentDevMode() {
   return readRuntimeEnv().passportAgentDevModeEnabled
@@ -26,9 +26,14 @@ export function resolveProtoPath() {
 
 export function extractHeartbeatHostname(value: unknown) {
   if (typeof value !== 'object' || value === null) {
-    return ''
+    return null
   }
 
   const hostname = (value as { hostname?: unknown }).hostname
-  return typeof hostname === 'string' ? hostname.trim() : ''
+  if (typeof hostname !== 'string') {
+    return null
+  }
+
+  const normalizedHostname = hostname.trim()
+  return normalizedHostname || null
 }

@@ -1,13 +1,21 @@
+import { DateTime } from 'luxon'
 import { err, ok, type Result } from 'neverthrow'
 import { z } from 'zod'
+import { requestRaw } from '@shared/lib/request'
+import {
+  HTTP_STATUS_INTERNAL_SERVER_ERROR as HTTP_STATUS_SERVER_ERROR,
+  HTTP_STATUS_TOO_MANY_REQUESTS
+} from '@shared/lib/http-status'
 import {
   listLlmModels,
   replaceLlmModels,
   type LlmProvider,
 } from './repository/catalog-repository'
 
-const DEFAULT_TTL_MS = 1000 * 60 * 60 * 24
+const DEFAULT_TTL_MS = Number('86400000')
 const CONSUMER_TERMINAL_AGENT = 'terminal-agent'
+const PROVIDER_ERROR_PREVIEW_LENGTH = 240
+const RETRY_DELAY_MS = 200
 
 const openAiModelsSchema = z.object({
   data: z.array(z.object({
@@ -41,13 +49,13 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
 
   while (attempt <= retries) {
     try {
-      const response = await fetch(url, init)
+      const response = await requestRaw(url, init)
       if (!response.ok) {
         const body = await response.text().catch(() => '')
         lastError = {
           code: 'provider_http_error',
-          message: `Provider returned HTTP ${response.status}: ${body.slice(0, 240)}`,
-          retryable: response.status >= 500 || response.status === 429,
+          message: `Provider returned HTTP ${response.status}: ${body.slice(0, PROVIDER_ERROR_PREVIEW_LENGTH)}`,
+          retryable: response.status >= HTTP_STATUS_SERVER_ERROR || response.status === HTTP_STATUS_TOO_MANY_REQUESTS,
         }
       } else {
         return ok(response)
@@ -64,7 +72,7 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
       return err(lastError)
     }
 
-    await sleep(200 * (attempt + 1))
+    await sleep(RETRY_DELAY_MS * (attempt + 1))
     attempt += 1
   }
 
@@ -151,7 +159,8 @@ export async function getLlmModelCatalog(input: {
   const cachedRows = cachedRowsResult.value
   const cachedModels = cachedRows.map((row) => row.modelId)
   const cachedUpdatedAt = cachedRows[0]?.updatedAt ?? null
-  const cachedIsFresh = Boolean(cachedUpdatedAt) && Date.now() - Date.parse(cachedUpdatedAt ?? '') < DEFAULT_TTL_MS
+  const cachedUpdatedAtMs = cachedUpdatedAt ? DateTime.fromISO(cachedUpdatedAt).toMillis() : Number.NaN
+  const cachedIsFresh = Boolean(cachedUpdatedAt) && Number.isFinite(cachedUpdatedAtMs) && DateTime.now().toMillis() - cachedUpdatedAtMs < DEFAULT_TTL_MS
 
   if (!input.forceRefresh && cachedModels.length > 0 && cachedIsFresh) {
     return ok({

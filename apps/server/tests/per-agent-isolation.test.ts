@@ -9,6 +9,7 @@ import {
   saveTranscribeWidgetSettings
 } from '../src/widgets/transcribe/server/repository';
 import { resetDbCache } from '../src/core/db/shared';
+import { TRANSCRIBE_WIDGET_ID } from '@/widgets';
 
 let tempDir = '';
 
@@ -55,20 +56,20 @@ describe('per-agent data isolation', () => {
   it('keeps transcribe jobs/settings isolated between agents', () => {
     saveTranscribeWidgetSettings({
       agentId: 'agent-a',
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       geminiModel: 'model-a',
       localApiKey: 'key-a'
     });
     saveTranscribeWidgetSettings({
       agentId: 'agent-b',
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       geminiModel: 'model-b',
       localApiKey: 'key-b'
     });
 
     createTranscribeJob({
       agentId: 'agent-a',
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       folderPath: 'C:\\A',
       filePaths: ['C:\\A\\a.opus'],
       primarySourceFile: 'C:\\A\\a.opus',
@@ -77,7 +78,7 @@ describe('per-agent data isolation', () => {
     });
     createTranscribeJob({
       agentId: 'agent-b',
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       folderPath: 'C:\\B',
       filePaths: ['C:\\B\\b.opus'],
       primarySourceFile: 'C:\\B\\b.opus',
