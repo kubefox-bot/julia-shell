@@ -10,7 +10,7 @@ function formatSseEvent(event: string, payload: unknown) {
 
 export const GET: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);
@@ -70,7 +70,7 @@ export const GET: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);

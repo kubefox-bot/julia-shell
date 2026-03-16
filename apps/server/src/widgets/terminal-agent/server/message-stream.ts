@@ -151,19 +151,16 @@ export async function handleTerminalAgentMessageStream(input: {
   provider: TerminalAgentProvider
   message: string
 }) {
-  const onlineAgent = passportRuntime.getOnlineAgentSession()
+  const onlineAgent = passportRuntime.getOnlineAgentSession(input.agentId)
   if (!onlineAgent) {
     return jsonResponse({ error: 'agent_offline' }, 503)
   }
 
   const tokenSettings = getTerminalAgentSettings(input.agentId, WIDGET_ID)
-  const onlineAgentSettings = onlineAgent.agentId === input.agentId
-    ? tokenSettings
-    : getTerminalAgentSettings(onlineAgent.agentId, WIDGET_ID)
   const settings = selectDispatchSettings({
     provider: input.provider,
     tokenSettings,
-    onlineSettings: onlineAgentSettings,
+    onlineSettings: tokenSettings,
   })
 
   const currentState = getTerminalAgentDialogState(input.agentId, WIDGET_ID, input.provider)

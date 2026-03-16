@@ -12,7 +12,7 @@ import { listPathEntries, resolveTranscriptPath } from './utils'
 
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST fs-list': async ({ request, agentId }) => {
-    if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession()) {
+    if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession(agentId)) {
       return jsonResponse({
         error: 'agent_offline'
       }, 503)

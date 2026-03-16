@@ -54,7 +54,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
     const provider = toProvider(body.provider)
     const payload = resetTerminalAgentDialog(agentId, provider)
 
-    const onlineAgent = passportRuntime.getOnlineAgentSession()
+    const onlineAgent = passportRuntime.getOnlineAgentSession(agentId)
     if (onlineAgent) {
       passportRuntime.dispatchTerminalAgentResetDialog({
         agentId: onlineAgent.agentId,

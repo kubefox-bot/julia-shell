@@ -6,16 +6,25 @@ import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
 
 export const POST: APIRoute = async ({ request }) => {
-  const runtimeSnapshot = passportRuntime.retryStatusSnapshot();
   const resolved = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
+
   const responsePayload = resolved.context
-    ? runtimeSnapshot
-    : {
-        ...runtimeSnapshot,
+    ? passportRuntime.retryStatusSnapshot(resolved.context.agentId)
+    : resolved.reason === 'invalid'
+      ? {
+          status: 'unauthorized',
+          label: 'Unauthorized',
+          updatedAt: new Date().toISOString(),
+          reason: 'Invalid browser access token.',
+          hostname: null,
+          agentId: null
+        }
+      : {
         status: 'disconnected',
         label: 'Disconnected',
+        updatedAt: new Date().toISOString(),
         reason: 'No browser access token.',
         hostname: null,
         agentId: null

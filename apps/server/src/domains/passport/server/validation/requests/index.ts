@@ -1,3 +1,4 @@
+export * from './connect-agent-request'
 export * from './create-enrollment-token-request'
 export * from './enroll-request'
 export * from './refresh-request'

@@ -1,7 +1,6 @@
-import { buildPassportAccessCookie, extractAccessTokenFromRequest } from './cookie';
+import { extractAccessTokenFromRequest } from './cookie';
 import { resolvePassportJwtSecret } from './config/jwt-secret';
 import { verifyAccessJwt } from './jwt';
-import { passportRuntime } from './runtime/runtime';
 
 export type PassportRequestContext = {
   agentId: string;
@@ -15,14 +14,11 @@ export type PassportContextResolution = {
 };
 
 /**
- * Resolves authorized passport context from request JWT.
- *
- * If JWT is missing and bootstrap is enabled, online agent token is reused and
- * returned with `setCookieHeader` for transparent browser bootstrap.
+ * Resolves authorized passport context from request JWT only.
  */
 export async function resolvePassportRequestContext(
   request: Request,
-  options?: { allowBootstrapFromOnlineAgent?: boolean }
+  _options?: { allowBootstrapFromOnlineAgent?: boolean }
 ): Promise<PassportContextResolution> {
   const extracted = extractAccessTokenFromRequest(request);
   if (extracted.token) {
@@ -39,38 +35,14 @@ export async function resolvePassportRequestContext(
       };
     }
 
-    if (!options?.allowBootstrapFromOnlineAgent) {
-      return {
-        context: null,
-        reason: 'invalid'
-      };
-    }
-  }
-
-  if (!options?.allowBootstrapFromOnlineAgent) {
     return {
       context: null,
-      reason: 'missing'
-    };
-  }
-
-  const onlineSession = passportRuntime.getOnlineAgentSession();
-  if (!onlineSession?.accessJwt) {
-    return {
-      context: null,
-      reason: 'missing'
+      reason: 'invalid'
     };
   }
 
   return {
-    context: {
-      agentId: onlineSession.agentId,
-      accessJwt: onlineSession.accessJwt,
-      setCookieHeader: buildPassportAccessCookie({
-        token: onlineSession.accessJwt,
-        request
-      })
-    },
+    context: null,
     reason: 'missing'
   };
 }

@@ -27,6 +27,16 @@ export type OnlineAgentSessionRecord = {
   lastHeartbeatAt: string;
 };
 
+export type OnlineAgentSnapshot = {
+  agentId: string;
+  sessionId: string;
+  displayName: string | null;
+  hostname: string | null;
+  connectedAt: string;
+  lastHeartbeatAt: string;
+  isCurrent: boolean;
+};
+
 export type CreateEnrollmentTokenInput = {
   ttlMinutes?: number;
   uses?: number;

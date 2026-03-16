@@ -44,7 +44,7 @@ export async function handleAgentTranscribeStream(
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : [];
   const useServerSelection = isTranscribeDevBypassMode();
 
-  const onlineAgent = passportRuntime.getOnlineAgentSession();
+  const onlineAgent = passportRuntime.getOnlineAgentSession(agentId);
   if (!onlineAgent) {
     return jsonResponse({ error: 'agent_offline' }, 503);
   }

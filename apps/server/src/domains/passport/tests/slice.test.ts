@@ -2,9 +2,13 @@ import { create } from 'zustand';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fetchPassportStatusMock = vi.hoisted(() => vi.fn());
+const fetchPassportOnlineAgentsMock = vi.hoisted(() => vi.fn());
+const connectPassportAgentMock = vi.hoisted(() => vi.fn());
 const retryPassportStatusMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../client/api', () => ({
+  connectPassportAgent: connectPassportAgentMock,
+  fetchPassportOnlineAgents: fetchPassportOnlineAgentsMock,
   fetchPassportStatus: fetchPassportStatusMock,
   retryPassportStatus: retryPassportStatusMock
 }));
@@ -28,8 +32,11 @@ function createTestStore(loadShell: () => Promise<void>) {
 
 describe('passport zustand slice', () => {
   beforeEach(() => {
+    connectPassportAgentMock.mockReset();
+    fetchPassportOnlineAgentsMock.mockReset();
     fetchPassportStatusMock.mockReset();
     retryPassportStatusMock.mockReset();
+    fetchPassportOnlineAgentsMock.mockResolvedValue({ agents: [] });
   });
 
   it('syncFromStatus fills passport state and triggers shell reload on status transition', async () => {
@@ -42,12 +49,25 @@ describe('passport zustand slice', () => {
       hostname: 'mac-local',
       agentId: 'agent-a'
     });
+    fetchPassportOnlineAgentsMock.mockResolvedValue({
+      agents: [
+        {
+          agentId: 'agent-a',
+          displayName: 'Max',
+          hostname: 'mac-local',
+          connectedAt: '2026-03-09T10:00:00.000Z',
+          lastHeartbeatAt: '2026-03-09T10:01:00.000Z',
+          isCurrent: true
+        }
+      ]
+    });
 
     const store = createTestStore(loadShell);
     await store.getState().syncFromStatus();
 
     expect(store.getState().authStatus).toBe('connected');
     expect(store.getState().agentId).toBe('agent-a');
+    expect(store.getState().passportAgents).toHaveLength(1);
     expect(store.getState().hasAccessToken).toBe(true);
     expect(loadShell).toHaveBeenCalledTimes(1);
 
@@ -64,6 +84,18 @@ describe('passport zustand slice', () => {
       reason: null,
       hostname: 'dev-host',
       agentId: 'agent-dev'
+    });
+    fetchPassportOnlineAgentsMock.mockResolvedValue({
+      agents: [
+        {
+          agentId: 'agent-dev',
+          displayName: 'Dev',
+          hostname: 'dev-host',
+          connectedAt: '2026-03-09T10:00:00.000Z',
+          lastHeartbeatAt: '2026-03-09T10:01:00.000Z',
+          isCurrent: true
+        }
+      ]
     });
 
     const store = createTestStore(loadShell);
@@ -83,12 +115,21 @@ describe('passport zustand slice', () => {
       agentId: 'agent-a',
       authStatus: 'connected',
       hasAccessToken: true,
+      passportAgents: [
+        {
+          agentId: 'agent-a',
+          connectedAt: '2026-03-09T10:00:00.000Z',
+          lastHeartbeatAt: '2026-03-09T10:01:00.000Z',
+          isCurrent: true
+        }
+      ],
       error: 'x',
       lastSyncAt: '2026-03-09T10:00:00.000Z'
     });
 
     store.getState().clearSessionState();
     expect(store.getState().agentId).toBeNull();
+    expect(store.getState().passportAgents).toEqual([]);
     expect(store.getState().authStatus).toBe('disconnected');
     expect(store.getState().hasAccessToken).toBe(false);
     expect(store.getState().error).toBeNull();
@@ -108,5 +149,36 @@ describe('passport zustand slice', () => {
     const store = createTestStore(loadShell);
     await store.getState().ensureCookie();
     expect(fetchPassportStatusMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('connectAgent binds browser and reloads shell', async () => {
+    const loadShell = vi.fn(async () => undefined);
+    connectPassportAgentMock.mockResolvedValue({
+      status: 'connected',
+      label: 'Connected',
+      updatedAt: '2026-03-09T10:00:00.000Z',
+      reason: null,
+      hostname: 'yulia-win',
+      agentId: 'agent-b'
+    });
+    fetchPassportOnlineAgentsMock.mockResolvedValue({
+      agents: [
+        {
+          agentId: 'agent-b',
+          displayName: 'Yulia',
+          hostname: 'yulia-win',
+          connectedAt: '2026-03-09T10:00:00.000Z',
+          lastHeartbeatAt: '2026-03-09T10:01:00.000Z',
+          isCurrent: true
+        }
+      ]
+    });
+
+    const store = createTestStore(loadShell);
+    await store.getState().connectAgent('agent-b');
+
+    expect(store.getState().agentId).toBe('agent-b');
+    expect(store.getState().passportAgents[0]?.isCurrent).toBe(true);
+    expect(loadShell).toHaveBeenCalledTimes(1);
   });
 });
