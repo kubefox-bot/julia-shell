@@ -4,7 +4,6 @@ import { resolvePassportStatusSnapshot } from '../src/domains/passport/server/ru
 describe('agent status snapshot', () => {
   it('returns connected in production mode when online', () => {
     const snapshot = resolvePassportStatusSnapshot({
-      isDevMode: false,
       hasOnlineSession: true,
       unauthorizedState: null
     });
@@ -13,31 +12,8 @@ describe('agent status snapshot', () => {
     expect(snapshot.reason).toBeNull();
   });
 
-  it('returns connected_dev in dev mode when online', () => {
-    const snapshot = resolvePassportStatusSnapshot({
-      isDevMode: true,
-      hasOnlineSession: true,
-      unauthorizedState: null
-    });
-
-    expect(snapshot.status).toBe('connected_dev');
-    expect(snapshot.reason).toBeNull();
-  });
-
-  it('returns connected_dev in dev mode even without online session', () => {
-    const snapshot = resolvePassportStatusSnapshot({
-      isDevMode: true,
-      hasOnlineSession: false,
-      unauthorizedState: null
-    });
-
-    expect(snapshot.status).toBe('connected_dev');
-    expect(snapshot.reason).toBeNull();
-  });
-
   it('returns unauthorized when no online session and auth reject exists', () => {
     const snapshot = resolvePassportStatusSnapshot({
-      isDevMode: false,
       hasOnlineSession: false,
       unauthorizedState: {
         reason: 'Invalid access token.',
@@ -51,7 +27,6 @@ describe('agent status snapshot', () => {
 
   it('returns disconnected when no online session and no auth reject', () => {
     const snapshot = resolvePassportStatusSnapshot({
-      isDevMode: false,
       hasOnlineSession: false,
       unauthorizedState: null
     });

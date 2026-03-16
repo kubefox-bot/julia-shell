@@ -182,7 +182,7 @@ Runtime validation matrix:
 - shell boot + settings overlay + drag/drop/edit mode;
 - weather widget forecast/refresh/fallback cache;
 - transcribe full flow (`.m4a`/`.opus`, selection order, SSE progress/token/done, `.txt` save/read, temp cleanup);
-- agent status transitions (`connected`, `connected_dev`, `unauthorized`, `disconnected`) with UI badge updates.
+- agent status transitions (`connected`, `unauthorized`, `disconnected`) with UI badge updates.
 
 Performance validation:
 - compare metrics against baseline table from Section 2;

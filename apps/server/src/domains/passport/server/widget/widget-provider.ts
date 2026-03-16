@@ -1,4 +1,3 @@
-import { readRuntimeEnv } from '@core/env'
 import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import type { PassportRequestContext } from '../context'
 import { passportRuntime } from '../runtime/runtime'
@@ -6,15 +5,7 @@ import type { PassportWidgetProviderSnapshot } from '../types'
 import { isPassportProtectedWidget } from './widget-policy'
 
 function resolveRequiresOnlineAgent(widgetId: string) {
-  if (widgetId === TERMINAL_AGENT_WIDGET_ID) {
-    return true
-  }
-
-  if (widgetId !== TRANSCRIBE_WIDGET_ID) {
-    return false
-  }
-
-  return !readRuntimeEnv().passportAgentDevModeEnabled
+  return widgetId === TERMINAL_AGENT_WIDGET_ID || widgetId === TRANSCRIBE_WIDGET_ID
 }
 
 /**

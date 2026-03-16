@@ -161,7 +161,7 @@ export function useTranscribeData(store: StoreApi<TranscribeStore>, setStatus: S
 
   useEffect(() => {
     return subscribePassportStatusChanged((event) => {
-      if (event.status !== 'connected' && event.status !== 'connected_dev') {
+      if (event.status !== 'connected') {
         return
       }
 

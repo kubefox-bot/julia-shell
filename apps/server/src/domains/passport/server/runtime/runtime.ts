@@ -18,7 +18,7 @@ import {
 } from './runtime-connections'
 import { handleConnectStream, publishWidgetPayload } from './runtime-stream'
 import type { AgentConnection, RuntimeEnvelope, UnauthorizedState } from './runtime-types'
-import { isAgentDevMode, resolveProtoPath } from './runtime-utils'
+import { resolveProtoPath } from './runtime-utils'
 import { resolveWidgetEvent } from './runtime-widget-events'
 import { resolvePassportStatusSnapshot } from './status'
 
@@ -111,7 +111,6 @@ export class PassportRuntime {
     const onlineSession = this.getOnlineAgentSession(selectedAgentId)
     return resolvePassportStatusSnapshot(
       {
-        isDevMode: isAgentDevMode() && Boolean(selectedAgentId),
         hasOnlineSession: Boolean(onlineSession),
         unauthorizedState: selectedAgentId ? null : this.lastUnauthorized,
       },

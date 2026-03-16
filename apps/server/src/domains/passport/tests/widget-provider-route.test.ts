@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const resolvePassportRequestContextMock = vi.hoisted(() => vi.fn())
 const getOnlineAgentSessionMock = vi.hoisted(() => vi.fn())
-const readRuntimeEnvMock = vi.hoisted(() => vi.fn())
-
 vi.mock('../server/context', () => ({
   resolvePassportRequestContext: resolvePassportRequestContextMock
 }))
@@ -14,10 +12,6 @@ vi.mock('../server/runtime/runtime', () => ({
   }
 }))
 
-vi.mock('@core/env', () => ({
-  readRuntimeEnv: readRuntimeEnvMock
-}))
-
 import { GET as widgetProviderGet } from '../../../pages/api/passport/widget/provider'
 import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK } from '../../../shared/lib/http-status'
 import { buildWidgetProviderRoute, TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
@@ -26,10 +20,6 @@ describe('passport widget provider route', () => {
   beforeEach(() => {
     resolvePassportRequestContextMock.mockReset()
     getOnlineAgentSessionMock.mockReset()
-    readRuntimeEnvMock.mockReset()
-    readRuntimeEnvMock.mockReturnValue({
-      passportAgentDevModeEnabled: false
-    })
   })
 
   it('validates required widget_id query', async () => {

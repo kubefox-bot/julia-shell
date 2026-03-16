@@ -1,7 +1,7 @@
 /**
  * UI auth status mirrored from `/api/passport/agent/status`.
  */
-export type PassportAuthStatus = 'connected' | 'connected_dev' | 'unauthorized' | 'disconnected';
+export type PassportAuthStatus = 'connected' | 'unauthorized' | 'disconnected';
 
 export type PassportStatusResponse = {
   status: PassportAuthStatus;

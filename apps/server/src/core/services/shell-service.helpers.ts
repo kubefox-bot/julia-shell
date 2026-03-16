@@ -1,6 +1,5 @@
 import { SHELL_LAYOUT_COLUMNS_MAX, SHELL_LAYOUT_COLUMNS_MIN } from '@app/shell/model/constants'
 import { passportRuntime } from '@passport/server/runtime'
-import { readRuntimeEnv } from '@core/env'
 import { WIDGET_SIZE_SET } from '@/entities/widget/model'
 import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import type {
@@ -20,12 +19,9 @@ const PASSPORT_REQUIRED_WIDGET_IDS = new Set([
   TRANSCRIBE_WIDGET_ID,
   TERMINAL_AGENT_WIDGET_ID,
 ])
-const ONLINE_AGENT_REQUIREMENT_BY_WIDGET_ID: Record<
-  string,
-  (env: ReturnType<typeof readRuntimeEnv>) => boolean
-> = {
-  [TERMINAL_AGENT_WIDGET_ID]: () => true,
-  [TRANSCRIBE_WIDGET_ID]: (env) => !env.passportAgentDevModeEnabled,
+const ONLINE_AGENT_REQUIREMENT_BY_WIDGET_ID: Record<string, boolean> = {
+  [TERMINAL_AGENT_WIDGET_ID]: true,
+  [TRANSCRIBE_WIDGET_ID]: true,
 }
 
 export function resolveHostPlatform(): HostPlatform {
@@ -56,12 +52,7 @@ export function normalizeLayoutItems(items: LayoutItem[]) {
 }
 
 function requiresCurrentOnlineAgent(widgetId: string) {
-  const resolver = ONLINE_AGENT_REQUIREMENT_BY_WIDGET_ID[widgetId]
-  if (!resolver) {
-    return false
-  }
-
-  return resolver(readRuntimeEnv())
+  return ONLINE_AGENT_REQUIREMENT_BY_WIDGET_ID[widgetId] ?? false
 }
 
 export function buildPassportNotReadyReasons(widgetId: string, agentId: string, hasPassportAccess: boolean) {

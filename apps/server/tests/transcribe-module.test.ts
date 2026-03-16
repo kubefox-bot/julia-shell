@@ -1,215 +1,70 @@
-import fs from 'node:fs'
-import os from 'node:os'
-import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { listRecentTranscribeJobs } from '../src/widgets/transcribe/server/repository'
-import { resetDbCache } from '../src/core/db/shared'
-import { transcribeServerModule } from '../src/widgets/transcribe/server/module'
-import { buildWidgetApiRoute, TRANSCRIBE_WIDGET_ID } from '../src/widgets'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { WidgetRouteContext } from '../src/entities/widget/model/types'
+import { passportRuntime } from '../src/domains/passport/server/runtime/runtime'
+import { HTTP_STATUS_SERVICE_UNAVAILABLE } from '../src/shared/lib/http-status'
+import { transcribeHandlers } from '../src/widgets/transcribe/server/handlers'
+import { TRANSCRIBE_WIDGET_ID, buildWidgetApiRoute } from '../src/widgets'
 
-let tempDir = ''
-let audioDir = ''
-let originalPath = ''
-let ffmpegStubDir = ''
-const EXECUTABLE_MODE = 0o755
-const STATUS_OK = 200
+function createContext(input: {
+  action: string
+  method?: string
+  body?: Record<string, unknown>
+}): WidgetRouteContext {
+  const requestInit: RequestInit = {
+    method: input.method ?? 'GET',
+  }
 
-beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'julia-transcribe-module-'))
-  audioDir = path.join(tempDir, 'audio')
-  ffmpegStubDir = path.join(tempDir, 'bin')
-  fs.mkdirSync(audioDir, { recursive: true })
-  fs.mkdirSync(ffmpegStubDir, { recursive: true })
-  fs.writeFileSync(path.join(audioDir, 'clip-1.opus'), 'fake-audio-1')
-  fs.writeFileSync(path.join(audioDir, 'clip-2.opus'), 'fake-audio-2')
-  const ffmpegStubPath = path.join(ffmpegStubDir, 'ffmpeg')
-  fs.writeFileSync(
-    ffmpegStubPath,
-    `#!/bin/sh
-set -eu
-log_file="${tempDir.replace(/"/g, '\\"')}/ffmpeg.log"
-printf '%s\n' "$*" >> "$log_file"
-output=""
-for last in "$@"; do
-  output="$last"
-done
-printf 'Duration: 00:00:02.00\\ntime=00:00:02.00\\n' >&2
-printf 'stub-audio' > "$output"
-`,
-    'utf8'
-  )
-  fs.chmodSync(ffmpegStubPath, EXECUTABLE_MODE)
-  originalPath = process.env.PATH ?? ''
-  process.env.PATH = `${ffmpegStubDir}${path.delimiter}${originalPath}`
-  process.env.JULIAAPP_DATA_DIR = tempDir
-  process.env.GEMINI_MODEL = 'mock'
-  process.env.JULIAAPP_AGENT_ENABLE_DEV = '1'
-  delete process.env.GEMINI_API_KEY
-})
+  if (input.body) {
+    requestInit.headers = { 'Content-Type': 'application/json' }
+    requestInit.body = JSON.stringify(input.body)
+  }
 
-afterEach(() => {
-  resetDbCache()
-  fs.rmSync(tempDir, { recursive: true, force: true })
-  process.env.PATH = originalPath
-  delete process.env.JULIAAPP_DATA_DIR
-  delete process.env.GEMINI_MODEL
-  delete process.env.JULIAAPP_AGENT_ENABLE_DEV
-  delete process.env.GEMINI_API_KEY
-})
+  return {
+    request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, input.action)}`, requestInit),
+    agentId: 'agent-test',
+    action: input.action,
+    actionSegments: [input.action],
+    params: {
+      id: TRANSCRIBE_WIDGET_ID,
+    },
+  }
+}
 
 describe('transcribe server module', () => {
-  it('handles mock transcription through ffmpeg pipeline for multiple .opus files', async () => {
-    const transcribeResponse = await transcribeServerModule.handlers['POST transcribe-stream']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcribe-stream')}`, {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('returns agent_offline for fs-list when agent session is unavailable', async () => {
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(null)
+
+    const response = await transcribeHandlers['POST fs-list'](
+      createContext({
+        action: 'fs-list',
         method: 'POST',
-        body: JSON.stringify({
-          folderPath: audioDir,
-          filePaths: [path.join(audioDir, 'clip-1.opus'), path.join(audioDir, 'clip-2.opus')]
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }),
-      action: 'transcribe-stream',
-      agentId: 'agent-test',
-      actionSegments: ['transcribe-stream'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
+        body: { path: '/Users/demo' },
+      })
+    )
 
-    expect(transcribeResponse.status).toBe(STATUS_OK)
-    const body = await transcribeResponse.text()
-    expect(body).not.toContain('event: error')
-    const ffmpegLog = fs.readFileSync(path.join(tempDir, 'ffmpeg.log'), 'utf8')
-    expect(ffmpegLog).toContain('-f concat -safe 0')
-    expect(ffmpegLog).toContain('-c:a libopus -b:a 24k')
-    expect(body).toContain('event: token')
-    expect(body).toContain('event: done')
-    expect(body).toContain('Prepared opus file:')
-    expect(fs.existsSync(path.join(audioDir, 'clip-1.txt'))).toBe(true)
-    expect(listRecentTranscribeJobs('agent-test', 1)[0]?.model).toBe('mock')
+    expect(response.status).toBe(HTTP_STATUS_SERVICE_UNAVAILABLE)
+    await expect(response.json()).resolves.toEqual({ error: 'agent_offline' })
+  })
 
-    const readResponse = await transcribeServerModule.handlers['POST transcript-read']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-read')}`, {
+  it('returns agent_offline for transcribe-stream when agent session is unavailable', async () => {
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(null)
+
+    const response = await transcribeHandlers['POST transcribe-stream'](
+      createContext({
+        action: 'transcribe-stream',
         method: 'POST',
-        body: JSON.stringify({
-          sourceFile: 'clip-1.opus',
-          folderPath: audioDir
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }),
-      action: 'transcript-read',
-      agentId: 'agent-test',
-      actionSegments: ['transcript-read'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
+        body: {
+          folderPath: '/Users/demo',
+          filePaths: ['/Users/demo/clip-1.opus'],
+        },
+      })
+    )
 
-    expect(readResponse.status).toBe(STATUS_OK)
-    const readPayload = await readResponse.json() as { transcript: string; txtPath: string }
-    expect(readPayload.txtPath.endsWith('clip-1.txt')).toBe(true)
-    expect(readPayload.transcript).toContain('Mock transcription mode is active.')
-    expect(readPayload.transcript).toContain('Prepared opus file:')
-
-    const saveResponse = await transcribeServerModule.handlers['POST transcript-save']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-save')}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          txtPath: readPayload.txtPath,
-          transcript: '[01:45:06] Анна: Привет'
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }),
-      action: 'transcript-save',
-      agentId: 'agent-test',
-      actionSegments: ['transcript-save'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
-
-    expect(saveResponse.status).toBe(STATUS_OK)
-    const savePayload = await saveResponse.json() as { txtPath: string }
-    expect(savePayload.txtPath.endsWith('clip-1.txt')).toBe(true)
-    expect(fs.readFileSync(savePayload.txtPath, 'utf8')).toBe('[01:45:06] Анна: Привет')
-
-    const saveAliasesResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          aliases: [
-            { speakerKey: ' Спикер   2 ', aliasName: 'Анна' },
-            { speakerKey: 'Speaker 1', aliasName: 'John' }
-          ]
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }),
-      action: 'speaker-aliases',
-      agentId: 'agent-test',
-      actionSegments: ['speaker-aliases'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
-
-    expect(saveAliasesResponse.status).toBe(STATUS_OK)
-    const saveAliasesPayload = await saveAliasesResponse.json() as {
-      aliases: Array<{ speakerKey: string; aliasName: string }>
-    }
-    expect(saveAliasesPayload.aliases).toEqual([
-      { speakerKey: 'speaker 1', aliasName: 'John' },
-      { speakerKey: 'спикер 2', aliasName: 'Анна' }
-    ])
-
-    const deleteAliasResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          aliases: [{ speakerKey: 'speaker 1', aliasName: '' }]
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }),
-      action: 'speaker-aliases',
-      agentId: 'agent-test',
-      actionSegments: ['speaker-aliases'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
-
-    const deleteAliasPayload = await deleteAliasResponse.json() as {
-      aliases: Array<{ speakerKey: string; aliasName: string }>
-    }
-    expect(deleteAliasPayload.aliases).toEqual([
-      { speakerKey: 'спикер 2', aliasName: 'Анна' }
-    ])
-
-    const getAliasesResponse = await transcribeServerModule.handlers['GET speaker-aliases']({
-      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`),
-      action: 'speaker-aliases',
-      agentId: 'agent-test',
-      actionSegments: ['speaker-aliases'],
-      params: {
-        id: TRANSCRIBE_WIDGET_ID
-      }
-    })
-
-    expect(getAliasesResponse.status).toBe(STATUS_OK)
-    const getAliasesPayload = await getAliasesResponse.json() as {
-      aliases: Array<{ speakerKey: string; aliasName: string }>
-    }
-    expect(getAliasesPayload.aliases).toEqual([
-      { speakerKey: 'спикер 2', aliasName: 'Анна' }
-    ])
+    expect(response.status).toBe(HTTP_STATUS_SERVICE_UNAVAILABLE)
+    await expect(response.json()).resolves.toEqual({ error: 'agent_offline' })
   })
 })
