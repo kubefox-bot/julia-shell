@@ -1,5 +1,6 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
-import { defineQuery, requestBody, requestJson } from '@shared/lib/request'
+import { unwrapResultAsync } from '@shared/lib/result'
+import { defineQuery, requestBodyResult, requestJsonResult } from '@shared/lib/request'
 import { buildWidgetApiRoute, buildWidgetProviderRoute, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { TRANSCRIBE_WIDGET_META } from '../../meta'
 import type {
@@ -19,35 +20,35 @@ function readAliases(data: unknown) {
 }
 
 export async function fetchTranscribeProvider() {
-  return requestJson<WidgetProviderResponse>(
+  return unwrapResultAsync(requestJsonResult<WidgetProviderResponse>(
     buildWidgetProviderRoute(TRANSCRIBE_WIDGET_ID),
     { widget: TRANSCRIBE_WIDGET_META },
     'Failed to resolve widget provider state.'
-  )
+  ))
 }
 
 export async function fetchTranscribeSettings() {
-  return requestJson<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
+  return unwrapResultAsync(requestJsonResult<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
     widget: TRANSCRIBE_WIDGET_META,
-  }, 'Failed to load settings.')
+  }, 'Failed to load settings.'))
 }
 
 export async function saveTranscribeSettings(payload: { geminiModel: string; apiKey?: string }) {
-  return requestJson<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
+  return unwrapResultAsync(requestJsonResult<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Failed to save settings.')
+  }, 'Failed to save settings.'))
 }
 
 export async function fetchTranscribeFolder(path: string) {
-  const typed = await requestJson<FsListResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'fs-list'), {
+  const typed = await unwrapResultAsync(requestJsonResult<FsListResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'fs-list'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path }),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Failed to read path.')
+  }, 'Failed to read path.'))
   return {
     path: typed.path,
     entries: typed.entries,
@@ -56,20 +57,20 @@ export async function fetchTranscribeFolder(path: string) {
 }
 
 export async function fetchSpeakerAliases() {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
+  const data = await unwrapResultAsync(requestJsonResult<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
     widget: TRANSCRIBE_WIDGET_META,
-  }, 'Failed to load speaker aliases.')
+  }, 'Failed to load speaker aliases.'))
 
   return readAliases(data)
 }
 
 export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
+  const data = await unwrapResultAsync(requestJsonResult<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ aliases }),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Failed to save speaker aliases.')
+  }, 'Failed to save speaker aliases.'))
 
   return readAliases(data)
 }
@@ -79,12 +80,12 @@ export async function readTranscript(payload: {
   folderPath: string | null
   txtPath: string
 }) {
-  return requestJson<TranscriptReadResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-read'), {
+  return unwrapResultAsync(requestJsonResult<TranscriptReadResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-read'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Failed to open .txt file.')
+  }, 'Failed to open .txt file.'))
 }
 
 export async function saveTranscript(payload: {
@@ -93,24 +94,24 @@ export async function saveTranscript(payload: {
   txtPath: string | null
   transcript: string
 }) {
-  return requestJson<TranscriptSaveResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-save'), {
+  return unwrapResultAsync(requestJsonResult<TranscriptSaveResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-save'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Failed to save transcript.')
+  }, 'Failed to save transcript.'))
 }
 
 export async function openTranscribeStream(payload: {
   folderPath: string
   filePaths: string[]
 }) {
-  return requestBody(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcribe-stream'), {
+  return unwrapResultAsync(requestBodyResult(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcribe-stream'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
     widget: TRANSCRIBE_WIDGET_META
-  }, 'Transcription failed.')
+  }, 'Transcription failed.'))
 }
 
 export const transcribeQueryKeys = {

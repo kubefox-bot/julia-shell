@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
-import { requestJson } from '@shared/lib/request';
+import { unwrapResultAsync } from '@shared/lib/result';
+import { requestJsonResult } from '@shared/lib/request';
 import { buildWidgetApiRoute, WEATHER_WIDGET_ID } from '@/widgets';
 import { WEATHER_WIDGET_META } from '../meta';
 import styles from './WeatherWidget.module.scss';
@@ -57,10 +58,10 @@ function describeWeatherCode(code: number) {
 async function loadForecast(refresh = false) {
   const endpoint = buildWidgetApiRoute(WEATHER_WIDGET_ID, refresh ? 'refresh' : 'forecast');
 
-  return requestJson<WeatherPayload>(endpoint, {
+  return unwrapResultAsync(requestJsonResult<WeatherPayload>(endpoint, {
     method: refresh ? 'POST' : 'GET',
     widget: WEATHER_WIDGET_META
-  }, 'Не удалось загрузить прогноз.');
+  }, 'Не удалось загрузить прогноз.'));
 }
 
 export function WeatherWidget(_props: WidgetRenderProps) {

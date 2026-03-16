@@ -1,24 +1,25 @@
-import { defineQuery, requestJson, requestRaw } from '@shared/lib/request'
+import { unwrapResultAsync } from '@shared/lib/result'
+import { defineQuery, requestJsonResult, requestRaw } from '@shared/lib/request'
 import { buildWidgetApiRoute, TERMINAL_AGENT_WIDGET_ID } from '@/widgets'
 import { TERMINAL_AGENT_WIDGET_META } from '../meta'
 import type { DialogRefItem, DialogStatePayload, ModelListPayload, Provider, SettingsPayload } from './terminal-agent.types'
 
 export async function loadTerminalAgentSettings() {
-  return requestJson<SettingsPayload>(buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings'), {
+  return unwrapResultAsync(requestJsonResult<SettingsPayload>(buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings'), {
     widget: TERMINAL_AGENT_WIDGET_META,
-  }, 'Failed to load settings.')
+  }, 'Failed to load settings.'))
 }
 
 export async function loadTerminalAgentDialogState(provider: Provider) {
-  return requestJson<DialogStatePayload>(
+  return unwrapResultAsync(requestJsonResult<DialogStatePayload>(
     `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog-state')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialog state.'
-  )
+  ))
 }
 
 export async function saveTerminalAgentSettings(settings: SettingsPayload) {
-  return requestJson<SettingsPayload>(
+  return unwrapResultAsync(requestJsonResult<SettingsPayload>(
     buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings'),
     {
       method: 'POST',
@@ -27,27 +28,27 @@ export async function saveTerminalAgentSettings(settings: SettingsPayload) {
       widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to save settings.'
-  )
+  ))
 }
 
 export async function loadTerminalAgentModels(provider: Provider) {
-  return requestJson<ModelListPayload>(
+  return unwrapResultAsync(requestJsonResult<ModelListPayload>(
     `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'models')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load models.'
-  )
+  ))
 }
 
 export async function loadTerminalAgentDialogRefs(provider: Provider) {
-  return requestJson<{ items?: DialogRefItem[] }>(
+  return unwrapResultAsync(requestJsonResult<{ items?: DialogRefItem[] }>(
     `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialogs')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialogs.'
-  )
+  ))
 }
 
 export async function createTerminalAgentDialog(provider: Provider) {
-  return requestJson<DialogStatePayload>(
+  return unwrapResultAsync(requestJsonResult<DialogStatePayload>(
     buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog/new'),
     {
       method: 'POST',
@@ -56,11 +57,11 @@ export async function createTerminalAgentDialog(provider: Provider) {
       widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to reset dialog.'
-  )
+  ))
 }
 
 export async function selectTerminalAgentDialog(provider: Provider, providerSessionRef: string) {
-  return requestJson<DialogStatePayload>(
+  return unwrapResultAsync(requestJsonResult<DialogStatePayload>(
     buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog/select'),
     {
       method: 'POST',
@@ -69,7 +70,7 @@ export async function selectTerminalAgentDialog(provider: Provider, providerSess
       widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to select dialog.'
-  )
+  ))
 }
 
 export function openTerminalAgentMessageStream(provider: Provider, message: string) {

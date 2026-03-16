@@ -1,4 +1,5 @@
 import ky, { type Input, type Options } from 'ky'
+import { fromThrowablePromise } from './result'
 import { buildRequestHeaders, type WidgetRequestMeta } from './request-headers'
 
 const DEFAULT_RETRY_LIMIT = 0
@@ -67,6 +68,10 @@ export async function requestJson<T>(input: Input, options?: RequestOptions, fal
   return response.json<T>()
 }
 
+export function requestJsonResult<T>(input: Input, options?: RequestOptions, fallbackMessage?: string) {
+  return fromThrowablePromise(requestJson<T>(input, options, fallbackMessage))
+}
+
 export async function requestBody(input: Input, options?: RequestOptions, fallbackMessage?: string) {
   const response = await requestRaw(input, options)
   if (!response.ok || !response.body) {
@@ -74,6 +79,10 @@ export async function requestBody(input: Input, options?: RequestOptions, fallba
   }
 
   return response.body
+}
+
+export function requestBodyResult(input: Input, options?: RequestOptions, fallbackMessage?: string) {
+  return fromThrowablePromise(requestBody(input, options, fallbackMessage))
 }
 
 export function defineQuery<TQueryKey extends readonly unknown[], TData>(
