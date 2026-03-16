@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   HTTP_STATUS_CONFLICT,
   HTTP_STATUS_OK
-} from '@shared/lib/http-status'
+} from '@shared/lib/http/status'
 import { PASSPORT_ACCESS_TTL_SECONDS } from '../server/config/consts'
 
 const issuePassportBrowserAccessMock = vi.hoisted(() => vi.fn())

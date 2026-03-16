@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { ResolvedShellTheme } from '../../entities/widget/model/types'
-import styles from './OptionMenu.module.scss'
+import styles from './OptionMenu.module.css'
 
 export type OptionMenuItemData = {
   value: string

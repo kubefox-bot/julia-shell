@@ -1,0 +1,63 @@
+.agentOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.agentScrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  background:
+    radial-gradient(circle at top, rgb(59 130 246 / 18%), rgb(15 23 42 / 62%) 58%),
+    rgb(15 23 42 / 46%);
+  backdrop-filter: blur(7px);
+}
+
+.agentPanel {
+  position: relative;
+  z-index: 2;
+  width: min(520px, calc(100vw - 2rem));
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 18%, var(--card-bg) 18.1%);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgb(15 23 42 / 28%);
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid rgb(148 163 184 / 22%);
+
+  :global(#shell-root[data-theme='night']) & {
+    background: linear-gradient(180deg, #0f1b34 0%, #111827 18%, var(--card-bg) 18.1%);
+    border-color: rgb(99 102 241 / 20%);
+    box-shadow: 0 28px 80px rgb(2 6 23 / 62%);
+  }
+}
+
+.agentPanelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+
+  h2 {
+    margin: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .agentPanel {
+    width: calc(100vw - 1.2rem);
+    max-height: calc(100vh - 1.2rem);
+    padding: 1rem;
+  }
+}

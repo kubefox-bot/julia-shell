@@ -62,9 +62,9 @@ function consumeBufferedEvents(buffer: string, handlers: StreamHandlers, state: 
 
     const chunk = nextBuffer.slice(0, boundary)
     nextBuffer = nextBuffer.slice(boundary + STREAM_CHUNK_DELIMITER.length)
-    const parsed = parseSseEventChunk(chunk)
-    if (parsed) {
-      handleParsedStreamEvent(parsed, handlers, state)
+    const parsedResult = parseSseEventChunk(chunk)
+    if (parsedResult.isOk()) {
+      handleParsedStreamEvent(parsedResult.unwrap(), handlers, state)
     }
   }
 }

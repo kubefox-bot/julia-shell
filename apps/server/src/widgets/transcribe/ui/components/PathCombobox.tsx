@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { OptionMenu } from '@shared/ui/OptionMenu'
 import { getTranscribeText } from '../../i18n'
-import styles from '../TranscribeWidget.module.scss'
+import styles from '../TranscribeWidget.module.css'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { FolderGlyph } from './TranscribeIcons'
 

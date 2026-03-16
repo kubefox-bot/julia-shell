@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { applySpeakerAliasesToTranscript, extractTranscriptSpeakers, normalizeTranscriptText } from '../helpers'
-import styles from '../TranscribeWidget.module.scss'
+import styles from '../TranscribeWidget.module.css'
 import { ResultActionsBar } from './result/ResultActionsBar'
 import { ResultFullscreenModal } from './result/ResultFullscreenModal'
 import { ResultTranscriptPanel } from './result/ResultTranscriptPanel'

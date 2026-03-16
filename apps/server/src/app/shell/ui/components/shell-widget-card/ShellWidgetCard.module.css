@@ -1,0 +1,193 @@
+.widgetCard {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--card-shadow);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  height: var(--widget-card-height-desktop);
+  min-height: var(--widget-card-height-desktop);
+  max-height: var(--widget-card-height-desktop);
+  gap: 0.85rem;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease, filter 0.22s ease;
+  position: relative;
+  overflow: hidden;
+
+  :global(#shell-root[data-theme='night']) & {
+    background: linear-gradient(180deg, #0f172a, #111c31);
+  }
+}
+
+.widgetFrame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.widgetBodyEditMode {
+  animation: widgetWiggle 168ms ease-in-out infinite alternate;
+  transform-origin: 50% 8%;
+}
+
+.widgetCard:nth-child(odd) .widgetBodyEditMode {
+  animation-delay: -0.08s;
+}
+
+.widgetCard:nth-child(3n) .widgetBodyEditMode {
+  animation-delay: -0.16s;
+}
+
+.widgetHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.widgetTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+}
+
+.widgetIcon {
+  font-size: 1.6rem;
+}
+
+.widgetEditTools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.sizeGroup {
+  display: inline-flex;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+
+  button {
+    border: none;
+    background: #fff;
+    min-width: 28px;
+    padding: 0.35rem 0.5rem;
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+
+  button + button {
+    border-left: 1px solid #e5e7eb;
+  }
+
+  :global(#shell-root[data-theme='night']) & {
+    border-color: #334155;
+
+    button {
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+  }
+}
+
+.sizeActive {
+  background: var(--accent-lavender) !important;
+  color: #4c1d95;
+}
+
+.dragHandle {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 20px rgb(148 163 184 / 15%);
+
+  :global(#shell-root[data-theme='night']) & {
+    border-color: #334155;
+  }
+}
+
+.dragging {
+  opacity: 0.28;
+  filter: saturate(0.75);
+
+  .widgetBodyEditMode {
+    animation: none;
+  }
+}
+
+.dropTarget {
+  box-shadow: 0 0 0 2px #d8b4fe, 0 14px 28px rgb(76 29 149 / 18%);
+}
+
+.widgetBody {
+  min-height: 0;
+  flex: 1 1 auto;
+  position: relative;
+  overflow: auto;
+}
+
+.widgetCardEditMode {
+  box-shadow: 0 16px 38px rgb(148 163 184 / 18%);
+
+  .widgetHead {
+    padding-bottom: 0.35rem;
+  }
+
+  .widgetBody > * {
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+.widgetBodyLock {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 14%), rgb(255 255 255 / 50%)),
+    linear-gradient(135deg, rgb(59 130 246 / 14%), rgb(167 139 250 / 18%));
+  backdrop-filter: blur(2px) saturate(0.92);
+  border-radius: 18px;
+  pointer-events: all;
+}
+
+.widgetBodyLockBadge {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  border-radius: 999px;
+  background: rgb(15 23 42 / 80%);
+  color: #e0f2fe;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.32rem 0.58rem;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 768px) {
+  .widgetCard {
+    grid-column: span var(--mobile-columns) !important;
+    height: auto;
+    min-height: unset;
+    max-height: unset;
+  }
+}
+
+@keyframes widgetWiggle {
+  from {
+    transform: rotate(-1.35deg);
+  }
+
+  to {
+    transform: rotate(1.35deg);
+  }
+}

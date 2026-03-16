@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getTerminalAgentDialogState, saveTerminalAgentSettings } from '../src/domains/llm/server/repository/terminal-agent-repository'
 import { passportRuntime } from '../src/domains/passport/server/runtime/runtime'
-import { moduleBus } from '../src/shared/lib/module-bus'
+import { moduleBus } from '../src/shared/lib/bus'
 import { terminalAgentHandlers } from '../src/widgets/terminal-agent/server/handlers'
 import { WIDGET_ID } from '../src/widgets/terminal-agent/server/constants'
 import { buildWidgetApiRoute } from '../src/widgets'

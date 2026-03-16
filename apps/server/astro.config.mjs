@@ -14,6 +14,9 @@ export default defineConfig({
     resolve: {
       alias: resolveServerAliases(import.meta.url)
     },
+    css: {
+      transformer: 'lightningcss'
+    },
     build: resolveServerBuildConfig(process.env)
   },
   integrations: [react()]

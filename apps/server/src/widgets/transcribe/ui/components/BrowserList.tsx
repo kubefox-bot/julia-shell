@@ -1,6 +1,6 @@
 import { isSupportedAudioEntry } from '../helpers'
 import type { BrowserEntry } from '../model/types'
-import styles from '../TranscribeWidget.module.scss'
+import styles from '../TranscribeWidget.module.css'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { getTranscribeText } from '../../i18n'
 import { AudioGlyph, FolderGlyph, TextGlyph } from './TranscribeIcons'

@@ -9,7 +9,7 @@ import type { ShellStore } from '@app/shell/model/types';
 import { ShellAgentStatusOverlay } from '@app/shell/ui/components/shell-agent-status-overlay';
 import type { PassportAuthStatus } from '@passport/client';
 import { getLampClassKey, resolvePassportTrafficLightState } from '@passport/ui/status-badge';
-import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
+import styles from './ShellHeaderActions.module.css';
 import { resolveDisplayLocale } from '@shared/lib/locale';
 
 type ShellHeaderActionsProps = {

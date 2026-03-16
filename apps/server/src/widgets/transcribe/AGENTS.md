@@ -29,7 +29,7 @@ Server:
 
 UI:
 - `src/widgets/transcribe/ui/TranscribeWidget.tsx`
-- `src/widgets/transcribe/ui/TranscribeWidget.module.scss`
+- `src/widgets/transcribe/ui/TranscribeWidget.module.css`
 - `src/widgets/transcribe/ui/AGENTS.md`
 - `src/widgets/transcribe/i18n/index.ts`
 - `src/widgets/transcribe/i18n/ru.ts`

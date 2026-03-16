@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
     return passportErrorResponse(PASSPORT_VALIDATION_CATALOG.connectAgent.errorKey)
   }
 
-  const parsed = parsedResult.value
+  const parsed = parsedResult.unwrap()
   const onlineAgent = passportRuntime.getOnlineAgentSession(parsed.agent_id)
   if (!onlineAgent) {
     return passportErrorResponse('agentUnavailable')

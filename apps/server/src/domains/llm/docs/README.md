@@ -25,5 +25,5 @@ Shared server domain that resolves provider model catalogs and persists them loc
 
 ## Design principles
 - `zod` for external payload validation
-- `neverthrow` for explicit error flow
+- `oxide.ts` for explicit error flow
 - `drizzle` for typed DB access

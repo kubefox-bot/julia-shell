@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetDbCache } from '../src/core/db/shared';
 import { PassportRuntime } from '../src/domains/passport/server/runtime/runtime';
-import { moduleBus } from '../src/shared/lib/module-bus';
+import { moduleBus } from '../src/shared/lib/bus';
 import { TRANSCRIBE_WIDGET_ID } from '../src/widgets';
 
 type RuntimeInternals = {

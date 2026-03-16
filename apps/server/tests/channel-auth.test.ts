@@ -6,7 +6,7 @@ vi.mock('../src/domains/passport/server/context', () => ({
   resolvePassportRequestContext: resolvePassportRequestContextMock
 }));
 
-import { isChannelAuthorized } from '../src/shared/lib/channel-auth';
+import { isChannelAuthorized } from '../src/shared/lib/auth/channel';
 
 describe('channel auth via passport context', () => {
   beforeEach(() => {

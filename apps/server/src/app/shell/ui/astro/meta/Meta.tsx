@@ -6,7 +6,7 @@ import { nowMillis } from '@shared/lib/time';
 import { useShellStore } from '@app/shell/model/store';
 import { CLOCK_TICK_INTERVAL_MS } from '@app/shell/model/constants';
 import type { ShellStore } from '@app/shell/model/types';
-import styles from './Meta.module.scss';
+import styles from './Meta.module.css';
 
 type MetaProps = {
   initialNowIso: string;

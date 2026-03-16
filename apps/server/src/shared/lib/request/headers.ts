@@ -1,4 +1,4 @@
-import { nowMillis } from './time'
+import { nowMillis } from '../time'
 
 const REQUEST_ID_HEADER = 'x-request-id'
 const WIDGET_ID_HEADER = 'x-widget-id'

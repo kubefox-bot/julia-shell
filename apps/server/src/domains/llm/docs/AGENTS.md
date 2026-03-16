@@ -13,7 +13,7 @@ Domain identity:
 - fetch model catalogs from remote provider APIs;
 - validate remote payload shape (`zod`);
 - persist and read catalog in local DB (`drizzle`);
-- return typed `Result` (`neverthrow`) without throwing domain errors.
+- return typed `Result` (`oxide.ts`) without throwing domain errors.
 
 ## Public Server API (used by widgets)
 - consumed by terminal-agent `GET models` handler
@@ -39,7 +39,7 @@ Domain identity:
 - remote fetch/retry/fallback policy
 - persistence:
   - `src/domains/llm/server/repository/catalog-repository.ts`
-  - drizzle queries + neverthrow Result
+  - drizzle queries + oxide.ts Result
 - runtime persistence (consumer-based):
   - `src/domains/llm/server/repository/runtime-repository.ts`
 - DB schema/bootstrap:

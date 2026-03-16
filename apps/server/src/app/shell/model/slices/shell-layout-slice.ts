@@ -1,10 +1,15 @@
 import type { StateCreator } from 'zustand';
+import { Result, match } from 'oxide.ts';
 import { saveShellLayout } from '../../lib/api';
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types';
 import { buildShellStatePatch } from '../store-helpers';
 
 export type ShellLayoutSlice = Pick<ShellStoreState, 'isEditMode'> &
   Pick<ShellStoreActions, 'startEdit' | 'cancelEdit' | 'saveLayout' | 'changeWidgetSize'>;
+
+function toErrorMessage(error: Error, fallback: string) {
+  return error.message || fallback;
+}
 
 export const createShellLayoutSlice: StateCreator<ShellStore, [], [], ShellLayoutSlice> = (set, get) => ({
   isEditMode: false,
@@ -28,25 +33,30 @@ export const createShellLayoutSlice: StateCreator<ShellStore, [], [], ShellLayou
     const { layoutSettings, draftLayout } = get();
     set({ isSaving: true, error: null });
 
-    try {
-      const response = await saveShellLayout({
+    const responseResult = await Result.safe(
+      saveShellLayout({
         desktopColumns: layoutSettings.desktopColumns,
         mobileColumns: layoutSettings.mobileColumns,
         locale: layoutSettings.locale,
         theme: layoutSettings.theme,
         layout: draftLayout
-      });
+      })
+    );
 
-      set((state) => ({
-        ...buildShellStatePatch(state, response),
-        isEditMode: false
-      }));
-    } catch (error) {
-      set({
-        isSaving: false,
-        error: error instanceof Error ? error.message : 'Не удалось сохранить layout.'
-      });
-    }
+    match(responseResult, {
+      Ok: (response) => {
+        set((state) => ({
+          ...buildShellStatePatch(state, response),
+          isEditMode: false
+        }));
+      },
+      Err: (error) => {
+        set({
+          isSaving: false,
+          error: toErrorMessage(error, 'Не удалось сохранить layout.')
+        });
+      }
+    });
   },
   changeWidgetSize: (widgetId, size) => {
     set((state) => ({

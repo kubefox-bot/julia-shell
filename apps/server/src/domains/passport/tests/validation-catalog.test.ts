@@ -22,7 +22,7 @@ describe('passport validation catalog', () => {
       return
     }
 
-    expect(parsedResult.value).toEqual({
+    expect(parsedResult.unwrap()).toEqual({
       agent_id: 'agent-a',
       refresh_token: 'refresh-token',
     })

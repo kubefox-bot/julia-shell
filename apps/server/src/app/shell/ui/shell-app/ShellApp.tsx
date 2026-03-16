@@ -6,7 +6,7 @@ import { buildShellStatePatch } from '@app/shell/model/store-helpers'
 import type { ShellSettingsResponse } from '@app/shell/model/types'
 import { ShellBootSkeleton, ShellHeaderActions, ShellSettingsOverlay, WidgetGrid } from '@app/shell/ui/components'
 import { logger } from '@shared/lib/logger'
-import styles from './ShellApp.module.scss'
+import styles from './ShellApp.module.css'
 
 type ShellAppProps = {
   initialShellSettings?: ShellSettingsResponse

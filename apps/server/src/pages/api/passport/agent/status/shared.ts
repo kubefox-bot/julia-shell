@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { err, ok } from 'neverthrow'
+import { Option, match } from 'oxide.ts'
 import type {
   PassportContextResolution,
 } from '@passport/server/context'
@@ -37,18 +37,14 @@ export function resolveBrowserStatusPayload(
   resolved: PassportContextResolution,
   snapshotForAgent: (agentId: string) => PassportStatusSnapshot
 ) {
-  const contextResult = resolved.context
-    ? ok(resolved.context.agentId)
-    : err(resolved.reason)
-
-  return contextResult.match(
-    (agentId) => snapshotForAgent(agentId),
-    (reason) => {
-      if (reason === 'invalid') {
+  return match(Option.from(resolved.context), {
+    Some: (context) => snapshotForAgent(context.agentId),
+    None: () => {
+      if (resolved.reason === 'invalid') {
         return buildUnauthorizedSnapshot()
       }
 
       return buildDisconnectedSnapshot()
     }
-  )
+  })
 }

@@ -3,7 +3,7 @@ import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_OK,
   HTTP_STATUS_UNAUTHORIZED
-} from '@shared/lib/http-status';
+} from '@shared/lib/http/status';
 import { PASSPORT_ACCESS_TTL_SECONDS } from '../server/config/consts';
 
 const enrollPassportAgentMock = vi.hoisted(() => vi.fn());

@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
-import { HTTP_STATUS_INTERNAL_SERVER_ERROR } from '@shared/lib/http-status';
+import { HTTP_STATUS_INTERNAL_SERVER_ERROR } from '@shared/lib/http/status';
 import { requestRaw } from '@shared/lib/request';
 import { WEATHER_WIDGET_META } from '../meta';
 

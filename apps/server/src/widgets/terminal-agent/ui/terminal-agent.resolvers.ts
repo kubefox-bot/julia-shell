@@ -1,6 +1,6 @@
 import type { TerminalAgentDictionary } from './terminal-agent.dictionary'
 import type { Provider, SettingsPayload } from './terminal-agent.types'
-import styles from './TerminalAgentWidget.module.scss'
+import styles from './TerminalAgentWidget.module.css'
 import { isQuotaErrorMessage } from './terminal-agent.utils'
 
 const STATUS_LABEL_KEYS = {

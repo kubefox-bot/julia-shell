@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (parsedResult.isErr()) {
     return passportErrorResponse(PASSPORT_VALIDATION_CATALOG.revokeEnrollmentToken.errorKey)
   }
-  const parsed = parsedResult.value
+  const parsed = parsedResult.unwrap()
 
   const revoked = revokeEnrollmentToken(parsed.token_id)
   return jsonResponse({ revoked })

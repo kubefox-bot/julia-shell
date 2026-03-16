@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { Result, match } from 'oxide.ts';
 import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import {
@@ -6,8 +7,8 @@ import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_OK,
   HTTP_STATUS_UNAUTHORIZED
-} from '@shared/lib/http-status';
-import { moduleBus, type EventPayload } from '@shared/lib/module-bus';
+} from '@shared/lib/http/status';
+import { moduleBus, type EventPayload } from '@shared/lib/bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
 import { nowIso } from '@shared/lib/time';
 
@@ -55,11 +56,11 @@ export const GET: APIRoute = async ({ request }) => {
       request.signal.addEventListener('abort', () => {
         unsubscribe();
         clearInterval(heartbeat);
-        try {
-          controller.close();
-        } catch {
-          // ignored
-        }
+        const closeResult = Result.safe(() => controller.close());
+        match(closeResult, {
+          Ok: () => undefined,
+          Err: () => undefined
+        });
       });
     }
   });

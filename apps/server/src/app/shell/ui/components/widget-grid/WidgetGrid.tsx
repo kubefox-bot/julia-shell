@@ -13,10 +13,11 @@ import { getLocalizedHeader } from '@shared/lib/locale';
 import { useShellRegistry } from '@app/shell/lib/registry';
 import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '@app/shell/model/selectors';
 import { useShellStore } from '@app/shell/model/store';
-import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
+import cardStyles from '@app/shell/ui/components/shell-widget-card/ShellWidgetCard.module.css';
 import { ShellDragPreview } from '@app/shell/ui/components/shell-drag-preview';
 import { ShellWidgetCard } from '@app/shell/ui/components/shell-widget-card';
-import skeletonStyles from '@app/shell/ui/components/skeleton/Skeleton.module.scss';
+import skeletonStyles from '@app/shell/ui/components/skeleton/Skeleton.module.css';
+import styles from './WidgetGrid.module.css';
 
 const SIZE_SPAN = {
   small: 3,
@@ -80,7 +81,7 @@ export function WidgetGrid() {
                   className={styles.dropShadowSlot}
                   style={{ gridColumn: `span ${SIZE_SPAN[entry.item.size]}` }}
                 >
-                  <article className={[styles.widgetCard, skeletonStyles.widgetSilhouetteCard, skeletonStyles.widgetSilhouetteCardAnimated].join(' ')}>
+                  <article className={[cardStyles.widgetCard, skeletonStyles.widgetSilhouetteCard, skeletonStyles.widgetSilhouetteCardAnimated].join(' ')}>
                   </article>
                 </div>
               );

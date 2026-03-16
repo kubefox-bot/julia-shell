@@ -16,7 +16,7 @@ import {
   TerminalAgentSettingsModal,
   TerminalAgentToolbar,
 } from './components'
-import styles from './TerminalAgentWidget.module.scss'
+import styles from './TerminalAgentWidget.module.css'
 
 export function TerminalAgentWidget(props: WidgetRenderProps) {
   const t = terminalAgentDictionary[props.locale]

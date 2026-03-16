@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { Result, match } from 'oxide.ts';
 import { saveShellLayout } from '../../lib/api';
 import { resolveDisplayLocale } from '@shared/lib/locale';
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types';
@@ -12,6 +13,10 @@ export type ShellSettingsSlice = Pick<
     ShellStoreActions,
     'openSettings' | 'closeSettings' | 'updateSettingsDraftColumns' | 'updateSettingsDraftLocale' | 'toggleLocale' | 'updateSettingsDraftTheme' | 'saveSettings' | 'toggleTheme'
   >;
+
+function toSaveErrorMessage(error: Error, fallback: string) {
+  return error.message || fallback;
+}
 
 export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSettingsSlice> = (set, get) => ({
   isSettingsOpen: false,
@@ -64,22 +69,27 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
     const nextLocale = activeLocale === 'en' ? 'ru' : 'en';
     set({ isSaving: true, error: null });
 
-    try {
-      const response = await saveShellLayout({
+    const responseResult = await Result.safe(
+      saveShellLayout({
         desktopColumns: layoutSettings.desktopColumns,
         mobileColumns: layoutSettings.mobileColumns,
         locale: nextLocale,
         theme: layoutSettings.theme,
         layout: draftLayout
-      });
+      }),
+    );
 
-      set((state) => buildShellStatePatch(state, response));
-    } catch (error) {
-      set({
-        isSaving: false,
-        error: error instanceof Error ? error.message : 'Не удалось переключить язык.'
-      });
-    }
+    match(responseResult, {
+      Ok: (response) => {
+        set((state) => buildShellStatePatch(state, response));
+      },
+      Err: (error) => {
+        set({
+          isSaving: false,
+          error: toSaveErrorMessage(error, 'Не удалось переключить язык.')
+        });
+      }
+    });
   },
   updateSettingsDraftTheme: (theme) => {
     set((state) => ({
@@ -93,26 +103,31 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
     const { settingsDraft, draftLayout } = get();
     set({ isSaving: true, error: null });
 
-    try {
-      const response = await saveShellLayout({
+    const responseResult = await Result.safe(
+      saveShellLayout({
         desktopColumns: settingsDraft.desktopColumns,
         mobileColumns: settingsDraft.mobileColumns,
         locale: settingsDraft.locale,
         theme: settingsDraft.theme,
         layout: draftLayout
-      });
+      }),
+    );
 
-      set((state) => ({
-        ...buildShellStatePatch(state, response),
-        isSettingsOpen: false,
-        isEditMode: state.isEditMode
-      }));
-    } catch (error) {
-      set({
-        isSaving: false,
-        error: error instanceof Error ? error.message : 'Не удалось сохранить settings.'
-      });
-    }
+    match(responseResult, {
+      Ok: (response) => {
+        set((state) => ({
+          ...buildShellStatePatch(state, response),
+          isSettingsOpen: false,
+          isEditMode: state.isEditMode
+        }));
+      },
+      Err: (error) => {
+        set({
+          isSaving: false,
+          error: toSaveErrorMessage(error, 'Не удалось сохранить settings.')
+        });
+      }
+    });
   },
   toggleTheme: async () => {
     const { layoutSettings, draftLayout } = get();
@@ -124,21 +139,26 @@ export const createShellSettingsSlice: StateCreator<ShellStore, [], [], ShellSet
           : 'auto';
     set({ isSaving: true, error: null });
 
-    try {
-      const response = await saveShellLayout({
+    const responseResult = await Result.safe(
+      saveShellLayout({
         desktopColumns: layoutSettings.desktopColumns,
         mobileColumns: layoutSettings.mobileColumns,
         locale: layoutSettings.locale,
         theme: nextTheme,
         layout: draftLayout
-      });
+      }),
+    );
 
-      set((state) => buildShellStatePatch(state, response));
-    } catch (error) {
-      set({
-        isSaving: false,
-        error: error instanceof Error ? error.message : 'Не удалось переключить тему.'
-      });
-    }
+    match(responseResult, {
+      Ok: (response) => {
+        set((state) => buildShellStatePatch(state, response));
+      },
+      Err: (error) => {
+        set({
+          isSaving: false,
+          error: toSaveErrorMessage(error, 'Не удалось переключить тему.')
+        });
+      }
+    });
   }
 });

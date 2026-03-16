@@ -29,7 +29,7 @@ describe('llm-model repository', () => {
     if (replaceResult.isErr()) {
       return;
     }
-    expect(replaceResult.value.count).toBe(2);
+    expect(replaceResult.unwrap().count).toBe(2);
 
     const listResult = listLlmModels('terminal-agent', 'codex');
     expect(listResult.isOk()).toBe(true);
@@ -37,8 +37,8 @@ describe('llm-model repository', () => {
       return;
     }
 
-    expect(listResult.value.map((row) => row.modelId)).toEqual(['gpt-4.1', 'gpt-5']);
-    expect(listResult.value.every((row) => row.provider === 'codex')).toBe(true);
+    expect(listResult.unwrap().map((row) => row.modelId)).toEqual(['gpt-4.1', 'gpt-5']);
+    expect(listResult.unwrap().every((row) => row.provider === 'codex')).toBe(true);
   });
 
   it('isolates rows by consumer and provider', () => {
@@ -62,13 +62,13 @@ describe('llm-model repository', () => {
     expect(emptyRows.isOk()).toBe(true);
 
     if (codexRows.isOk()) {
-      expect(codexRows.value.map((row) => row.modelId)).toEqual(['gpt-5']);
+      expect(codexRows.unwrap().map((row) => row.modelId)).toEqual(['gpt-5']);
     }
     if (geminiRows.isOk()) {
-      expect(geminiRows.value.map((row) => row.modelId)).toEqual(['gemini-2.5-flash']);
+      expect(geminiRows.unwrap().map((row) => row.modelId)).toEqual(['gemini-2.5-flash']);
     }
     if (emptyRows.isOk()) {
-      expect(emptyRows.value).toEqual([]);
+      expect(emptyRows.unwrap()).toEqual([]);
     }
   });
 });

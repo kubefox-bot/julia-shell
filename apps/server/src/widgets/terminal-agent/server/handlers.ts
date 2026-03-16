@@ -1,7 +1,7 @@
 import { passportRuntime } from '@passport/server/runtime'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
-import { HTTP_STATUS_BAD_REQUEST } from '@shared/lib/http-status'
+import { HTTP_STATUS_BAD_REQUEST } from '@shared/lib/http/status'
 import { z } from 'zod'
 import { getTerminalAgentSettings } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { getLlmModelCatalog } from '../../../domains/llm/server'
@@ -96,10 +96,10 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       forceRefresh,
     })
     if (catalogResult.isErr()) {
-      const mappedError = toTerminalAgentLlmModelsHttpError(catalogResult.error)
+      const mappedError = toTerminalAgentLlmModelsHttpError(catalogResult.unwrapErr())
       return jsonResponse(mappedError.payload, mappedError.status)
     }
-    return jsonResponse(toTerminalAgentLlmModelsPayload(catalogResult.value))
+    return jsonResponse(toTerminalAgentLlmModelsPayload(catalogResult.unwrap()))
   },
   'POST dialog/select': async ({ request, agentId }) => {
     const body = await readJsonBody<Record<string, unknown>>(request)

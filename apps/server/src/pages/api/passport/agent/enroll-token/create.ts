@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import { match } from 'oxide.ts'
 import { isPassportAdminAuthorized } from '@passport/server/config/admin-auth'
 import {
   PASSPORT_HTTP_STATUS,
@@ -21,26 +22,27 @@ export const POST: APIRoute = async ({ request }) => {
     PASSPORT_VALIDATION_CATALOG.createEnrollmentToken.schema,
     body
   )
-  if (parsedResult.isErr()) {
-    return passportErrorResponse(PASSPORT_VALIDATION_CATALOG.createEnrollmentToken.errorKey)
-  }
-  const parsed = parsedResult.value
 
-  const created = createEnrollmentToken({
-    agentId: parsed.agent_id,
-    ttlMinutes: parsed.ttl_minutes,
-    uses: parsed.uses,
-    label: parsed.label,
-  })
+  return match(parsedResult, {
+    Ok: (parsed) => {
+      const created = createEnrollmentToken({
+        agentId: parsed.agent_id,
+        ttlMinutes: parsed.ttl_minutes,
+        uses: parsed.uses,
+        label: parsed.label,
+      })
 
-  return jsonResponse(
-    {
-      agent_id: created.agentId,
-      token_id: created.tokenId,
-      enrollment_token: created.enrollmentToken,
-      expires_at: created.expiresAt,
-      uses: created.uses,
+      return jsonResponse(
+        {
+          agent_id: created.agentId,
+          token_id: created.tokenId,
+          enrollment_token: created.enrollmentToken,
+          expires_at: created.expiresAt,
+          uses: created.uses,
+        },
+        PASSPORT_HTTP_STATUS.created
+      )
     },
-    PASSPORT_HTTP_STATUS.created
-  )
+    Err: () => passportErrorResponse(PASSPORT_VALIDATION_CATALOG.createEnrollmentToken.errorKey)
+  })
 }

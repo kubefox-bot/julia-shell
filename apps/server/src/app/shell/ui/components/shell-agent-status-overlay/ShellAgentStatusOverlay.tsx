@@ -1,7 +1,7 @@
 import { IconButton } from '@shared/ui/IconButton';
 import { useShellI18n } from '@app/shell/model/selectors';
 import { PassportStatusBadge } from '@passport/ui';
-import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
+import styles from './ShellAgentStatusOverlay.module.css';
 
 type ShellAgentStatusOverlayProps = {
   open: boolean;

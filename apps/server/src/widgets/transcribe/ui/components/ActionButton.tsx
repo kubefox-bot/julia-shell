@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import styles from '../TranscribeWidget.module.scss'
+import styles from '../TranscribeWidget.module.css'
 
 type ActionButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   theme: 'day' | 'night'

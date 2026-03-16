@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchShellSettings } from '../src/app/shell/lib/api'
-import { buildRequestHeaders } from '../src/shared/lib/request-headers'
+import { buildRequestHeaders } from '../src/shared/lib/request/headers'
 import { fetchTranscribeSettings } from '../src/widgets/transcribe/ui/lib/transcribe-api'
 import { buildWidgetApiRoute, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 

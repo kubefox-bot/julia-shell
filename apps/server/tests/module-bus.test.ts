@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moduleBus } from '../src/shared/lib/module-bus';
+import { moduleBus } from '../src/shared/lib/bus';
 
 describe('moduleBus', () => {
   it('publishes to exact topic subscribers', () => {

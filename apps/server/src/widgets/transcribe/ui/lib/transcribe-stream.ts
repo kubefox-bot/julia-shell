@@ -27,10 +27,11 @@ async function handleChunk(
   chunk: string,
   handlers: ConsumeTranscribeStreamHandlers
 ): Promise<{ done: boolean }> {
-  const parsed = parseSseEventChunk(chunk)
-  if (!parsed) {
+  const parsedResult = parseSseEventChunk(chunk)
+  if (parsedResult.isErr()) {
     return { done: false }
   }
+  const parsed = parsedResult.unwrap()
 
   switch (parsed.eventName) {
     case 'progress':

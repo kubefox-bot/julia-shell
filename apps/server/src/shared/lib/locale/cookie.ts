@@ -1,4 +1,4 @@
-import type { ShellLocale } from '../../entities/widget/model/types';
+import type { ShellLocale } from '../../../entities/widget/model/types';
 
 export const JULIA_LOCALE_COOKIE_NAME = 'lang';
 const DAYS_PER_YEAR = 365;
