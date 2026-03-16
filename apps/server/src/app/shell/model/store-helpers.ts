@@ -1,4 +1,4 @@
-import type { LayoutSettings } from '../../../entities/widget/model/types'
+import type { LayoutSettings } from '@/entities/widget/model/types'
 import {
   SHELL_LAYOUT_COLUMNS_MAX,
   SHELL_LAYOUT_COLUMNS_MIN,

@@ -7,10 +7,11 @@ import {
   normalizeLayout,
   reorderVisibleLayout
 } from '../src/app/shell/model/layout';
+import { TRANSCRIBE_WIDGET_ID, WEATHER_WIDGET_ID } from '../src/widgets';
 
 const modules: WidgetModuleInfo[] = [
   {
-    id: 'com.yulia.weather',
+    id: WEATHER_WIDGET_ID,
     name: 'Weather',
     version: '1.0.0',
     description: 'Weather widget',
@@ -23,7 +24,7 @@ const modules: WidgetModuleInfo[] = [
     supportedSizes: ['small', 'medium', 'large']
   },
   {
-    id: 'com.yulia.transcribe',
+    id: TRANSCRIBE_WIDGET_ID,
     name: 'Transcribe',
     version: '1.0.0',
     description: 'Transcribe widget',
@@ -40,40 +41,40 @@ const modules: WidgetModuleInfo[] = [
 describe('shell layout helpers', () => {
   it('normalizeLayout removes duplicates and invalid rows', () => {
     const layout: LayoutItem[] = [
-      { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.weather', order: 1, size: 'large' },
+      { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' },
+      { widgetId: WEATHER_WIDGET_ID, order: 1, size: 'large' },
       { widgetId: 'unknown', order: 2, size: 'small' }
     ];
 
     expect(normalizeLayout(layout, modules)).toEqual([
-      { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' }
+      { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' },
+      { widgetId: TRANSCRIBE_WIDGET_ID, order: 1, size: 'large' }
     ]);
   });
 
   it('buildPreviewLayout inserts placeholder before over widget', () => {
     const layout: LayoutItem[] = [
-      { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' }
+      { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' },
+      { widgetId: TRANSCRIBE_WIDGET_ID, order: 1, size: 'large' }
     ];
 
-    expect(buildPreviewLayout(layout, 'com.yulia.transcribe', 'com.yulia.weather')).toEqual([
-      { kind: 'placeholder', item: { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' } },
-      { kind: 'widget', item: { widgetId: 'com.yulia.weather', order: 0, size: 'medium' } }
+    expect(buildPreviewLayout(layout, TRANSCRIBE_WIDGET_ID, WEATHER_WIDGET_ID)).toEqual([
+      { kind: 'placeholder', item: { widgetId: TRANSCRIBE_WIDGET_ID, order: 1, size: 'large' } },
+      { kind: 'widget', item: { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' } }
     ]);
   });
 
   it('reorderVisibleLayout moves only visible widgets and preserves hidden tail', () => {
     const draftLayout: LayoutItem[] = [
-      { widgetId: 'com.yulia.weather', order: 0, size: 'medium' },
-      { widgetId: 'com.yulia.transcribe', order: 1, size: 'large' },
+      { widgetId: WEATHER_WIDGET_ID, order: 0, size: 'medium' },
+      { widgetId: TRANSCRIBE_WIDGET_ID, order: 1, size: 'large' },
       { widgetId: 'com.hidden.widget', order: 2, size: 'small' }
     ];
-    const visibleLayout = getVisibleLayout(draftLayout, ['com.yulia.weather', 'com.yulia.transcribe']);
+    const visibleLayout = getVisibleLayout(draftLayout, [WEATHER_WIDGET_ID, TRANSCRIBE_WIDGET_ID]);
 
-    expect(reorderVisibleLayout(draftLayout, visibleLayout, 'com.yulia.transcribe', 'com.yulia.weather')).toEqual([
-      { widgetId: 'com.yulia.transcribe', order: 0, size: 'large' },
-      { widgetId: 'com.yulia.weather', order: 1, size: 'medium' },
+    expect(reorderVisibleLayout(draftLayout, visibleLayout, TRANSCRIBE_WIDGET_ID, WEATHER_WIDGET_ID)).toEqual([
+      { widgetId: TRANSCRIBE_WIDGET_ID, order: 0, size: 'large' },
+      { widgetId: WEATHER_WIDGET_ID, order: 1, size: 'medium' },
       { widgetId: 'com.hidden.widget', order: 2, size: 'small' }
     ]);
   });

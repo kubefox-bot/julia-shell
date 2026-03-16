@@ -1,9 +1,15 @@
-import { InfisicalSDK } from '@infisical/sdk'
+import type { InfisicalSDK } from '@infisical/sdk'
 import { logger } from '@shared/lib/logger'
 import type { InfisicalConfig, SecretEntry } from './types'
+import { authenticateInfisicalClient } from './infisical-client'
+import { resolveSecretEntry } from './resolve-secret-entry'
 import { getInfisicalConfig } from './utils/getInfisicalConfig'
 import { initSecrets } from './utils/initSecrets'
 import { normalizeSecretPath } from './utils/normalizeSecretPath'
+
+function buildCacheKey(keyName: string, normalizedPath: string | null) {
+  return `${keyName}::${normalizedPath ?? ''}`
+}
 
 export class InfisicalSecrets {
   private clientPromise: Promise<InfisicalSDK | null> | null = null
@@ -13,42 +19,9 @@ export class InfisicalSecrets {
     initSecrets()
   }
 
-  private buildCacheKey(keyName: string, normalizedPath: string | null) {
-    return `${keyName}::${normalizedPath ?? ''}`
-  }
-
   private async getClient(config: InfisicalConfig) {
     if (!this.clientPromise) {
-      this.clientPromise = (async () => {
-        const sdk = new InfisicalSDK({
-          siteUrl: config.siteUrl,
-        })
-
-        if (config.accessToken) {
-          logger.dev('[secrets] infisical auth:access-token', {
-            siteUrl: config.siteUrl ?? 'https://app.infisical.com',
-            projectId: config.projectId,
-            environment: config.environment,
-          })
-
-          return sdk.auth().accessToken(config.accessToken)
-        }
-
-        if (config.clientId && config.clientSecret) {
-          logger.dev('[secrets] infisical auth:universal-auth', {
-            siteUrl: config.siteUrl ?? 'https://app.infisical.com',
-            projectId: config.projectId,
-            environment: config.environment,
-          })
-
-          return sdk.auth().universalAuth.login({
-            clientId: config.clientId,
-            clientSecret: config.clientSecret,
-          })
-        }
-
-        return null
-      })()
+      this.clientPromise = authenticateInfisicalClient(config)
     }
 
     try {
@@ -64,9 +37,15 @@ export class InfisicalSecrets {
     }
   }
 
-  private async resolve(keyName: string, normalizedPath: string | null): Promise<SecretEntry | null> {
+  async get(keyName: string, secretPath?: string | null): Promise<SecretEntry | null> {
     this.init()
+    const normalizedPath = normalizeSecretPath(secretPath)
+    const cacheKey = buildCacheKey(keyName, normalizedPath)
     const config = getInfisicalConfig()
+
+    if (this.valueCache.has(cacheKey)) {
+      return this.valueCache.get(cacheKey) ?? null
+    }
 
     logger.dev('[secrets] config', {
       hasConfig: Boolean(config),
@@ -82,81 +61,12 @@ export class InfisicalSecrets {
       secretPath: normalizedPath,
     })
 
-    if (config && normalizedPath) {
-      const client = await this.getClient(config)
-
-      if (client) {
-        try {
-          logger.dev('[secrets] infisical get:start', {
-            projectId: config.projectId,
-            environment: config.environment,
-            keyName,
-            secretPath: normalizedPath,
-          })
-
-          const secret = await client.secrets().getSecret({
-            environment: config.environment,
-            projectId: config.projectId,
-            secretName: keyName,
-            secretPath: normalizedPath,
-            viewSecretValue: true,
-          })
-
-          const value = secret.secretValue?.trim()
-          if (value) {
-            logger.dev('[secrets] infisical hit', {
-              keyName,
-              secretPath: normalizedPath,
-            })
-            return {
-              value,
-              source: 'infisical',
-              path: normalizedPath,
-              reference: secret.secretKey,
-            }
-          }
-        } catch (error) {
-          logger.dev('[secrets] infisical get:error', {
-            projectId: config.projectId,
-            environment: config.environment,
-            keyName,
-            secretPath: normalizedPath,
-            message: error instanceof Error ? error.message : 'Unknown getSecret error',
-          })
-        }
-      }
-    }
-
-    const envValue = process.env[keyName]?.trim()
-    if (!envValue) {
-      logger.dev('[secrets] miss', {
-        keyName,
-        secretPath: normalizedPath,
-      })
-      return null
-    }
-
-    logger.dev('[secrets] env hit', {
+    const resolved = await resolveSecretEntry({
+      config,
+      getClient: (nextConfig) => this.getClient(nextConfig),
       keyName,
-      value: envValue,
+      normalizedPath,
     })
-    return {
-      value: envValue,
-      source: 'env',
-      path: null,
-      reference: keyName,
-    }
-  }
-
-  async get(keyName: string, secretPath?: string | null): Promise<SecretEntry | null> {
-    const normalizedPath = normalizeSecretPath(secretPath)
-    const cacheKey = this.buildCacheKey(keyName, normalizedPath)
-
-    if (this.valueCache.has(cacheKey)) {
-      return this.valueCache.get(cacheKey) ?? null
-    }
-
-    const resolved = await this.resolve(keyName, normalizedPath)
     this.valueCache.set(cacheKey, resolved)
     return resolved
   }

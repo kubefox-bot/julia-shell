@@ -1,5 +1,4 @@
-import { secrets } from '@/core/secrets/secrets';
-import { PASSPORT_LAN_FALLBACK_JWT_SECRET } from './consts';
+import { secrets } from '@core/secrets/secrets';
 
 /**
  * Resolves the shared JWT signing secret used by both agent and browser flows.
@@ -11,5 +10,5 @@ export async function resolvePassportJwtSecret() {
     return value;
   }
 
-  return PASSPORT_LAN_FALLBACK_JWT_SECRET;
+  throw new Error('Missing required startup secret: AGENT_JWT_SECRET');
 }

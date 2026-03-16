@@ -1,1 +1,1 @@
-export { WidgetGrid } from './WidgetGrid';
+export { WidgetGrid } from './WidgetGrid'

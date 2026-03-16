@@ -4,6 +4,7 @@ const STAGE_SELECTOR = '.shellBootStage';
 const HEADER_ID = 'shell-header';
 const HEADER_ACTIONS_ID = 'shell-header-actions';
 const FALLBACK_ACTIONS_HEIGHT_PX = 56;
+const OVERLAY_REMOVE_DELAY_MS = 260;
 
 export function computeBootHeaderSpacerHeight(input: {
   headerHeight: number;
@@ -69,7 +70,7 @@ export function setupShellBootOverlay() {
       overlay.classList.add('shellBootOverlayHidden');
       window.setTimeout(() => {
         overlay.remove();
-      }, 260);
+      }, OVERLAY_REMOVE_DELAY_MS);
     },
     { once: true }
   );

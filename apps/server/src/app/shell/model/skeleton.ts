@@ -1,4 +1,4 @@
-import type { LayoutItem, WidgetClientModule, WidgetModuleInfo } from '../../../entities/widget/model/types';
+import type { LayoutItem, WidgetClientModule, WidgetModuleInfo } from '@/entities/widget/model/types';
 import { getVisibleLayout, getVisibleWidgetIds, normalizeLayout } from './layout';
 
 export function buildShellSkeletonLayout(

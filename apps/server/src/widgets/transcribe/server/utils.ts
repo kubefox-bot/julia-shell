@@ -1,6 +1,7 @@
-import fs, { access } from 'node:fs/promises'
+import fs from 'node:fs/promises'
 import path from 'node:path'
-import { readRuntimeEnv } from '../../../core/env'
+import { readRuntimeEnv } from '@core/env'
+import { SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from '@shared/lib/time'
 import type { HostPlatform } from '../../../entities/widget/model/types'
 import {
   DEFAULT_GEMINI_MODEL,
@@ -8,7 +9,9 @@ import {
   MOCK_GEMINI_MODEL,
   SUPPORTED_AUDIO_EXTENSIONS,
 } from './constants'
-import type { BrowserEntry, ResolvedSelection } from './types'
+import type { BrowserEntry } from './types'
+import { findBinary } from './utils/findBinary'
+import { resolveSelection } from './utils/resolveSelection'
 
 export function toSseEvent(event: string, payload: Record<string, unknown>) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`
@@ -20,7 +23,7 @@ export function sleep(ms: number) {
 
 export function parseClockToSeconds(value: string) {
   const [hours, minutes, seconds] = value.split(':')
-  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)
+  return Number(hours) * SECONDS_PER_HOUR + Number(minutes) * SECONDS_PER_MINUTE + Number(seconds)
 }
 
 export function escapeConcatPath(filePath: string) {
@@ -89,127 +92,7 @@ export function buildAvailableModels(storedModel?: string | null) {
   return [...new Set(models.filter(Boolean))]
 }
 
-export async function findBinary(searchRoot: string, fileName: string): Promise<string | null> {
-  const directCandidate = path.join(searchRoot, fileName)
-  try {
-    await access(directCandidate)
-    return directCandidate
-  } catch {
-    // ignored
-  }
-
-  const pathEntries = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
-  for (const pathEntry of pathEntries) {
-    const candidate = path.join(pathEntry, fileName)
-    try {
-      await access(candidate)
-      return candidate
-    } catch {
-      // ignored
-    }
-  }
-
-  const stack: string[] = [searchRoot]
-
-  while (stack.length > 0) {
-    const current = stack.pop() as string
-    let entries: import('node:fs').Dirent[] = []
-
-    try {
-      entries = await fs.readdir(current, { withFileTypes: true })
-    } catch {
-      continue
-    }
-
-    for (const entry of entries) {
-      const fullPath = path.join(current, entry.name)
-      if (entry.isFile() && entry.name.toLowerCase() === fileName.toLowerCase()) {
-        return fullPath
-      }
-      if (entry.isDirectory()) {
-        stack.push(fullPath)
-      }
-    }
-  }
-
-  return null
-}
-
-export async function resolveSelection(
-  folderPath: string,
-  filePath: string,
-  filePaths: string[]
-): Promise<ResolvedSelection> {
-  const normalizedPaths = filePaths
-    .filter((value): value is string => typeof value === 'string')
-    .map((value) => value.trim())
-    .filter(Boolean)
-
-  const requestedPaths = normalizedPaths.length > 0 ? normalizedPaths : filePath ? [filePath] : []
-
-  if (requestedPaths.length === 0) {
-    if (!folderPath) {
-      throw new Error('folderPath or filePaths is required.')
-    }
-
-    const resolvedFolder = normalizePath(folderPath)
-    const folderStat = await fs.stat(resolvedFolder)
-    if (!folderStat.isDirectory()) {
-      throw new Error('Selected path is not a folder.')
-    }
-
-    const entries = await fs.readdir(resolvedFolder, { withFileTypes: true })
-    const firstAudio = entries
-      .filter((entry) => entry.isFile() && isSupportedAudioPath(entry.name))
-      .map((entry) => path.join(resolvedFolder, entry.name))
-      .sort((a, b) => a.localeCompare(b, 'ru'))[0]
-
-    if (!firstAudio) {
-      throw new Error('No supported audio files in selected folder.')
-    }
-
-    return {
-      filePaths: [firstAudio],
-      canonicalSourceFile: firstAudio,
-      resolvedFolderPath: resolvedFolder,
-    }
-  }
-
-  const validatedPaths: string[] = []
-  let resolvedFolderPath = ''
-
-  for (const currentPathRaw of requestedPaths) {
-    const currentPath = normalizePath(currentPathRaw)
-    const stat = await fs.stat(currentPath)
-    if (!stat.isFile()) {
-      throw new Error(`Selected file is not valid: ${currentPath}`)
-    }
-    if (!isSupportedAudioPath(currentPath)) {
-      throw new Error(`Selected file must be .m4a or .opus: ${currentPath}`)
-    }
-
-    const currentFolder = path.dirname(currentPath)
-    if (!resolvedFolderPath) {
-      resolvedFolderPath = currentFolder
-    } else if (currentFolder.toLowerCase() !== resolvedFolderPath.toLowerCase()) {
-      throw new Error('All selected files must be in the same folder.')
-    }
-
-    if (!validatedPaths.some((value) => value.toLowerCase() === currentPath.toLowerCase())) {
-      validatedPaths.push(currentPath)
-    }
-  }
-
-  if (validatedPaths.length === 0) {
-    throw new Error('No input file selected.')
-  }
-
-  return {
-    filePaths: validatedPaths,
-    canonicalSourceFile: validatedPaths[0],
-    resolvedFolderPath,
-  }
-}
+export { findBinary, resolveSelection }
 
 export async function resolveDefaultBrowsePath() {
   const candidates = [

@@ -1,12 +1,12 @@
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-const DEFAULT_DESKTOP_COLUMNS = 12;
-const DEFAULT_MOBILE_COLUMNS = 1;
+export const CORE_DEFAULT_DESKTOP_COLUMNS = 12;
+export const CORE_DEFAULT_MOBILE_COLUMNS = 1;
 
 export const shellLayoutSettingsTable = sqliteTable('shell_layout_settings', {
   agentId: text('agent_id').notNull(),
-  desktopColumns: integer('desktop_columns').notNull().default(DEFAULT_DESKTOP_COLUMNS),
-  mobileColumns: integer('mobile_columns').notNull().default(DEFAULT_MOBILE_COLUMNS),
+  desktopColumns: integer('desktop_columns').notNull().default(CORE_DEFAULT_DESKTOP_COLUMNS),
+  mobileColumns: integer('mobile_columns').notNull().default(CORE_DEFAULT_MOBILE_COLUMNS),
   locale: text('locale').notNull().default('ru'),
   theme: text('theme').notNull().default('auto'),
   updatedAt: text('updated_at').notNull()

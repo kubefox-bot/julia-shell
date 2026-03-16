@@ -12,6 +12,7 @@ import {
   setModuleEnabled,
   upsertLayoutItem
 } from '../src/core/db/core-repository';
+import { CORE_DEFAULT_DESKTOP_COLUMNS } from '../src/core/db/core-schema';
 import { resetDbCache } from '../src/core/db/shared';
 
 let tempDir = '';
@@ -31,7 +32,7 @@ describe('core repository', () => {
   it('persists layout settings and layout rows', () => {
     const agentId = 'agent-a';
     const initial = getLayoutSettings(agentId);
-    expect(initial.desktopColumns).toBe(12);
+    expect(initial.desktopColumns).toBe(CORE_DEFAULT_DESKTOP_COLUMNS);
     expect(initial.locale).toBe('ru');
     expect(initial.theme).toBe('auto');
 

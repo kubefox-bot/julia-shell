@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import type { ResolvedShellTheme, WidgetModuleInfo } from '../../../entities/widget/model/types';
+import type { ResolvedShellTheme, WidgetModuleInfo } from '@/entities/widget/model/types';
 import { getDailyQuote, getShellText } from '../lib/i18n';
 import { AUTO_THEME_DAY_START_HOUR, AUTO_THEME_NIGHT_START_HOUR } from './constants';
 import { resolveDisplayLocale } from '@shared/lib/locale';

@@ -1,7 +1,7 @@
-export { ShellAgentStatusOverlay } from './ShellAgentStatusOverlay';
-export { ShellDragPreview } from './ShellDragPreview';
-export { ShellHeaderActions } from './ShellHeaderActions';
-export { ShellSettingsOverlay } from './ShellSettingsOverlay';
-export { ShellWidgetCard } from './ShellWidgetCard';
-export { WidgetGrid } from './widget-grid';
-export * from './skeleton';
+export * from './shell-agent-status-overlay'
+export * from './shell-drag-preview'
+export * from './shell-header-actions'
+export * from './shell-settings-overlay'
+export * from './shell-widget-card'
+export * from './widget-grid'
+export * from './skeleton'

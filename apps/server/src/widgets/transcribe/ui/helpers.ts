@@ -1,5 +1,6 @@
 import { getTranscribeText } from '../i18n'
 import type { BrowserEntry } from './model/types'
+export { parseSseEventChunk } from '@shared/lib/sse'
 
 const TRANSCRIPT_SPEAKER_LINE_PATTERN = /^(\s*\[\d{2}:\d{2}:\d{2}\]\s*)([^:\n—-]+?)(\s*(?::|—|-)\s*)(.*)$/u
 
@@ -9,32 +10,6 @@ type TranscriptSpeakerMatch = {
   speakerKey: string
   separator: string
   rest: string
-}
-
-export function parseSseEventChunk(rawEvent: string) {
-  const lines = rawEvent.split('\n')
-  let eventName = 'message'
-  const dataLines: string[] = []
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd()
-    if (line.startsWith('event:')) {
-      eventName = line.slice(6).trim()
-    } else if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trimStart())
-    }
-  }
-
-  if (dataLines.length === 0) {
-    return null
-  }
-
-  try {
-    const payload = JSON.parse(dataLines.join('\n')) as Record<string, unknown>
-    return { eventName, payload }
-  } catch {
-    return null
-  }
 }
 
 export function isSupportedAudioEntry(entry: BrowserEntry) {

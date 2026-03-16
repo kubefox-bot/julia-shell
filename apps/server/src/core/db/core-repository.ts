@@ -6,19 +6,11 @@ import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from '.
 import { openDb } from './shared';
 
 function sanitizeLocale(value: string | null | undefined): ShellLocale {
-  if (value === 'ru' || value === 'en') {
-    return value;
-  }
-
-  return 'ru';
+  return value === 'ru' || value === 'en' ? value : 'ru';
 }
 
 function sanitizeTheme(value: string | null | undefined): ShellTheme {
-  if (value === 'auto' || value === 'day' || value === 'night') {
-    return value;
-  }
-
-  return 'auto';
+  return value === 'auto' || value === 'day' || value === 'night' ? value : 'auto';
 }
 
 function hasColumn(db: ReturnType<typeof openDb>, tableName: string, columnName: string) {

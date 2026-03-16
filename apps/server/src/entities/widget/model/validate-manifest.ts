@@ -1,7 +1,7 @@
 import type { WidgetManifest } from './types';
+import { WIDGET_SIZE_SET } from './widget-sizes';
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
-const SIZE_SET = new Set(['small', 'medium', 'large']);
 const ENV_NAME_RE = /^[a-z0-9][a-z0-9_-]*$/;
 
 function isValidIcon(manifest: WidgetManifest) {
@@ -20,66 +20,58 @@ function isValidIcon(manifest: WidgetManifest) {
   return false;
 }
 
+function validateSupportedSizes(manifest: WidgetManifest, reasons: string[]) {
+  if (!Array.isArray(manifest.supportedSizes) || manifest.supportedSizes.length === 0) {
+    reasons.push('supportedSizes must contain at least one size.');
+    return;
+  }
+
+  for (const size of manifest.supportedSizes) {
+    if (!WIDGET_SIZE_SET.has(size)) {
+      reasons.push(`Unsupported size in supportedSizes: ${size}`);
+    }
+  }
+}
+
+function validateEnvName(manifest: WidgetManifest, reasons: string[]) {
+  if (typeof manifest.envName !== 'string' || !manifest.envName.trim()) {
+    return;
+  }
+
+  if (!ENV_NAME_RE.test(manifest.envName)) {
+    reasons.push('envName must contain only letters, numbers, underscore, or dash.');
+  }
+}
+
 export function validateWidgetManifest(manifest: WidgetManifest): string[] {
   const reasons: string[] = [];
 
-  if (!manifest.id?.trim()) {
-    reasons.push('Missing widget id.');
-  }
+  validateEnvName(manifest, reasons);
 
-  if (!manifest.name?.trim()) {
-    reasons.push('Missing widget name.');
-  }
+  const requiredChecks: Array<{ invalid: boolean; message: string }> = [
+    { invalid: !manifest.id?.trim(), message: 'Missing widget id.' },
+    { invalid: !manifest.name?.trim(), message: 'Missing widget name.' },
+    { invalid: !VERSION_RE.test(manifest.version ?? ''), message: 'version must be x.y.z.' },
+    { invalid: !manifest.description?.trim(), message: 'description is required.' },
+    { invalid: !manifest.headerName?.ru?.trim(), message: 'headerName.ru is required.' },
+    { invalid: !manifest.headerName?.en?.trim(), message: 'headerName.en is required.' },
+    { invalid: typeof manifest.ready !== 'boolean', message: 'ready must be boolean.' },
+    { invalid: !WIDGET_SIZE_SET.has(manifest.defaultSize), message: 'defaultSize must be one of: small, medium, large.' },
+    { invalid: !Array.isArray(manifest.capabilities), message: 'capabilities must be an array.' },
+    { invalid: !Array.isArray(manifest.channels), message: 'channels must be an array.' },
+  ];
 
-  if (typeof manifest.envName === 'string' && manifest.envName.trim() && !ENV_NAME_RE.test(manifest.envName)) {
-    reasons.push('envName must contain only letters, numbers, underscore, or dash.');
-  }
-
-  if (!VERSION_RE.test(manifest.version ?? '')) {
-    reasons.push('version must be x.y.z.');
-  }
-
-  if (!manifest.description?.trim()) {
-    reasons.push('description is required.');
-  }
-
-  if (!manifest.headerName?.ru?.trim()) {
-    reasons.push('headerName.ru is required.');
-  }
-
-  if (!manifest.headerName?.en?.trim()) {
-    reasons.push('headerName.en is required.');
-  }
-
-  if (typeof manifest.ready !== 'boolean') {
-    reasons.push('ready must be boolean.');
+  for (const check of requiredChecks) {
+    if (check.invalid) {
+      reasons.push(check.message);
+    }
   }
 
   if (!isValidIcon(manifest)) {
     reasons.push('icon must be a non-empty string, svgPath, or componentKey.');
   }
 
-  if (!SIZE_SET.has(manifest.defaultSize)) {
-    reasons.push('defaultSize must be one of: small, medium, large.');
-  }
-
-  if (!Array.isArray(manifest.supportedSizes) || manifest.supportedSizes.length === 0) {
-    reasons.push('supportedSizes must contain at least one size.');
-  } else {
-    for (const size of manifest.supportedSizes) {
-      if (!SIZE_SET.has(size)) {
-        reasons.push(`Unsupported size in supportedSizes: ${size}`);
-      }
-    }
-  }
-
-  if (!Array.isArray(manifest.capabilities)) {
-    reasons.push('capabilities must be an array.');
-  }
-
-  if (!Array.isArray(manifest.channels)) {
-    reasons.push('channels must be an array.');
-  }
+  validateSupportedSizes(manifest, reasons);
 
   return reasons;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PassportRuntime } from '../src/domains/passport/server/runtime/runtime';
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '../src/widgets';
 
 type RuntimeLike = {
   resolveWidgetEvent: (envelope: Record<string, unknown>) => {
@@ -43,7 +44,7 @@ describe('passport runtime protocol compatibility', () => {
     });
 
     expect(resolved).not.toBeNull();
-    expect(resolved?.widgetId).toBe('com.yulia.transcribe');
+    expect(resolved?.widgetId).toBe(TRANSCRIBE_WIDGET_ID);
     expect(resolved?.eventType).toBe('progress');
     expect(resolved?.payload).toEqual({ percent: 42, stage: 'progressTranscribing' });
   });
@@ -106,7 +107,7 @@ describe('passport runtime protocol compatibility', () => {
     const payload = write.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(payload.transcribeStart).toBeUndefined();
     expect(payload.widgetCommand).toMatchObject({
-      widgetId: 'com.yulia.terminal-agent',
+      widgetId: TERMINAL_AGENT_WIDGET_ID,
       terminalAgentSendMessage: {
         message: 'ping',
       }

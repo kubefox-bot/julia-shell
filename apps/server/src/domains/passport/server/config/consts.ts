@@ -1,13 +1,10 @@
-export const PASSPORT_LAN_FALLBACK_JWT_SECRET = 'julia-agent-lan-insecure-secret';
+import { DAYS_PER_WEEK, HOURS_PER_DAY, MINUTES_PER_HOUR, SECONDS_PER_MINUTE } from '@shared/lib/time';
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets';
+
 export const PASSPORT_ACCESS_COOKIE_NAME = 'julia_access_token';
 export const PASSPORT_ANONYMOUS_AGENT_ID = 'public-anonymous';
-export const PASSPORT_WIDGET_ID_TRANSCRIBE = 'com.yulia.transcribe';
-export const PASSPORT_WIDGET_ID_TERMINAL_AGENT = 'com.yulia.terminal-agent';
-
-const SECONDS_PER_MINUTE = 60;
-const MINUTES_PER_HOUR = 60;
-const HOURS_PER_DAY = 24;
-const DAYS_PER_WEEK = 7;
+export const PASSPORT_WIDGET_ID_TRANSCRIBE = TRANSCRIBE_WIDGET_ID;
+export const PASSPORT_WIDGET_ID_TERMINAL_AGENT = TERMINAL_AGENT_WIDGET_ID;
 
 const ACCESS_TTL_HOURS = 12;
 const ENROLLMENT_TTL_DEFAULT_MINUTES = 60;

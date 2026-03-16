@@ -1,0 +1,1 @@
+export { ShellWidgetCard } from './ShellWidgetCard'

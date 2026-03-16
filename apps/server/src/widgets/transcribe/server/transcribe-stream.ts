@@ -1,41 +1,122 @@
 import type { ChildProcess } from 'node:child_process'
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import { GoogleGenAI } from '@google/genai'
-import {
-  appendTranscribeOutboxEvent,
-  completeTranscribeJob,
-  createTranscribeJob,
-  failTranscribeJob,
-  getTranscribeWidgetSettings,
-  touchRecentFolder,
-  updateTranscribeJobProgress,
-} from './repository'
-import { readRuntimeEnv } from '../../../core/env'
+import { getTranscribeWidgetSettings, updateTranscribeJobProgress } from './repository'
+import { readRuntimeEnv } from '@core/env'
 import { jsonResponse } from '@shared/lib/http'
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status'
+import {
+  TRANSCRIBE_PROGRESS_INITIAL_PERCENT,
+  TRANSCRIBE_PROGRESS_MAX_PERCENT,
+  TRANSCRIBE_PROGRESS_MIN_PERCENT,
+} from '../progress'
 import { isTranscribeDevBypassMode } from './agent-mode'
 import { handleAgentTranscribeStream } from './agent-transcribe-stream'
-import {
-  DEFAULT_GEMINI_MODEL,
-  GEMINI_UPLOAD_MIME,
-  MOCK_GEMINI_MODEL,
-  PROMPT_PATH,
-  TOOLS_ROOT,
-  WIDGET_ID,
-} from './constants'
-import { prepareAudioForTranscription } from './ffmpeg'
-import { startGeminiStream } from './gemini'
-import { runMockTranscription } from './mock'
+import { MOCK_GEMINI_MODEL, WIDGET_ID } from './constants'
 import { resolveApiKeyState } from './settings'
-import type { SsePayload, UploadedGeminiFile } from './types'
-import {
-  buildGeminiModelCandidates,
-  findBinary,
-  getHostPlatform,
-  resolveConfiguredModel,
-  resolveSelection,
-  toSseEvent,
-} from './utils'
+import { runTranscribeStream } from './transcribe-stream-runner'
+import type { RunTranscribeStreamInput, StreamRuntime } from './transcribe-stream-types'
+import { buildGeminiModelCandidates, resolveConfiguredModel, toSseEvent } from './utils'
+
+function createValidationErrorResponse() {
+  return jsonResponse({ error: 'folderPath or filePaths is required.' }, HTTP_STATUS_BAD_REQUEST)
+}
+
+function createSseHeaders() {
+  return {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  }
+}
+
+function createStreamRuntime(input: {
+  controller: ReadableStreamDefaultController<Uint8Array>
+  request: Request
+  setClosed: (value: boolean) => void
+  isClosed: () => boolean
+  setAborted: (value: boolean) => void
+  isAborted: () => boolean
+}) {
+  const encoder = new TextEncoder()
+  let activeChild: ChildProcess | null = null
+
+  const stopActiveChild = () => {
+    if (activeChild && !activeChild.killed) {
+      activeChild.kill()
+    }
+    activeChild = null
+  }
+
+  const runtime: StreamRuntime = {
+    send: (event, payload) => {
+      if (input.isClosed()) {
+        return
+      }
+
+      try {
+        input.controller.enqueue(encoder.encode(toSseEvent(event, payload)))
+      } catch {
+        input.setClosed(true)
+        input.setAborted(true)
+        stopActiveChild()
+      }
+    },
+    sendProgress: () => undefined,
+    close: () => {
+      if (input.isClosed()) {
+        return
+      }
+
+      input.setClosed(true)
+      stopActiveChild()
+      try {
+        input.controller.close()
+      } catch {
+        // ignored
+      }
+    },
+    setActiveChild: (child) => {
+      activeChild = child
+    },
+    isAborted: input.isAborted
+  }
+
+  const abortHandler = () => {
+    input.setAborted(true)
+    runtime.close()
+  }
+
+  input.request.signal.addEventListener('abort', abortHandler)
+
+  return {
+    runtime,
+    cleanupAbortListener: () => {
+      input.request.signal.removeEventListener('abort', abortHandler)
+    }
+  }
+}
+
+function createSendProgress(runtime: StreamRuntime, getJobId: () => string) {
+  let lastProgress = TRANSCRIBE_PROGRESS_INITIAL_PERCENT
+
+  return (percent: number, stage: string) => {
+    const normalized = Math.max(
+      TRANSCRIBE_PROGRESS_MIN_PERCENT,
+      Math.min(TRANSCRIBE_PROGRESS_MAX_PERCENT, Math.round(percent))
+    )
+    const monotonic = Math.max(lastProgress, normalized)
+    if (monotonic === lastProgress) {
+      return
+    }
+
+    lastProgress = monotonic
+    const jobId = getJobId()
+    if (jobId) {
+      updateTranscribeJobProgress(jobId, monotonic)
+    }
+    runtime.send('progress', { percent: monotonic, stage, jobId: jobId || undefined })
+  }
+}
 
 export async function handleTranscribeStream(
   body: {
@@ -46,13 +127,12 @@ export async function handleTranscribeStream(
   request: Request,
   agentId: string
 ) {
-  const runtimeEnv = readRuntimeEnv()
   const devBypassMode = isTranscribeDevBypassMode()
-  const allowMockFallback = devBypassMode && runtimeEnv.transcribeAgentMockModeEnabled
+  const allowMockFallback = devBypassMode && readRuntimeEnv().transcribeAgentMockModeEnabled
 
   if (!devBypassMode) {
     const agentResponse = await handleAgentTranscribeStream(body, request, agentId)
-    if (!(allowMockFallback && agentResponse.status === 503)) {
+    if (!(allowMockFallback && agentResponse.status === HTTP_STATUS_SERVICE_UNAVAILABLE)) {
       return agentResponse
     }
   }
@@ -62,347 +142,67 @@ export async function handleTranscribeStream(
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : []
 
   if (!folderPath && !filePath && filePaths.length === 0) {
-    return jsonResponse({ error: 'folderPath or filePaths is required.' }, 400)
+    return createValidationErrorResponse()
   }
 
   const widgetSettings = getTranscribeWidgetSettings(agentId, WIDGET_ID)
   const secretState = await resolveApiKeyState(agentId)
   const selectedModel = resolveConfiguredModel(widgetSettings.geminiModel)
-  const geminiModelCandidates = buildGeminiModelCandidates(selectedModel)
-
   if (selectedModel !== MOCK_GEMINI_MODEL && !secretState.value) {
-    return jsonResponse({ error: 'GEMINI_API_KEY is missing in settings, env, or Infisical.' }, 400)
+    return jsonResponse(
+      { error: 'GEMINI_API_KEY is missing in settings, env, or Infisical.' },
+      HTTP_STATUS_BAD_REQUEST
+    )
   }
 
-  let activeChild: ChildProcess | null = null
   let closed = false
   let aborted = false
-  let lastProgress = -1
-  let abortHandler: (() => void) | null = null
   let jobId = ''
-
-  const stopActiveChild = () => {
-    if (activeChild && !activeChild.killed) {
-      activeChild.kill()
-    }
-    activeChild = null
-  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const encoder = new TextEncoder()
+      const { runtime, cleanupAbortListener } = createStreamRuntime({
+        controller,
+        request,
+        setClosed: (value) => {
+          closed = value
+        },
+        isClosed: () => closed,
+        setAborted: (value) => {
+          aborted = value
+        },
+        isAborted: () => aborted
+      })
 
-      const send = (event: string, payload: SsePayload) => {
-        if (closed) return
-        try {
-          controller.enqueue(encoder.encode(toSseEvent(event, payload)))
-        } catch {
-          closed = true
-          aborted = true
-          stopActiveChild()
+      const sendProgress = createSendProgress(runtime, () => jobId)
+      runtime.sendProgress = sendProgress
+
+      const runInput: RunTranscribeStreamInput = {
+        runtime,
+        agentId,
+        folderPath,
+        filePath,
+        filePaths,
+        selectedModel,
+        geminiModelCandidates: buildGeminiModelCandidates(selectedModel),
+        apiKey: secretState.value || null,
+        setJobId: (id) => {
+          jobId = id
         }
       }
 
-      const close = () => {
-        if (closed) return
-        closed = true
-        stopActiveChild()
-        if (abortHandler) {
-          request.signal.removeEventListener('abort', abortHandler)
-          abortHandler = null
-        }
-        try {
-          controller.close()
-        } catch {
-          // ignored
-        }
-      }
-
-      const sendProgress = (percent: number, stage: string) => {
-        const normalized = Math.max(0, Math.min(100, Math.round(percent)))
-        const monotonic = Math.max(lastProgress, normalized)
-        if (monotonic === lastProgress) return
-        lastProgress = monotonic
-        if (jobId) {
-          updateTranscribeJobProgress(jobId, monotonic)
-        }
-        send('progress', { percent: monotonic, stage })
-      }
-
-      const run = async () => {
-        let mergedAudioPath = ''
-        let concatListPath = ''
-        let convertedAudioPath = ''
-        let uploadedFile: UploadedGeminiFile | null = null
-
-        try {
-          sendProgress(2, 'progressCheckingSelection')
-          const selection = await resolveSelection(folderPath, filePath, filePaths)
-          const { filePaths: selectedFiles, canonicalSourceFile, resolvedFolderPath } = selection
-          const primaryBaseName = path.parse(canonicalSourceFile).name
-
-          touchRecentFolder(agentId, WIDGET_ID, resolvedFolderPath)
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            eventType: 'audio_selected',
-            state: 'selected',
-            payload: {
-              folderPath: resolvedFolderPath,
-              filePaths: selectedFiles,
-              primarySourceFile: canonicalSourceFile,
-            },
-          })
-
-          jobId = createTranscribeJob({
-            agentId,
-            widgetId: WIDGET_ID,
-            folderPath: resolvedFolderPath,
-            filePaths: selectedFiles,
-            primarySourceFile: canonicalSourceFile,
-            platform: getHostPlatform(),
-            model: selectedModel || DEFAULT_GEMINI_MODEL,
-          })
-
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'job_created',
-            state: 'queued',
-            payload: {
-              folderPath: resolvedFolderPath,
-              filePaths: selectedFiles,
-              model: selectedModel,
-            },
-          })
-
-          send('progress', { percent: 2, stage: 'progressJobCreated', jobId })
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'processing_started',
-            state: 'processing',
-            payload: {
-              stage: 'started',
-            },
-          })
-
-          const ffmpegExe = await findBinary(
-            path.join(TOOLS_ROOT, 'ffmpeg'),
-            process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-          )
-          if (!ffmpegExe) {
-            throw new Error('ffmpeg binary not found in tools/ffmpeg or PATH.')
-          }
-
-          const preparedAudio = await prepareAudioForTranscription({
-            ffmpegExe,
-            selectedFiles,
-            primaryBaseName,
-            sendProgress,
-            setActiveChild: (child) => {
-              activeChild = child
-            },
-          })
-          mergedAudioPath = preparedAudio.mergedAudioPath
-          concatListPath = preparedAudio.concatListPath
-          convertedAudioPath = preparedAudio.convertedAudioPath
-
-          if (aborted) return
-
-          if (selectedModel === MOCK_GEMINI_MODEL) {
-            const mockResult = await runMockTranscription({
-              selectedFiles,
-              resolvedFolderPath,
-              primaryBaseName,
-              convertedAudioPath,
-              sendProgress,
-              send,
-              jobId,
-            })
-
-            completeTranscribeJob(jobId, mockResult.savePath)
-            appendTranscribeOutboxEvent({
-              agentId,
-              widgetId: WIDGET_ID,
-              jobId,
-              eventType: 'transcription_completed',
-              state: 'completed',
-              payload: {
-                model: MOCK_GEMINI_MODEL,
-                sourceFile: canonicalSourceFile,
-              },
-            })
-            appendTranscribeOutboxEvent({
-              agentId,
-              widgetId: WIDGET_ID,
-              jobId,
-              eventType: 'file_created',
-              state: 'ready',
-              payload: {
-                savePath: mockResult.savePath,
-              },
-            })
-            send('done', {
-              status: 'ready',
-              sourceFile: canonicalSourceFile,
-              savePath: mockResult.savePath,
-              transcript: mockResult.transcript,
-              model: MOCK_GEMINI_MODEL,
-              jobId,
-            })
-            close()
-            return
-          }
-
-          const prompt = (await fs.readFile(PROMPT_PATH, 'utf8')).trim()
-          if (!prompt) {
-            throw new Error('Transcript.md is empty.')
-          }
-
-          sendProgress(60, 'progressUploading')
-          const ai = new GoogleGenAI({ apiKey: secretState.value })
-          uploadedFile = (await ai.files.upload({
-            file: convertedAudioPath,
-            config: {
-              mimeType: GEMINI_UPLOAD_MIME,
-              displayName: path.basename(convertedAudioPath),
-            },
-          })) as UploadedGeminiFile
-
-          if (aborted) return
-
-          sendProgress(72, 'progressTranscribing')
-          const { model, response } = await startGeminiStream(
-            ai,
-            prompt,
-            uploadedFile,
-            geminiModelCandidates
-          )
-          let transcript = ''
-          let rollingProgress = 72
-
-          for await (const chunk of response) {
-            if (aborted) break
-
-            const text = typeof chunk.text === 'string' ? chunk.text : ''
-            if (!text) {
-              continue
-            }
-
-            transcript += text
-            rollingProgress = Math.min(
-              98,
-              rollingProgress + Math.max(1, Math.ceil(text.length / 120))
-            )
-            sendProgress(rollingProgress, 'progressTranscribing')
-            send('token', { text, model, jobId })
-          }
-
-          if (aborted) return
-          if (!transcript.trim()) {
-            throw new Error('Gemini returned an empty transcript.')
-          }
-
-          const savePath = path.join(resolvedFolderPath, `${primaryBaseName}.txt`)
-          await fs.writeFile(savePath, transcript, 'utf8')
-
-          sendProgress(100, 'progressDone')
-          completeTranscribeJob(jobId, savePath)
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'transcription_completed',
-            state: 'completed',
-            payload: {
-              model,
-              sourceFile: canonicalSourceFile,
-            },
-          })
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'file_created',
-            state: 'ready',
-            payload: {
-              savePath,
-            },
-          })
-          send('done', {
-            status: 'ready',
-            sourceFile: canonicalSourceFile,
-            savePath,
-            transcript,
-            model,
-            jobId,
-          })
-          close()
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Transcription failed.'
-          if (jobId) {
-            failTranscribeJob(jobId, message)
-          }
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId: jobId || null,
-            eventType: 'job_failed',
-            state: 'failed',
-            payload: {
-              message,
-            },
-          })
-          if (!aborted) {
-            send('error', { message, jobId })
-          }
-          close()
-        } finally {
-          if (uploadedFile?.name && secretState.value) {
-            const ai = new GoogleGenAI({ apiKey: secretState.value })
-            await ai.files.delete({ name: uploadedFile.name }).catch(() => undefined)
-          }
-          if (convertedAudioPath) {
-            await fs.unlink(convertedAudioPath).catch(() => undefined)
-          }
-          if (mergedAudioPath) {
-            await fs.unlink(mergedAudioPath).catch(() => undefined)
-          }
-          if (concatListPath) {
-            await fs.unlink(concatListPath).catch(() => undefined)
-          }
-        }
-      }
-
-      void run()
-
-      abortHandler = () => {
-        aborted = true
-        close()
-      }
-      request.signal.addEventListener('abort', abortHandler)
+      void runTranscribeStream(runInput).finally(() => {
+        cleanupAbortListener()
+      })
     },
     cancel() {
       aborted = true
       closed = true
-      stopActiveChild()
-      if (abortHandler) {
-        request.signal.removeEventListener('abort', abortHandler)
-        abortHandler = null
-      }
-    },
+    }
   })
 
   return new Response(stream, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
+    status: HTTP_STATUS_OK,
+    headers: createSseHeaders()
   })
 }

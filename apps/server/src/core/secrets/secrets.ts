@@ -8,7 +8,7 @@ const STARTUP_SECRET_KEYS: Array<{ keyName: string; secretPath?: string }> = [
   { keyName: 'GEMINI_API_KEY', secretPath: '/transcribe' },
 ]
 
-const REQUIRED_SECRET_KEYS = ['ADMIN_TOKEN'] as const
+const REQUIRED_SECRET_KEYS = ['AGENT_JWT_SECRET'] as const
 
 let preloadPromise: Promise<void> | null = null
 
@@ -17,12 +17,10 @@ export function preloadServerSecretsOnce() {
     preloadPromise = (async () => {
       await secrets.preload(STARTUP_SECRET_KEYS)
 
-      if (process.env.NODE_ENV === 'production') {
-        for (const keyName of REQUIRED_SECRET_KEYS) {
-          const resolved = await secrets.get(keyName)
-          if (!resolved?.value?.trim()) {
-            throw new Error(`Missing required startup secret: ${keyName}`)
-          }
+      for (const keyName of REQUIRED_SECRET_KEYS) {
+        const resolved = await secrets.get(keyName)
+        if (!resolved?.value?.trim()) {
+          throw new Error(`Missing required startup secret: ${keyName}`)
         }
       }
     })()
