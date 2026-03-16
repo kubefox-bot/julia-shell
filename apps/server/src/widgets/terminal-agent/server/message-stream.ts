@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { passportRuntime } from '@passport/server/runtime'
 import { getTerminalAgentDialogState, getTerminalAgentSettings } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { jsonResponse } from '@shared/lib/http'
+import { HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status'
 import { moduleBus } from '@shared/lib/module-bus'
 import { WIDGET_ID } from './constants'
 import { markDialogStatus } from './settings'
@@ -10,9 +11,6 @@ import { toSseEvent } from './utils'
 import { STREAM_IDLE_TIMEOUT_MS } from './message-stream.constants'
 import { createBusEventHandler, createDialogTitle } from './message-stream.events'
 import { getProviderDispatchConfig, selectDispatchSettings } from './message-stream.provider'
-
-const HTTP_STATUS_OK = 200
-const HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 
 export async function handleTerminalAgentMessageStream(input: {
   request: Request

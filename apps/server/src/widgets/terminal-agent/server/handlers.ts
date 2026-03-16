@@ -1,6 +1,7 @@
 import { passportRuntime } from '@passport/server/runtime'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
+import { HTTP_STATUS_BAD_REQUEST } from '@shared/lib/http-status'
 import { z } from 'zod'
 import { getTerminalAgentSettings } from '../../../domains/llm/server/repository/terminal-agent-repository'
 import { getLlmModelCatalog } from '../../../domains/llm/server'
@@ -16,8 +17,6 @@ import {
   updateTerminalAgentSettings,
 } from './settings'
 import { toArgs, toProvider } from './utils'
-
-const HTTP_STATUS_BAD_REQUEST = 400
 
 const modelsQuerySchema = z.object({
   provider: z.enum(['codex', 'gemini']).default('codex'),

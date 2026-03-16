@@ -6,15 +6,13 @@ import {
 } from './repository';
 import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status';
 import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
 import { handleAgentBusEvent, type AgentEventPayload } from './agent-transcribe-events';
 import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';
 
-const HTTP_STATUS_BAD_REQUEST = Number('400');
-const HTTP_STATUS_OK = Number('200');
-const HTTP_STATUS_SERVICE_UNAVAILABLE = Number('503');
 const JOB_CREATED_PROGRESS_PERCENT = Number('2');
 
 function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: string }) {

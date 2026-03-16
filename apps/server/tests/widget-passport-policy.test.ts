@@ -17,12 +17,11 @@ vi.mock('../src/core/registry/registry', () => ({
 }));
 
 import { GET as widgetGet } from '../src/pages/api/widget/[id]/[...action]';
+import { HTTP_STATUS_OK, HTTP_STATUS_UNAUTHORIZED } from '../src/shared/lib/http-status';
 
 const WEATHER_WIDGET_ID = 'com.yulia.weather';
 const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe';
 const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent';
-const HTTP_STATUS_OK = 200;
-const HTTP_STATUS_UNAUTHORIZED = 401;
 
 describe('widget passport policy', () => {
   beforeEach(() => {

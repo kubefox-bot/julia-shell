@@ -3,10 +3,7 @@ import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus } from '@shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
-
-const HTTP_STATUS_ACCEPTED = 202;
-const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_UNAUTHORIZED = 401;
+import { HTTP_STATUS_ACCEPTED, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_UNAUTHORIZED } from '@shared/lib/http-status';
 
 export const POST: APIRoute = async ({ request, params }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {

@@ -2,13 +2,13 @@ import { DateTime } from 'luxon';
 import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
+import { HTTP_STATUS_INTERNAL_SERVER_ERROR } from '@shared/lib/http-status';
 import { requestRaw } from '@shared/lib/request';
 import { weatherManifest } from '../manifest';
 
 const FORECAST_DAY_COUNT = Number('3');
 const BATUMI_LATITUDE = Number.parseFloat('41.65');
 const BATUMI_LONGITUDE = Number.parseFloat('41.64');
-const HTTP_STATUS_INTERNAL_SERVER_ERROR = Number('500');
 const LOCATION_KEY = 'batumi';
 const CACHE_TTL_MS = Number('1800000');
 const INDOOR_WEATHER_CODES = new Set(['80', '81', '82', '61', '63', '65']);

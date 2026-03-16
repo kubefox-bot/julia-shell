@@ -3,15 +3,20 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { resetDbCache } from '../src/core/db/shared'
+import {
+  HTTP_STATUS_BAD_REQUEST as SHARED_HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_OK as SHARED_HTTP_STATUS_OK,
+  HTTP_STATUS_SERVICE_UNAVAILABLE as SHARED_HTTP_STATUS_SERVICE_UNAVAILABLE,
+} from '../src/shared/lib/http-status'
 import type { WidgetRouteContext } from '../src/entities/widget/model/types'
 import { WIDGET_ID } from '../src/widgets/terminal-agent/server/constants'
 
 const DATA_PREFIX_LENGTH = 5
 const EVENT_PREFIX_LENGTH = 6
 
-export const HTTP_STATUS_BAD_REQUEST = 400
-export const HTTP_STATUS_OK = 200
-export const HTTP_STATUS_SERVICE_UNAVAILABLE = 503
+export const HTTP_STATUS_BAD_REQUEST = SHARED_HTTP_STATUS_BAD_REQUEST
+export const HTTP_STATUS_OK = SHARED_HTTP_STATUS_OK
+export const HTTP_STATUS_SERVICE_UNAVAILABLE = SHARED_HTTP_STATUS_SERVICE_UNAVAILABLE
 
 export type SseEvent = {
   event: string

@@ -1,10 +1,8 @@
 import type { LlmCatalogError } from '../../../domains/llm/server'
 import type { TerminalAgentProvider } from '../../../domains/llm/server/repository/terminal-agent-repository'
+import { HTTP_STATUS_BAD_GATEWAY, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status'
 import { WIDGET_ID } from './constants'
 import type { TerminalAgentLlmModelsPayload } from './types'
-
-const HTTP_STATUS_BAD_GATEWAY = 502
-const HTTP_STATUS_SERVICE_UNAVAILABLE = 503
 
 type LlmCatalogValue = {
   provider: TerminalAgentProvider

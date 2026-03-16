@@ -2,6 +2,7 @@ import type { ChildProcess } from 'node:child_process'
 import { getTranscribeWidgetSettings, updateTranscribeJobProgress } from './repository'
 import { readRuntimeEnv } from '@core/env'
 import { jsonResponse } from '@shared/lib/http'
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status'
 import { isTranscribeDevBypassMode } from './agent-mode'
 import { handleAgentTranscribeStream } from './agent-transcribe-stream'
 import { MOCK_GEMINI_MODEL, WIDGET_ID } from './constants'
@@ -10,9 +11,6 @@ import { runTranscribeStream } from './transcribe-stream-runner'
 import type { RunTranscribeStreamInput, StreamRuntime } from './transcribe-stream-types'
 import { buildGeminiModelCandidates, resolveConfiguredModel, toSseEvent } from './utils'
 
-const HTTP_STATUS_BAD_REQUEST = Number('400')
-const HTTP_STATUS_OK = Number('200')
-const HTTP_STATUS_SERVICE_UNAVAILABLE = Number('503')
 const INITIAL_PROGRESS_PERCENT = Number('-1')
 const MAX_PROGRESS_PERCENT = Number('100')
 const MIN_PROGRESS_PERCENT = Number('0')

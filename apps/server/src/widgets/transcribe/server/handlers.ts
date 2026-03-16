@@ -4,16 +4,18 @@ import { passportRuntime } from '@passport/server/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from './repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+  HTTP_STATUS_NOT_FOUND,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+} from '@shared/lib/http-status'
 import { isAgentRequiredForTranscribe } from './agent-mode'
 import { WIDGET_ID } from './constants'
 import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
 import { listPathEntries, resolveTranscriptPath } from './utils'
 
-const HTTP_STATUS_BAD_REQUEST = Number('400')
-const HTTP_STATUS_NOT_FOUND = Number('404')
-const HTTP_STATUS_INTERNAL_SERVER_ERROR = Number('500')
-const HTTP_STATUS_SERVICE_UNAVAILABLE = Number('503')
 const RECENT_TRANSCRIBE_JOBS_LIMIT = Number('30')
 
 export const transcribeHandlers: WidgetServerModule['handlers'] = {

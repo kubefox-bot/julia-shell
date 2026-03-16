@@ -19,9 +19,7 @@ vi.mock('@core/env', () => ({
 }))
 
 import { GET as widgetProviderGet } from '../../../pages/api/passport/widget/provider'
-
-const HTTP_STATUS_OK = 200
-const HTTP_STATUS_BAD_REQUEST = 400
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK } from '../../../shared/lib/http-status'
 
 describe('passport widget provider route', () => {
   beforeEach(() => {
