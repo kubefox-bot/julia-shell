@@ -4,13 +4,13 @@ import { passportRuntime } from '@passport/server/runtime'
 import { appendTranscribeOutboxEvent, listRecentFolders, listRecentTranscribeJobs, listSpeakerAliases, saveSpeakerAliases, touchRecentFolder } from './repository'
 import type { WidgetServerModule } from '../../../entities/widget/model/types'
 import { jsonResponse, readJsonBody } from '@shared/lib/http'
+import { fromThrowablePromise } from '@shared/lib/result'
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_INTERNAL_SERVER_ERROR,
   HTTP_STATUS_NOT_FOUND,
   HTTP_STATUS_SERVICE_UNAVAILABLE,
 } from '@shared/lib/http-status'
-import { isAgentRequiredForTranscribe } from './agent-mode'
 import { WIDGET_ID } from './constants'
 import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
@@ -20,25 +20,27 @@ const RECENT_TRANSCRIBE_JOBS_LIMIT = Number('30')
 
 export const transcribeHandlers: WidgetServerModule['handlers'] = {
   'POST fs-list': async ({ request, agentId }) => {
-    if (isAgentRequiredForTranscribe() && !passportRuntime.getOnlineAgentSession(agentId)) {
+    if (!passportRuntime.getOnlineAgentSession(agentId)) {
       return jsonResponse({
         error: 'agent_offline'
       }, HTTP_STATUS_SERVICE_UNAVAILABLE)
     }
 
-    try {
-      const body = await readJsonBody<{ path?: string }>(request)
-      const payload = await listPathEntries(body.path ?? '')
-      touchRecentFolder(agentId, WIDGET_ID, payload.path)
-      return jsonResponse({
-        ...payload,
-        recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
-      })
-    } catch (error) {
-      return jsonResponse({
+    return fromThrowablePromise(
+      readJsonBody<{ path?: string }>(request)
+        .then((body) => listPathEntries(body.path ?? ''))
+    ).match(
+      (payload) => {
+        touchRecentFolder(agentId, WIDGET_ID, payload.path)
+        return jsonResponse({
+          ...payload,
+          recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
+        })
+      },
+      (error) => jsonResponse({
         error: error instanceof Error ? error.message : 'Failed to list path.'
       }, HTTP_STATUS_INTERNAL_SERVER_ERROR)
-    }
+    )
   },
   'GET settings': async ({ agentId }) => {
     return jsonResponse(await buildSettingsPayload(agentId))

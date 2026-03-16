@@ -79,8 +79,8 @@ describe('passport zustand slice', () => {
   it('retryStatus updates state and clears busy/loading flags', async () => {
     const loadShell = vi.fn(async () => undefined);
     retryPassportStatusMock.mockResolvedValue({
-      status: 'connected_dev',
-      label: 'Connected (dev)',
+      status: 'connected',
+      label: 'Connected',
       updatedAt: '2026-03-09T10:00:00.000Z',
       reason: null,
       hostname: 'dev-host',
@@ -102,7 +102,7 @@ describe('passport zustand slice', () => {
     const store = createTestStore(loadShell);
     await store.getState().retryStatus();
 
-    expect(store.getState().authStatus).toBe('connected_dev');
+    expect(store.getState().authStatus).toBe('connected');
     expect(store.getState().passportBusy).toBe(false);
     expect(store.getState().passportLoading).toBe(false);
     expect(store.getState().error).toBeNull();

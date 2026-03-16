@@ -1,6 +1,6 @@
 import { ENV_DEFAULTS, ENV_KEYS, ENV_LIMITS } from './consts'
 import type { AppRuntimeEnv } from './types'
-import { clampInteger, parseEnvFlag, parseEnvInteger, parseEnvString } from './utils'
+import { clampInteger, parseEnvInteger, parseEnvString } from './utils'
 
 function resolveShellStatusPollIntervalMs() {
   const parsedValue = parseEnvInteger(process.env[ENV_KEYS.shellStatusPollIntervalMs])
@@ -42,11 +42,7 @@ export function readRuntimeEnv(): AppRuntimeEnv {
     shellStatusPollIntervalMs: resolveShellStatusPollIntervalMs(),
     passportHeartbeatTimeoutMs: resolvePassportHeartbeatTimeoutMs(),
     passportGrpcPort: resolvePassportGrpcPort(),
-    passportAgentDevModeEnabled: parseEnvFlag(process.env[ENV_KEYS.passportAgentDevModeEnabled]),
     passportProtocolProtoPath: parseEnvString(process.env[ENV_KEYS.passportProtocolProtoPath]),
-    transcribeAgentMockModeEnabled: parseEnvFlag(
-      process.env[ENV_KEYS.transcribeAgentMockModeEnabled]
-    ),
     geminiModel: parseEnvString(process.env[ENV_KEYS.geminiModel]),
     isDevelopment: import.meta.env.DEV,
   }

@@ -21,9 +21,7 @@ const ENV_KEYS = [
   SHELL_STATUS_POLL_INTERVAL_ENV_KEY,
   PASSPORT_HEARTBEAT_TIMEOUT_ENV_KEY,
   PASSPORT_GRPC_PORT_ENV_KEY,
-  'JULIAAPP_AGENT_ENABLE_DEV',
   'JULIAAPP_PROTOCOL_PROTO_PATH',
-  'JULIAAPP_AGENT_MOCK_MODE',
   'GEMINI_MODEL',
 ] as const
 
@@ -83,15 +81,11 @@ describe('runtime env', () => {
   })
 
   it('resolves boolean and string runtime flags', () => {
-    process.env.JULIAAPP_AGENT_ENABLE_DEV = '1'
     process.env.JULIAAPP_PROTOCOL_PROTO_PATH = ' /tmp/proto/agent_control.proto '
-    process.env.JULIAAPP_AGENT_MOCK_MODE = 'true'
     process.env.GEMINI_MODEL = ' gemini-2.5-flash '
 
     const runtimeEnv = readRuntimeEnv()
-    expect(runtimeEnv.passportAgentDevModeEnabled).toBe(true)
     expect(runtimeEnv.passportProtocolProtoPath).toBe('/tmp/proto/agent_control.proto')
-    expect(runtimeEnv.transcribeAgentMockModeEnabled).toBe(true)
     expect(runtimeEnv.geminiModel).toBe('gemini-2.5-flash')
     expect(typeof runtimeEnv.isDevelopment).toBe('boolean')
   })

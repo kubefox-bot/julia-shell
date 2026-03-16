@@ -6,7 +6,6 @@ const TRAFFIC_LIGHT_RESOLVER_BY_STATUS: Record<
   (onlineAgentsCount: number) => PassportTrafficLightState
 > = {
   connected: () => 'green',
-  connected_dev: () => 'green',
   unauthorized: () => 'yellow',
   disconnected: (onlineAgentsCount) => (onlineAgentsCount > 0 ? 'yellow' : 'red'),
 }

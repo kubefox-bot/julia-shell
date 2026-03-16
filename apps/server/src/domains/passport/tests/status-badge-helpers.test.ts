@@ -12,7 +12,6 @@ describe('passport status-badge helpers', () => {
       expected: 'red' | 'yellow' | 'green'
     }> = [
       { status: 'connected', onlineAgentsCount: 0, expected: 'green' },
-      { status: 'connected_dev', onlineAgentsCount: 0, expected: 'green' },
       { status: 'unauthorized', onlineAgentsCount: 0, expected: 'yellow' },
       { status: 'disconnected', onlineAgentsCount: 2, expected: 'yellow' },
       { status: 'disconnected', onlineAgentsCount: 0, expected: 'red' },
@@ -41,12 +40,6 @@ describe('passport status-badge helpers', () => {
         trafficLightState: 'green',
       })
     ).toBe('agentStatusConnected')
-    expect(
-      getStatusCopyKey({
-        status: 'connected_dev',
-        trafficLightState: 'green',
-      })
-    ).toBe('agentStatusConnectedDev')
     expect(
       getStatusCopyKey({
         status: 'unauthorized',

@@ -86,14 +86,10 @@ Useful commands:
   - `POST /api/passport/agent/status/retry`
 - status enum:
   - `connected`
-  - `connected_dev`
   - `unauthorized`
   - `disconnected`
-- dev status mode is controlled only by:
-  - `JULIAAPP_AGENT_ENABLE_DEV=1`
 - transcribe production gate:
   - without online agent -> transcribe is not ready.
-  - in dev bypass (`JULIAAPP_AGENT_ENABLE_DEV=1`) server path mode is allowed.
 - heartbeat entries are not persisted in `agent_events` (reduced DB noise).
 - server sends initial `health_ping` after first valid connect to unblock client stream startup.
 - agent sends hostname in heartbeat; status API returns hostname for UI.
@@ -259,10 +255,8 @@ Required env vars:
 Agent/auth related env:
 - `ADMIN_TOKEN` (required for admin enroll-token API).
 - `JULIA_AGENT_GRPC_PORT` (optional, default `50051`).
-- `JULIAAPP_AGENT_ENABLE_DEV` (`1` enables dev bypass semantics).
 - `JULIA_AGENT_HEARTBEAT_TIMEOUT_MS` (optional).
 - `JULIAAPP_PROTOCOL_PROTO_PATH` (optional, explicit path to `agent_control.proto`).
-- `JULIAAPP_AGENT_MOCK_MODE` (optional, enables mock fallback for transcribe only in dev bypass).
 - `JULIAAPP_SHELL_STATUS_POLL_INTERVAL_MS` (optional, default `1500` ms, shell `syncFromStatus` polling interval).
 - `PUBLIC_AGENT_RELEASES_BASE_URL` (optional, agent download URL base for status badge UI).
 

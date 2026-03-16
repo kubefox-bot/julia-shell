@@ -63,11 +63,8 @@ See `apps/server/podman-compose.yml` for bind mounts and env vars.
   - `POST /api/passport/agent/status/retry`
 - Status enum:
   - `connected`
-  - `connected_dev`
   - `unauthorized`
   - `disconnected`
-- `connected_dev` is controlled by server env:
-  - `JULIAAPP_AGENT_ENABLE_DEV=1`
 - Shell status badge is reactive and reloads shell modules on every status transition.
 - Transcribe ready/not-ready state is evaluated dynamically from widget `init()` on each modules read (not frozen in old registry cache).
 

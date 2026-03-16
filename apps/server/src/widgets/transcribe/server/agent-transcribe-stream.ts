@@ -11,8 +11,19 @@ import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
 import { TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT } from '../progress';
 import { handleAgentBusEvent, type AgentEventPayload } from './agent-transcribe-events';
-import { isTranscribeDevBypassMode } from './agent-mode';
-import { resolveSelection, toSseEvent } from './utils';
+import { toSseEvent } from './utils';
+
+function resolveSelectedFiles(input: { filePath: string; filePaths: string[] }) {
+  if (input.filePaths.length > 0) {
+    return input.filePaths;
+  }
+
+  if (input.filePath) {
+    return [input.filePath];
+  }
+
+  return [];
+}
 
 function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: string }) {
   const explicit = input.folderPath.trim();
@@ -37,7 +48,6 @@ export async function handleAgentTranscribeStream(
   const folderPathRaw = typeof body.folderPath === 'string' ? body.folderPath.trim() : '';
   const filePath = typeof body.filePath === 'string' ? body.filePath.trim() : '';
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : [];
-  const useServerSelection = isTranscribeDevBypassMode();
 
   const onlineAgent = passportRuntime.getOnlineAgentSession(agentId);
   if (!onlineAgent) {
@@ -48,29 +58,25 @@ export async function handleAgentTranscribeStream(
   let canonicalSourceFile = '';
   let resolvedFolderPath = '';
 
-  if (useServerSelection) {
-    const selection = await resolveSelection(folderPathRaw, filePath, filePaths);
-    selectedFiles = selection.filePaths;
-    canonicalSourceFile = selection.canonicalSourceFile;
-    resolvedFolderPath = selection.resolvedFolderPath;
-  } else {
-    selectedFiles = (filePaths.length > 0 ? filePaths : filePath ? [filePath] : [])
-      .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
-      .filter(Boolean);
+  selectedFiles = resolveSelectedFiles({
+    filePath,
+    filePaths,
+  })
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter(Boolean);
 
-    if (selectedFiles.length === 0) {
-      return jsonResponse(
-        { error: 'filePath or filePaths is required for agent-side selection.' },
-        HTTP_STATUS_BAD_REQUEST
-      );
-    }
-
-    canonicalSourceFile = selectedFiles[0];
-    resolvedFolderPath = deriveFolderPath({
-      folderPath: folderPathRaw,
-      canonicalSourceFile,
-    });
+  if (selectedFiles.length === 0) {
+    return jsonResponse(
+      { error: 'filePath or filePaths is required for agent-side selection.' },
+      HTTP_STATUS_BAD_REQUEST
+    );
   }
+
+  canonicalSourceFile = selectedFiles[0];
+  resolvedFolderPath = deriveFolderPath({
+    folderPath: folderPathRaw,
+    canonicalSourceFile,
+  });
 
   touchRecentFolder(agentId, WIDGET_ID, resolvedFolderPath);
 
