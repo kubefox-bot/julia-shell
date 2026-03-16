@@ -31,11 +31,11 @@ describe('shell service passport access policy', () => {
     expect(transcribe).toBeDefined();
     expect(transcribe?.ready).toBe(false);
     expect(transcribe?.enabled).toBe(false);
-    expect(transcribe?.notReadyReasons).toContain('com.yulia.transcribe widget requires agent.');
+    expect(transcribe?.notReadyReasons).toContain(`${TRANSCRIBE_WIDGET_ID} widget requires agent.`);
 
     expect(terminalAgent).toBeDefined();
     expect(terminalAgent?.ready).toBe(false);
     expect(terminalAgent?.enabled).toBe(false);
-    expect(terminalAgent?.notReadyReasons).toContain('com.yulia.terminal-agent widget requires agent.');
+    expect(terminalAgent?.notReadyReasons).toContain(`${TERMINAL_AGENT_WIDGET_ID} widget requires agent.`);
   });
 });

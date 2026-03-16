@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchShellSettings } from '../src/app/shell/lib/api'
 import { buildRequestHeaders } from '../src/shared/lib/request-headers'
 import { fetchTranscribeSettings } from '../src/widgets/transcribe/ui/lib/transcribe-api'
+import { buildWidgetApiRoute, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 
 function toRequest(input: RequestInfo | URL) {
   return input instanceof Request ? input : new Request(String(input))
@@ -29,7 +30,7 @@ describe('request headers', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          widgetId: 'com.yulia.transcribe',
+          widgetId: TRANSCRIBE_WIDGET_ID,
           envName: 'GEMINI_API_KEY',
           geminiModel: 'gemini-2.5-flash',
           availableModels: ['gemini-2.5-flash'],
@@ -50,9 +51,9 @@ describe('request headers', () => {
 
     const [url] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined]
     const request = toRequest(url)
-    expect(request.url).toContain('/api/widget/com.yulia.transcribe/settings')
+    expect(request.url).toContain(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'))
     expect(request.headers.get('x-request-id')).toBeTruthy()
-    expect(request.headers.get('x-widget-id')).toBe('com.yulia.transcribe')
+    expect(request.headers.get('x-widget-id')).toBe(TRANSCRIBE_WIDGET_ID)
     expect(request.headers.get('x-widget-version')).toBe('1.0.0')
   })
 

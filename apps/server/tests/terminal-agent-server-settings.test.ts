@@ -4,6 +4,7 @@ import { passportRuntime } from '../src/domains/passport/server/runtime/runtime'
 import { terminalAgentHandlers } from '../src/widgets/terminal-agent/server/handlers'
 import { WIDGET_ID } from '../src/widgets/terminal-agent/server/constants'
 import { terminalAgentServerModule } from '../src/widgets/terminal-agent/server/module'
+import { buildWidgetApiRoute } from '../src/widgets'
 import { createContext, createOnlineAgentSession, HTTP_STATUS_OK, setupTerminalAgentTestFs } from './terminal-agent-server.shared'
 
 setupTerminalAgentTestFs()
@@ -13,13 +14,16 @@ describe('terminal-agent server handlers settings', () => {
     upsertTerminalAgentDialogState({ agentId: 'agent-a', widgetId: WIDGET_ID, provider: 'codex', providerSessionRef: 'codex-ref', status: 'done', lastError: null })
     upsertTerminalAgentDialogState({ agentId: 'agent-a', widgetId: WIDGET_ID, provider: 'gemini', providerSessionRef: 'gemini-ref', status: 'done', lastError: null })
 
-    const getResponse = await terminalAgentHandlers['GET settings'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/settings', action: 'settings' }))
+    const getResponse = await terminalAgentHandlers['GET settings'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'settings')}`,
+      action: 'settings'
+    }))
     expect(getResponse.status).toBe(HTTP_STATUS_OK)
     const initialSettings = await getResponse.json() as Record<string, unknown>
     expect(initialSettings.activeProvider).toBe('codex')
 
     const postResponse = await terminalAgentHandlers['POST settings'](createContext({
-      url: 'http://localhost/api/widget/com.yulia.terminal-agent/settings',
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'settings')}`,
       method: 'POST',
       action: 'settings',
       body: {
@@ -51,7 +55,7 @@ describe('terminal-agent server handlers settings', () => {
     const resetSpy = vi.spyOn(passportRuntime, 'dispatchTerminalAgentResetDialog').mockReturnValue(true)
 
     const response = await terminalAgentHandlers['POST dialog/new'](createContext({
-      url: 'http://localhost/api/widget/com.yulia.terminal-agent/dialog/new',
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'dialog/new')}`,
       method: 'POST',
       action: 'dialog/new',
       actionSegments: ['dialog', 'new'],

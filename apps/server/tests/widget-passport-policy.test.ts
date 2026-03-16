@@ -19,6 +19,7 @@ vi.mock('../src/core/registry/registry', () => ({
 import { GET as widgetGet } from '../src/pages/api/widget/[id]/[...action]';
 import { HTTP_STATUS_OK, HTTP_STATUS_UNAUTHORIZED } from '../src/shared/lib/http-status';
 import {
+  buildWidgetApiRoute,
   TERMINAL_AGENT_WIDGET_ID,
   TRANSCRIBE_WIDGET_ID,
   WEATHER_WIDGET_ID
@@ -48,7 +49,7 @@ describe('widget passport policy', () => {
     });
 
     const response = await widgetGet({
-      request: new Request(`http://localhost/api/widget/${WEATHER_WIDGET_ID}/forecast`),
+      request: new Request(`http://localhost${buildWidgetApiRoute(WEATHER_WIDGET_ID, 'forecast')}`),
       params: {
         id: WEATHER_WIDGET_ID,
         action: 'forecast'
@@ -66,7 +67,7 @@ describe('widget passport policy', () => {
     });
 
     const response = await widgetGet({
-      request: new Request(`http://localhost/api/widget/${TRANSCRIBE_WIDGET_ID}/settings`),
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings')}`),
       params: {
         id: TRANSCRIBE_WIDGET_ID,
         action: 'settings'
@@ -84,7 +85,7 @@ describe('widget passport policy', () => {
     });
 
     const response = await widgetGet({
-      request: new Request(`http://localhost/api/widget/${TERMINAL_AGENT_WIDGET_ID}/settings`),
+      request: new Request(`http://localhost${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings')}`),
       params: {
         id: TERMINAL_AGENT_WIDGET_ID,
         action: 'settings'

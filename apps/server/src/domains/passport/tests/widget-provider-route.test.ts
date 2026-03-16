@@ -20,6 +20,7 @@ vi.mock('@core/env', () => ({
 
 import { GET as widgetProviderGet } from '../../../pages/api/passport/widget/provider'
 import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK } from '../../../shared/lib/http-status'
+import { buildWidgetProviderRoute, TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 
 describe('passport widget provider route', () => {
   beforeEach(() => {
@@ -47,7 +48,7 @@ describe('passport widget provider route', () => {
     getOnlineAgentSessionMock.mockReturnValue({ agentId: 'agent-a' })
 
     const response = await widgetProviderGet({
-      request: new Request('http://localhost/api/passport/widget/provider?widget_id=com.yulia.transcribe')
+      request: new Request(`http://localhost${buildWidgetProviderRoute(TRANSCRIBE_WIDGET_ID)}`)
     } as never)
     const payload = await response.json()
 
@@ -68,7 +69,7 @@ describe('passport widget provider route', () => {
     getOnlineAgentSessionMock.mockReturnValue(null)
 
     const response = await widgetProviderGet({
-      request: new Request('http://localhost/api/passport/widget/provider?widget_id=com.yulia.transcribe')
+      request: new Request(`http://localhost${buildWidgetProviderRoute(TRANSCRIBE_WIDGET_ID)}`)
     } as never)
     const payload = await response.json()
 
@@ -85,7 +86,7 @@ describe('passport widget provider route', () => {
     getOnlineAgentSessionMock.mockReturnValue({ agentId: 'agent-a' })
 
     const response = await widgetProviderGet({
-      request: new Request('http://localhost/api/passport/widget/provider?widget_id=com.yulia.terminal-agent')
+      request: new Request(`http://localhost${buildWidgetProviderRoute(TERMINAL_AGENT_WIDGET_ID)}`)
     } as never)
     const payload = await response.json()
 

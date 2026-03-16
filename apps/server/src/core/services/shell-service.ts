@@ -1,15 +1,9 @@
-// biome-ignore lint/nursery/noExcessiveLinesPerFile: Shell policy and layout orchestration are temporarily colocated.
-import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
-import { WIDGET_SIZE_SET } from '@/entities/widget/model';
 import type {
-  HostPlatform,
   LayoutItem,
   LayoutSettings,
-  WidgetDescriptor,
   WidgetModuleInfo,
 } from '../../entities/widget/model/types';
 import { readRuntimeEnv } from '../env';
-import { passportRuntime } from '@passport/server/runtime';
 import {
   ensureDefaultLayoutItem,
   ensureDefaultModuleState,
@@ -21,53 +15,19 @@ import {
   setModuleEnabled
 } from '../db/core-repository';
 import { listDiscoveredWidgets } from '../registry/registry';
+import {
+  buildPassportNotReadyReasons,
+  collectRuntimeNotReadyReasons,
+  isAutoDisabledReason,
+  normalizeLayoutItems,
+  resolveHostPlatform,
+  resolveModuleEnabledState,
+  sanitizeColumns
+} from './shell-service.helpers';
 
-const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
-const PASSPORT_REQUIRED_WIDGET_IDS = new Set([
-  TRANSCRIBE_WIDGET_ID,
-  TERMINAL_AGENT_WIDGET_ID
-]);
-const MIN_SHELL_COLUMNS = 1;
-const MAX_SHELL_COLUMNS = 12;
-
-type ShellAccessPolicy = {
+export type ShellAccessPolicy = {
   hasPassportAccess?: boolean;
 };
-
-function resolveHostPlatform(): HostPlatform {
-  if (process.platform === 'win32') {
-    return 'windows';
-  }
-
-  if (process.platform === 'darwin') {
-    return 'macos';
-  }
-
-  return 'linux';
-}
-
-function sanitizeColumns(value: number, fallback: number) {
-  if (!Number.isFinite(value)) return fallback;
-  const rounded = Math.round(value);
-  return Math.max(MIN_SHELL_COLUMNS, Math.min(MAX_SHELL_COLUMNS, rounded));
-}
-
-function normalizeLayoutItems(items: LayoutItem[]) {
-  const seen = new Set<string>();
-  return items
-    .filter((item) => {
-      if (!item.widgetId?.trim()) return false;
-      if (seen.has(item.widgetId)) return false;
-      if (!WIDGET_SIZE_SET.has(item.size)) return false;
-      seen.add(item.widgetId);
-      return true;
-    })
-    .map((item, index) => ({
-      widgetId: item.widgetId,
-      order: index,
-      size: item.size
-    }));
-}
 
 export async function ensureCoreDefaults(agentId: string) {
   const widgets = await listDiscoveredWidgets();
@@ -83,82 +43,6 @@ export async function ensureCoreDefaults(agentId: string) {
   });
 }
 
-function requiresCurrentOnlineAgent(widgetId: string) {
-  if (widgetId === TERMINAL_AGENT_WIDGET_ID) {
-    return true;
-  }
-
-  if (widgetId !== TRANSCRIBE_WIDGET_ID) {
-    return false;
-  }
-
-  return !readRuntimeEnv().passportAgentDevModeEnabled;
-}
-
-function buildPassportNotReadyReasons(widgetId: string, agentId: string, hasPassportAccess: boolean) {
-  if (PASSPORT_REQUIRED_WIDGET_IDS.has(widgetId) && !hasPassportAccess) {
-    return [`${widgetId} widget requires agent.`];
-  }
-
-  if (
-    hasPassportAccess &&
-    requiresCurrentOnlineAgent(widgetId) &&
-    !passportRuntime.getOnlineAgentSession(agentId)
-  ) {
-    return [`${widgetId} widget requires agent.`];
-  }
-
-  return [];
-}
-
-async function collectRuntimeNotReadyReasons(descriptor: WidgetDescriptor) {
-  if (PASSPORT_REQUIRED_WIDGET_IDS.has(descriptor.module.manifest.id)) {
-    return [];
-  }
-
-  try {
-    const serverModule = await descriptor.module.loadServerModule();
-    if (!serverModule.init) {
-      return [];
-    }
-
-    const initResult = await serverModule.init();
-    if (!initResult || initResult.ready !== false) {
-      return [];
-    }
-
-    return [initResult.reason?.trim() || 'init() returned not ready.'];
-  } catch (error) {
-    return [error instanceof Error ? error.message : 'loadServerModule() failed.'];
-  }
-}
-
-function resolveModuleEnabledState(input: {
-  agentId: string;
-  widgetId: string;
-  enabled: boolean;
-  notReadyReasons: string[];
-  wasAutoDisabled: boolean;
-}) {
-  const runtimeReady = input.notReadyReasons.length === 0;
-  let enabled = input.enabled;
-
-  if (!runtimeReady && enabled) {
-    const reason = input.notReadyReasons[0] ?? 'Widget is not ready.';
-    setModuleEnabled(input.agentId, input.widgetId, false, `${AUTO_NOT_READY_REASON_PREFIX}${reason}`);
-    enabled = false;
-  }
-
-  if (runtimeReady && !enabled && input.wasAutoDisabled) {
-    setModuleEnabled(input.agentId, input.widgetId, true, null);
-    enabled = true;
-  }
-
-  return {
-    runtimeReady,
-    enabled
-  };
-}
 
 export async function listShellModules(
   agentId: string,
@@ -180,7 +64,7 @@ export async function listShellModules(
       ...buildPassportNotReadyReasons(widgetId, agentId, hasPassportAccess),
       ...(await collectRuntimeNotReadyReasons(descriptor))
     ];
-    const wasAutoDisabled = Boolean(state?.disabledReason?.startsWith(AUTO_NOT_READY_REASON_PREFIX));
+    const wasAutoDisabled = isAutoDisabledReason(state?.disabledReason);
     const enabledByState = state?.enabled ?? descriptor.runtime.ready;
     const moduleState = resolveModuleEnabledState({
       agentId,

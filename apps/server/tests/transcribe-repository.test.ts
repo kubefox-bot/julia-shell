@@ -15,6 +15,7 @@ import {
   touchRecentFolder
 } from '../src/widgets/transcribe/server/repository'
 import { openDb, resetDbCache } from '../src/core/db/shared'
+import { TRANSCRIBE_WIDGET_ID, WEATHER_WIDGET_ID } from '@/widgets'
 
 let tempDir = ''
 
@@ -32,28 +33,28 @@ afterEach(() => {
 describe('transcribe repository', () => {
   it('persists widget settings and keeps recent folders as a 5-item stack', () => {
     const agentId = 'agent-a'
-    expect(getTranscribeWidgetSettings(agentId, 'com.yulia.transcribe').geminiModel).toBe('')
+    expect(getTranscribeWidgetSettings(agentId, TRANSCRIBE_WIDGET_ID).geminiModel).toBe('')
 
     saveTranscribeWidgetSettings({
       agentId,
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       geminiModel: 'mock',
       localApiKey: 'local-key'
     })
 
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\A')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\B')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\A')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\C')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\D')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\E')
-    touchRecentFolder(agentId, 'com.yulia.transcribe', 'C:\\OneDrive\\F')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\A')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\B')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\A')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\C')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\D')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\E')
+    touchRecentFolder(agentId, TRANSCRIBE_WIDGET_ID, 'C:\\OneDrive\\F')
 
-    expect(getTranscribeWidgetSettings(agentId, 'com.yulia.transcribe')).toMatchObject({
+    expect(getTranscribeWidgetSettings(agentId, TRANSCRIBE_WIDGET_ID)).toMatchObject({
       geminiModel: 'mock',
       localApiKey: 'local-key'
     })
-    expect(listRecentFolders(agentId, 'com.yulia.transcribe').map((entry) => entry.folderPath)).toEqual([
+    expect(listRecentFolders(agentId, TRANSCRIBE_WIDGET_ID).map((entry) => entry.folderPath)).toEqual([
       'C:\\OneDrive\\F',
       'C:\\OneDrive\\E',
       'C:\\OneDrive\\D',
@@ -66,7 +67,7 @@ describe('transcribe repository', () => {
     const agentId = 'agent-a'
     const jobId = createTranscribeJob({
       agentId,
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       folderPath: 'C:\\Audio',
       filePaths: ['C:\\Audio\\clip.opus'],
       primarySourceFile: 'C:\\Audio\\clip.opus',
@@ -76,7 +77,7 @@ describe('transcribe repository', () => {
 
     appendTranscribeOutboxEvent({
       agentId,
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       jobId,
       eventType: 'job_created',
       state: 'queued',
@@ -89,7 +90,7 @@ describe('transcribe repository', () => {
     expect(listRecentTranscribeJobs(agentId, 1)[0]).toMatchObject({
       id: jobId,
       agentId,
-      widgetId: 'com.yulia.transcribe',
+      widgetId: TRANSCRIBE_WIDGET_ID,
       primarySourceFile: 'C:\\Audio\\clip.opus',
       platform: 'windows',
       model: 'mock',
@@ -105,28 +106,28 @@ describe('transcribe repository', () => {
   it('normalizes, upserts and deletes speaker aliases per widget', () => {
     const agentA = 'agent-a'
     const agentB = 'agent-b'
-    saveSpeakerAliases(agentA, 'com.yulia.transcribe', [
+    saveSpeakerAliases(agentA, TRANSCRIBE_WIDGET_ID, [
       { speakerKey: '  Спикер   2 ', aliasName: 'Анна' },
       { speakerKey: 'speaker 1', aliasName: 'John' }
     ])
 
-    saveSpeakerAliases(agentB, 'com.yulia.weather', [
+    saveSpeakerAliases(agentB, WEATHER_WIDGET_ID, [
       { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
     ])
 
-    expect(listSpeakerAliases(agentA, 'com.yulia.transcribe')).toEqual([
+    expect(listSpeakerAliases(agentA, TRANSCRIBE_WIDGET_ID)).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'John' },
       { speakerKey: 'спикер 2', aliasName: 'Анна' }
     ])
 
-    saveSpeakerAliases(agentA, 'com.yulia.transcribe', [
+    saveSpeakerAliases(agentA, TRANSCRIBE_WIDGET_ID, [
       { speakerKey: 'Спикер 2', aliasName: '' }
     ])
 
-    expect(listSpeakerAliases(agentA, 'com.yulia.transcribe')).toEqual([
+    expect(listSpeakerAliases(agentA, TRANSCRIBE_WIDGET_ID)).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'John' }
     ])
-    expect(listSpeakerAliases(agentB, 'com.yulia.weather')).toEqual([
+    expect(listSpeakerAliases(agentB, WEATHER_WIDGET_ID)).toEqual([
       { speakerKey: 'speaker 1', aliasName: 'Weather bot' }
     ])
   })

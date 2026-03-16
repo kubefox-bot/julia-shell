@@ -1,5 +1,6 @@
 import type { HostPlatform } from '../../../entities/widget/model/types'
 import { openDb } from '../../../core/db/shared'
+import { TRANSCRIBE_WIDGET_ID } from '@/widgets'
 
 export type TranscribeJobStatus = 'queued' | 'processing' | 'completed' | 'failed'
 
@@ -72,7 +73,7 @@ function bootstrap() {
     CREATE TABLE IF NOT EXISTS transcribe_jobs (
       id TEXT PRIMARY KEY,
       agent_id TEXT NOT NULL,
-      widget_id TEXT NOT NULL DEFAULT 'com.yulia.transcribe',
+      widget_id TEXT NOT NULL DEFAULT '${TRANSCRIBE_WIDGET_ID}',
       folder_path TEXT NOT NULL,
       file_paths_json TEXT NOT NULL,
       primary_source_file TEXT,

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { listRecentTranscribeJobs } from '../src/widgets/transcribe/server/repository'
 import { resetDbCache } from '../src/core/db/shared'
 import { transcribeServerModule } from '../src/widgets/transcribe/server/module'
+import { buildWidgetApiRoute, TRANSCRIBE_WIDGET_ID } from '../src/widgets'
 
 let tempDir = ''
 let audioDir = ''
@@ -59,7 +60,7 @@ afterEach(() => {
 describe('transcribe server module', () => {
   it('handles mock transcription through ffmpeg pipeline for multiple .opus files', async () => {
     const transcribeResponse = await transcribeServerModule.handlers['POST transcribe-stream']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcribe-stream', {
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcribe-stream')}`, {
         method: 'POST',
         body: JSON.stringify({
           folderPath: audioDir,
@@ -73,7 +74,7 @@ describe('transcribe server module', () => {
       agentId: 'agent-test',
       actionSegments: ['transcribe-stream'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 
@@ -90,7 +91,7 @@ describe('transcribe server module', () => {
     expect(listRecentTranscribeJobs('agent-test', 1)[0]?.model).toBe('mock')
 
     const readResponse = await transcribeServerModule.handlers['POST transcript-read']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcript-read', {
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-read')}`, {
         method: 'POST',
         body: JSON.stringify({
           sourceFile: 'clip-1.opus',
@@ -104,7 +105,7 @@ describe('transcribe server module', () => {
       agentId: 'agent-test',
       actionSegments: ['transcript-read'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 
@@ -115,7 +116,7 @@ describe('transcribe server module', () => {
     expect(readPayload.transcript).toContain('Prepared opus file:')
 
     const saveResponse = await transcribeServerModule.handlers['POST transcript-save']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/transcript-save', {
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-save')}`, {
         method: 'POST',
         body: JSON.stringify({
           txtPath: readPayload.txtPath,
@@ -129,7 +130,7 @@ describe('transcribe server module', () => {
       agentId: 'agent-test',
       actionSegments: ['transcript-save'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 
@@ -139,7 +140,7 @@ describe('transcribe server module', () => {
     expect(fs.readFileSync(savePayload.txtPath, 'utf8')).toBe('[01:45:06] Анна: Привет')
 
     const saveAliasesResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases', {
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`, {
         method: 'POST',
         body: JSON.stringify({
           aliases: [
@@ -155,7 +156,7 @@ describe('transcribe server module', () => {
       agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 
@@ -169,7 +170,7 @@ describe('transcribe server module', () => {
     ])
 
     const deleteAliasResponse = await transcribeServerModule.handlers['POST speaker-aliases']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases', {
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`, {
         method: 'POST',
         body: JSON.stringify({
           aliases: [{ speakerKey: 'speaker 1', aliasName: '' }]
@@ -182,7 +183,7 @@ describe('transcribe server module', () => {
       agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 
@@ -194,12 +195,12 @@ describe('transcribe server module', () => {
     ])
 
     const getAliasesResponse = await transcribeServerModule.handlers['GET speaker-aliases']({
-      request: new Request('http://localhost/api/widget/com.yulia.transcribe/speaker-aliases'),
+      request: new Request(`http://localhost${buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases')}`),
       action: 'speaker-aliases',
       agentId: 'agent-test',
       actionSegments: ['speaker-aliases'],
       params: {
-        id: 'com.yulia.transcribe'
+        id: TRANSCRIBE_WIDGET_ID
       }
     })
 

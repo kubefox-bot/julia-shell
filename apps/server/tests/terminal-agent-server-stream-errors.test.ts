@@ -4,6 +4,7 @@ import { passportRuntime } from '../src/domains/passport/server/runtime/runtime'
 import { moduleBus } from '../src/shared/lib/module-bus'
 import { terminalAgentHandlers } from '../src/widgets/terminal-agent/server/handlers'
 import { WIDGET_ID } from '../src/widgets/terminal-agent/server/constants'
+import { buildWidgetApiRoute } from '../src/widgets'
 import { collectSseEventsWithTimeout, createContext, createOnlineAgentSession, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE, setupTerminalAgentTestFs } from './terminal-agent-server.shared'
 
 setupTerminalAgentTestFs()
@@ -14,7 +15,13 @@ describe('terminal-agent server handlers stream errors', () => {
     vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession('agent-a'))
     const dispatchSpy = vi.spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage').mockReturnValue(true)
 
-    const response = await terminalAgentHandlers['POST message-stream'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream', method: 'POST', action: 'message-stream', body: { provider: 'gemini', message: 'Hello' }, agentId: 'agent-a' }))
+    const response = await terminalAgentHandlers['POST message-stream'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'message-stream')}`,
+      method: 'POST',
+      action: 'message-stream',
+      body: { provider: 'gemini', message: 'Hello' },
+      agentId: 'agent-a'
+    }))
     expect(response.status).toBe(HTTP_STATUS_OK)
     await vi.waitFor(() => expect(dispatchSpy).toHaveBeenCalledTimes(1))
 
@@ -28,7 +35,12 @@ describe('terminal-agent server handlers stream errors', () => {
     vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession())
     const dispatchSpy = vi.spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage').mockReturnValue(true)
 
-    const response = await terminalAgentHandlers['POST message-stream'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream', method: 'POST', action: 'message-stream', body: { provider: 'gemini', message: 'Ping missing key mapping' } }))
+    const response = await terminalAgentHandlers['POST message-stream'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'message-stream')}`,
+      method: 'POST',
+      action: 'message-stream',
+      body: { provider: 'gemini', message: 'Ping missing key mapping' }
+    }))
     expect(response.status).toBe(HTTP_STATUS_OK)
     await vi.waitFor(() => expect(dispatchSpy).toHaveBeenCalledTimes(1))
 
@@ -47,11 +59,21 @@ describe('terminal-agent server handlers stream errors', () => {
   it('returns validation/offline errors for message stream entry point', async () => {
     vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(null)
 
-    const offlineResponse = await terminalAgentHandlers['POST message-stream'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream', method: 'POST', action: 'message-stream', body: { provider: 'codex', message: 'Hello' } }))
+    const offlineResponse = await terminalAgentHandlers['POST message-stream'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'message-stream')}`,
+      method: 'POST',
+      action: 'message-stream',
+      body: { provider: 'codex', message: 'Hello' }
+    }))
     expect(offlineResponse.status).toBe(HTTP_STATUS_SERVICE_UNAVAILABLE)
     expect(await offlineResponse.json()).toEqual({ error: 'agent_offline' })
 
-    const validationResponse = await terminalAgentHandlers['POST message-stream'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream', method: 'POST', action: 'message-stream', body: { provider: 'codex', message: '   ' } }))
+    const validationResponse = await terminalAgentHandlers['POST message-stream'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'message-stream')}`,
+      method: 'POST',
+      action: 'message-stream',
+      body: { provider: 'codex', message: '   ' }
+    }))
     expect(validationResponse.status).toBe(HTTP_STATUS_BAD_REQUEST)
     expect(await validationResponse.json()).toEqual({ error: 'message is required.' })
   })
@@ -60,7 +82,12 @@ describe('terminal-agent server handlers stream errors', () => {
     vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession())
     vi.spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage').mockReturnValue(false)
 
-    const response = await terminalAgentHandlers['POST message-stream'](createContext({ url: 'http://localhost/api/widget/com.yulia.terminal-agent/message-stream', method: 'POST', action: 'message-stream', body: { provider: 'codex', message: 'Hello' } }))
+    const response = await terminalAgentHandlers['POST message-stream'](createContext({
+      url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'message-stream')}`,
+      method: 'POST',
+      action: 'message-stream',
+      body: { provider: 'codex', message: 'Hello' }
+    }))
     expect(response.status).toBe(HTTP_STATUS_OK)
 
     const events = await collectSseEventsWithTimeout(response)
