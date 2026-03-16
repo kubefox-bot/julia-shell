@@ -16,7 +16,7 @@ import { useShellStore } from '@app/shell/model/store';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
 import { ShellDragPreview } from '@app/shell/ui/components/shell-drag-preview';
 import { ShellWidgetCard } from '@app/shell/ui/components/shell-widget-card';
-import skeletonStyles from './skeleton/Skeleton.module.scss';
+import skeletonStyles from '@app/shell/ui/components/skeleton/Skeleton.module.scss';
 
 const SIZE_SPAN = {
   small: 3,
