@@ -4,31 +4,16 @@ import { resolvePassportRequestContext } from '@passport/server/context';
 import { PASSPORT_HTTP_STATUS } from '@passport/server/http';
 import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
+import { resolveBrowserStatusPayload } from './shared';
 
 export const POST: APIRoute = async ({ request }) => {
   const resolved = await resolvePassportRequestContext(request, {
     allowBootstrapFromOnlineAgent: false
   });
-
-  const responsePayload = resolved.context
-    ? passportRuntime.retryStatusSnapshot(resolved.context.agentId)
-    : resolved.reason === 'invalid'
-      ? {
-          status: 'unauthorized',
-          label: 'Unauthorized',
-          updatedAt: new Date().toISOString(),
-          reason: 'Invalid browser access token.',
-          hostname: null,
-          agentId: null
-        }
-      : {
-        status: 'disconnected',
-        label: 'Disconnected',
-        updatedAt: new Date().toISOString(),
-        reason: 'No browser access token.',
-        hostname: null,
-        agentId: null
-      };
+  const responsePayload = resolveBrowserStatusPayload(
+    resolved,
+    passportRuntime.retryStatusSnapshot.bind(passportRuntime)
+  );
   const response = jsonResponse(responsePayload, PASSPORT_HTTP_STATUS.ok);
 
   return withSetCookie(response, resolved.context?.setCookieHeader ?? null);
