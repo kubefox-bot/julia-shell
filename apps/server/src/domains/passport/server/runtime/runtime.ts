@@ -9,6 +9,7 @@ import { resolvePassportJwtSecret } from '../config/jwt-secret'
 import { resolvePassportHeartbeatTimeoutMs } from '../config/health'
 import { verifyAccessJwt } from '../jwt'
 import { appendAgentEvent, getAgentDisplayName, upsertAgentSession } from '../repository'
+import type { OnlineAgentSnapshot } from '../types'
 import type { AgentConnection, RuntimeEnvelope, UnauthorizedState } from './runtime-types'
 import { extractHeartbeatHostname, isAgentDevMode, resolveProtoPath } from './runtime-utils'
 import { resolvePassportStatusSnapshot } from './status'
@@ -158,6 +159,7 @@ export class PassportRuntime {
         agentId: input.agentId,
         sessionId: input.sessionId,
         call: input.call,
+        connectedAt: nowIso(),
         lastSeenAtMs: input.nowMs,
         hostname: null,
         accessJwt: input.accessJwt,
@@ -497,9 +499,11 @@ export class PassportRuntime {
     })
   }
 
-  getOnlineAgentSession() {
+  getOnlineAgentSession(agentId?: string | null) {
     this.reconcileStaleSessions()
-    const fromMemory = [...this.connections.values()][0]
+    const fromMemory = agentId
+      ? this.connections.get(agentId) ?? null
+      : [...this.connections.values()][0] ?? null
     if (!fromMemory) {
       return null
     }
@@ -507,34 +511,63 @@ export class PassportRuntime {
     return {
       agentId: fromMemory.agentId,
       sessionId: fromMemory.sessionId,
+      connectedAt: fromMemory.connectedAt,
+      lastHeartbeatAt: new Date(fromMemory.lastSeenAtMs).toISOString(),
       hostname: fromMemory.hostname,
       accessJwt: fromMemory.accessJwt,
     }
+  }
+
+  getOnlineAgentSnapshots(currentAgentId?: string | null): OnlineAgentSnapshot[] {
+    this.reconcileStaleSessions()
+
+    return [...this.connections.values()]
+      .map((connection) => ({
+        agentId: connection.agentId,
+        sessionId: connection.sessionId,
+        displayName: getAgentDisplayName(connection.agentId),
+        hostname: connection.hostname,
+        connectedAt: connection.connectedAt,
+        lastHeartbeatAt: new Date(connection.lastSeenAtMs).toISOString(),
+        isCurrent: connection.agentId === (currentAgentId?.trim() || null),
+      }))
+      .sort((left, right) => {
+        if (left.isCurrent !== right.isCurrent) {
+          return left.isCurrent ? -1 : 1
+        }
+
+        const leftLabel = (left.displayName || left.hostname || left.agentId).toLowerCase()
+        const rightLabel = (right.displayName || right.hostname || right.agentId).toLowerCase()
+        return leftLabel.localeCompare(rightLabel, 'ru')
+      })
   }
 
   getUnauthorizedState() {
     return this.lastUnauthorized
   }
 
-  getAgentStatusSnapshot() {
-    const onlineSession = this.getOnlineAgentSession()
+  getAgentStatusSnapshot(agentId?: string | null) {
+    const selectedAgentId = agentId?.trim() || null
+    const onlineSession = this.getOnlineAgentSession(selectedAgentId)
     return resolvePassportStatusSnapshot(
       {
-        isDevMode: isAgentDevMode(),
+        isDevMode: isAgentDevMode() && Boolean(selectedAgentId),
         hasOnlineSession: Boolean(onlineSession),
-        unauthorizedState: this.lastUnauthorized,
+        unauthorizedState: selectedAgentId ? null : this.lastUnauthorized,
       },
       {
-        agentId: onlineSession?.agentId ?? null,
+        agentId: selectedAgentId ?? onlineSession?.agentId ?? null,
         hostname: onlineSession
           ? onlineSession.hostname || getAgentDisplayName(onlineSession.agentId)
-          : null,
+          : selectedAgentId
+            ? getAgentDisplayName(selectedAgentId)
+            : null,
       }
     )
   }
 
-  retryStatusSnapshot() {
-    return this.getAgentStatusSnapshot()
+  retryStatusSnapshot(agentId?: string | null) {
+    return this.getAgentStatusSnapshot(agentId)
   }
 
   dispatchWidgetCommand(input: {

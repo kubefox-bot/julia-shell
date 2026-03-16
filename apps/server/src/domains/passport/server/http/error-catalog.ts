@@ -33,6 +33,14 @@ export const PASSPORT_HTTP_ERROR_CATALOG = {
   missingTokenId: {
     status: PASSPORT_HTTP_STATUS.badRequest,
     message: 'token_id is required.'
+  },
+  missingConnectAgentId: {
+    status: PASSPORT_HTTP_STATUS.badRequest,
+    message: 'agent_id is required.'
+  },
+  agentUnavailable: {
+    status: PASSPORT_HTTP_STATUS.conflict,
+    message: 'Agent is offline or unavailable.'
   }
 } as const;
 

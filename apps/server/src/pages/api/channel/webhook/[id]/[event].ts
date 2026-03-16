@@ -6,7 +6,7 @@ import { jsonResponse, readJsonBody } from '@shared/lib/http';
 
 export const POST: APIRoute = async ({ request, params }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
     return jsonResponse({ error: 'Unauthorized channel access.' }, 401);

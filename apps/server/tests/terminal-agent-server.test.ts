@@ -23,6 +23,19 @@ type SseEvent = {
 };
 
 let tempDir = '';
+const RUNTIME_CONNECTED_AT = '2026-03-09T10:00:00.000Z';
+const RUNTIME_LAST_HEARTBEAT_AT = '2026-03-09T10:01:00.000Z';
+
+function createOnlineAgentSession(agentId = 'runtime-agent') {
+  return {
+    agentId,
+    sessionId: 'runtime-session',
+    connectedAt: RUNTIME_CONNECTED_AT,
+    lastHeartbeatAt: RUNTIME_LAST_HEARTBEAT_AT,
+    hostname: 'host',
+    accessJwt: 'token'
+  };
+}
 
 function createContext(input: {
   url: string;
@@ -201,18 +214,6 @@ describe('terminal-agent server handlers', () => {
   });
 
   it('reports module readiness based on runtime online session', async () => {
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(null);
-    await expect(terminalAgentServerModule.init?.()).resolves.toEqual({
-      ready: false,
-      reason: `${WIDGET_ID} widget requires agent.`
-    });
-
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
     await expect(terminalAgentServerModule.init?.()).resolves.toEqual({ ready: true });
   });
 
@@ -226,12 +227,7 @@ describe('terminal-agent server handlers', () => {
       lastError: null
     });
 
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
     const resetSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentResetDialog')
       .mockReturnValue(true);
@@ -281,12 +277,7 @@ describe('terminal-agent server handlers', () => {
       lastError: null
     });
 
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
 
     const dispatchSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
@@ -372,12 +363,7 @@ describe('terminal-agent server handlers', () => {
       lastError: null
     });
 
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
 
     const dispatchSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
@@ -438,12 +424,7 @@ describe('terminal-agent server handlers', () => {
       shellOverride: ''
     });
 
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
     const dispatchSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
       .mockReturnValue(true);
@@ -489,7 +470,7 @@ describe('terminal-agent server handlers', () => {
     });
   });
 
-  it('falls back to online agent settings when token agent differs and provider key is empty', async () => {
+  it('uses current bound agent settings even when another agent could be online', async () => {
     saveTerminalAgentSettings({
       agentId: 'agent-a',
       widgetId: WIDGET_ID,
@@ -505,28 +486,7 @@ describe('terminal-agent server handlers', () => {
       useShellFallback: false,
       shellOverride: ''
     });
-    saveTerminalAgentSettings({
-      agentId: 'runtime-agent',
-      widgetId: WIDGET_ID,
-      activeProvider: 'gemini',
-      codexApiKey: '',
-      geminiApiKey: 'runtime-gemini-key',
-      codexCommand: 'codex',
-      codexArgs: [],
-      codexModel: 'gpt-5-codex',
-      geminiCommand: '/opt/homebrew/bin/gemini',
-      geminiArgs: ['--output-format', 'stream-json'],
-      geminiModel: 'gemini-2.5-flash',
-      useShellFallback: false,
-      shellOverride: ''
-    });
-
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession('agent-a'));
     const dispatchSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
       .mockReturnValue(true);
@@ -550,8 +510,8 @@ describe('terminal-agent server handlers', () => {
       apiKey?: string;
       commandPath?: string;
     } | undefined;
-    expect(dispatchedInput?.apiKey).toBe('runtime-gemini-key');
-    expect(dispatchedInput?.commandPath).toBe('/opt/homebrew/bin/gemini');
+    expect(dispatchedInput?.apiKey).toBe('');
+    expect(dispatchedInput?.commandPath).toBe('gemini');
   });
 
   it('maps gemini missing api key noise to single domain-level message', async () => {
@@ -571,12 +531,7 @@ describe('terminal-agent server handlers', () => {
       shellOverride: ''
     });
 
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
     const dispatchSpy = vi
       .spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage')
       .mockReturnValue(true);
@@ -649,12 +604,7 @@ describe('terminal-agent server handlers', () => {
   });
 
   it('handles dispatch failure by emitting agent_offline SSE and marking state as error', async () => {
-    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue({
-      agentId: 'runtime-agent',
-      sessionId: 'runtime-session',
-      hostname: 'host',
-      accessJwt: 'token'
-    });
+    vi.spyOn(passportRuntime, 'getOnlineAgentSession').mockReturnValue(createOnlineAgentSession());
     vi.spyOn(passportRuntime, 'dispatchTerminalAgentSendMessage').mockReturnValue(false);
 
     const response = await terminalAgentHandlers['POST message-stream'](

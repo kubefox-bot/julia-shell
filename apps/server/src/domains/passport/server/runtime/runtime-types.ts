@@ -6,6 +6,7 @@ export type AgentConnection = {
   agentId: string;
   sessionId: string;
   call: grpc.ServerDuplexStream<RuntimeEnvelope, RuntimeEnvelope>;
+  connectedAt: string;
   lastSeenAtMs: number;
   hostname: string | null;
   accessJwt: string;

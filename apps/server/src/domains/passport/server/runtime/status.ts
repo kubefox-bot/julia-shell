@@ -60,7 +60,7 @@ export function resolvePassportStatusSnapshot(input: {
     label: 'Disconnected',
     updatedAt: nowIso(),
     reason: null,
-    hostname: null,
-    agentId: null
+    hostname,
+    agentId
   } satisfies PassportStatusSnapshot;
 }

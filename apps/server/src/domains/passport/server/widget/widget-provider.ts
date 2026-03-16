@@ -27,7 +27,7 @@ export function resolvePassportWidgetProviderSnapshot(
   const hasAccessToken = Boolean(context?.accessJwt)
   const requiresAccessToken = isPassportProtectedWidget(widgetId)
   const requiresOnlineAgent = resolveRequiresOnlineAgent(widgetId)
-  const hasOnlineAgent = Boolean(passportRuntime.getOnlineAgentSession())
+  const hasOnlineAgent = Boolean(passportRuntime.getOnlineAgentSession(context?.agentId))
 
   if (widgetId !== PASSPORT_WIDGET_ID_TRANSCRIBE && widgetId !== PASSPORT_WIDGET_ID_TERMINAL_AGENT) {
     return {
