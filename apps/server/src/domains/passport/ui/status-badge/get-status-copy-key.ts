@@ -5,6 +5,7 @@ import type { PassportTrafficLightState } from './types'
 export type PassportStatusCopyKey =
   | 'agentStatusConnected'
   | 'agentStatusConnectedDev'
+  | 'agentStatusUnauthorized'
   | 'agentStatusNeedsSelection'
   | 'agentStatusNoAgents'
 

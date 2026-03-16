@@ -205,7 +205,7 @@ describe('passport zustand slice', () => {
       passportLoading: false,
     });
 
-    let releaseStatus: (() => void) | null = null;
+    let releaseStatus: () => void = () => undefined;
     fetchPassportStatusMock.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -225,7 +225,7 @@ describe('passport zustand slice', () => {
     const syncPromise = store.getState().syncFromStatus();
     expect(store.getState().passportLoading).toBe(false);
 
-    releaseStatus?.();
+    releaseStatus();
     await syncPromise;
     expect(store.getState().passportLoading).toBe(false);
   });
