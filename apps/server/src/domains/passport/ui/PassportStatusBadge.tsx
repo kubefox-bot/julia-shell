@@ -7,8 +7,9 @@ import styles from './PassportStatusBadge.module.scss'
 import { resolveAgentReleasesBaseUrl } from './status-badge/env'
 import { getAgentDownloadUrl } from './status-badge/get-agent-download-url'
 import { getDefaultPlatform } from './status-badge/get-default-platform'
-import { getLampClass } from './status-badge/get-lamp-class'
+import { getLampClassKey } from './status-badge/get-lamp-class'
 import { getStatusCopyKey } from './status-badge/get-status-copy-key'
+import { resolvePassportTrafficLightState } from './status-badge/resolve-traffic-light-state'
 import { PassportInstallBlock } from './status-badge/PassportInstallBlock'
 import type { AgentPlatform } from './status-badge/types'
 
@@ -43,8 +44,24 @@ export function PassportStatusBadge() {
   const retryStatus = useShellStore((state) => state.retryStatus)
   const [platform, setPlatform] = useState<AgentPlatform>('windows')
 
-  const currentStatus: PassportAuthStatus = passportStatus?.status ?? 'disconnected'
-  const isDisconnected = currentStatus === 'disconnected'
+  const trafficLightState = useShellStore((state) =>
+    resolvePassportTrafficLightState({
+      status: (state.passportStatus?.status ?? 'disconnected') as PassportAuthStatus,
+      onlineAgentsCount: state.passportAgents.length,
+    })
+  )
+  const statusCopyKey = useShellStore((state) => {
+    const status = (state.passportStatus?.status ?? 'disconnected') as PassportAuthStatus
+    const nextTrafficLightState = resolvePassportTrafficLightState({
+      status,
+      onlineAgentsCount: state.passportAgents.length,
+    })
+
+    return getStatusCopyKey({
+      status,
+      trafficLightState: nextTrafficLightState,
+    })
+  })
   const hostname = passportStatus?.hostname?.trim() || ''
   const downloadUrl = getAgentDownloadUrl(AGENT_RELEASES_BASE_URL, platform)
   const installLabels = useMemo(
@@ -58,7 +75,7 @@ export function PassportStatusBadge() {
     [t]
   )
 
-  const statusLabel = useMemo(() => t(getStatusCopyKey(currentStatus)), [currentStatus, t])
+  const statusLabel = t(statusCopyKey)
 
   useEffect(() => {
     setPlatform(getDefaultPlatform())
@@ -67,7 +84,7 @@ export function PassportStatusBadge() {
   return (
     <div className={styles.agentStatusBadge}>
       <div className={styles.agentStatusRow}>
-        <span className={`${styles.agentLamp} ${getLampClass(currentStatus)}`} aria-hidden="true" />
+        <span className={`${styles.agentLamp} ${styles[getLampClassKey(trafficLightState)]}`} aria-hidden="true" />
         <span className={styles.agentStatusText}>{statusLabel}</span>
         <Button
           type="button"
@@ -114,7 +131,7 @@ export function PassportStatusBadge() {
           </div>
         </div>
       ) : null}
-      {isDisconnected && passportAgents.length === 0 ? (
+      {trafficLightState === 'red' ? (
         <PassportInstallBlock
           platform={platform}
           setPlatform={setPlatform}

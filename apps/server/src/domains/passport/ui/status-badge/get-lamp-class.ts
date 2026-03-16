@@ -1,14 +1,11 @@
-import type { PassportAuthStatus } from '../../client/types'
-import styles from '../PassportStatusBadge.module.scss'
+import type { PassportLampClassKey, PassportTrafficLightState } from './types'
 
-export function getLampClass(status: PassportAuthStatus) {
-  if (status === 'connected' || status === 'connected_dev') {
-    return styles.agentLampGreen
-  }
+const LAMP_CLASS_KEY_BY_STATE = {
+  green: 'agentLampGreen',
+  yellow: 'agentLampYellow',
+  red: 'agentLampRed',
+} as const satisfies Record<PassportTrafficLightState, PassportLampClassKey>
 
-  if (status === 'unauthorized') {
-    return styles.agentLampYellow
-  }
-
-  return styles.agentLampRed
+export function getLampClassKey(state: PassportTrafficLightState) {
+  return LAMP_CLASS_KEY_BY_STATE[state]
 }

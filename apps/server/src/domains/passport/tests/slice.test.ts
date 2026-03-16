@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolvePassportTrafficLightState } from '../ui/status-badge/resolve-traffic-light-state';
 
 const fetchPassportStatusMock = vi.hoisted(() => vi.fn());
 const fetchPassportOnlineAgentsMock = vi.hoisted(() => vi.fn());
@@ -179,6 +180,12 @@ describe('passport zustand slice', () => {
 
     expect(store.getState().agentId).toBe('agent-b');
     expect(store.getState().passportAgents[0]?.isCurrent).toBe(true);
+    expect(
+      resolvePassportTrafficLightState({
+        status: store.getState().authStatus,
+        onlineAgentsCount: store.getState().passportAgents.length
+      })
+    ).toBe('green');
     expect(loadShell).toHaveBeenCalledTimes(1);
   });
 });
