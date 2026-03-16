@@ -18,7 +18,9 @@ const STATUS_COPY_KEY_RESOLVER_BY_TRAFFIC_LIGHT: Record<
   (status: PassportAuthStatus) => PassportStatusCopyKey
 > = {
   green: (status) => GREEN_STATUS_COPY_KEY_BY_STATUS[status] ?? 'agentStatusConnected',
-  yellow: () => PASSPORT_STATUS_COPY_KEY_BY_TRAFFIC_LIGHT.yellow,
+  yellow: (status) => (status === 'unauthorized'
+    ? 'agentStatusUnauthorized'
+    : PASSPORT_STATUS_COPY_KEY_BY_TRAFFIC_LIGHT.yellow),
   red: () => PASSPORT_STATUS_COPY_KEY_BY_TRAFFIC_LIGHT.red,
 }
 

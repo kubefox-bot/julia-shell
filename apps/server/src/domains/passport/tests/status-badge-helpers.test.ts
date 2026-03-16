@@ -52,7 +52,7 @@ describe('passport status-badge helpers', () => {
         status: 'unauthorized',
         trafficLightState: 'yellow',
       })
-    ).toBe('agentStatusNeedsSelection')
+    ).toBe('agentStatusUnauthorized')
     expect(
       getStatusCopyKey({
         status: 'disconnected',
