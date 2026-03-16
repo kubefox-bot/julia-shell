@@ -4,7 +4,7 @@ import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
 import { HTTP_STATUS_INTERNAL_SERVER_ERROR } from '@shared/lib/http-status';
 import { requestRaw } from '@shared/lib/request';
-import { weatherManifest } from '../manifest';
+import { WEATHER_WIDGET_META } from '../meta';
 
 const FORECAST_DAY_COUNT = Number('3');
 const BATUMI_LATITUDE = Number.parseFloat('41.65');
@@ -13,11 +13,6 @@ const LOCATION_KEY = 'batumi';
 const CACHE_TTL_MS = Number('1800000');
 const INDOOR_WEATHER_CODES = new Set(['80', '81', '82', '61', '63', '65']);
 const OUTDOOR_WEATHER_CODES = new Set(['0', '1']);
-const WIDGET_META = {
-  id: weatherManifest.id,
-  version: weatherManifest.version
-} as const;
-
 type ForecastDay = {
   date: string;
   tempMax: number;
@@ -104,7 +99,7 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
     headers: {
       'User-Agent': 'Yulia-Assistant/2.0'
     },
-    widget: WIDGET_META
+    widget: WEATHER_WIDGET_META
   });
 
   if (!response.ok) {

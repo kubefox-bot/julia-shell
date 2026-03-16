@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
 import { requestJson } from '@shared/lib/request';
-import { weatherManifest } from '../manifest';
+import { WEATHER_WIDGET_META } from '../meta';
 import styles from './WeatherWidget.module.scss';
 
 type ForecastDay = {
@@ -21,11 +21,6 @@ type WeatherPayload = {
   fetchedAt: string;
   fromCache: boolean;
 };
-
-const WIDGET_META = {
-  id: weatherManifest.id,
-  version: weatherManifest.version
-} as const;
 
 const FORECAST_DATE_FORMATTER = DateTime.DATE_MED_WITH_WEEKDAY;
 const META_DATE_FORMATTER = 'dd.MM, HH:mm';
@@ -65,7 +60,7 @@ async function loadForecast(refresh = false) {
 
   return requestJson<WeatherPayload>(endpoint, {
     method: refresh ? 'POST' : 'GET',
-    widget: WIDGET_META
+    widget: WEATHER_WIDGET_META
   }, 'Не удалось загрузить прогноз.');
 }
 

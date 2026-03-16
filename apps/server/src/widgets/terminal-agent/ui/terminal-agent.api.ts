@@ -1,22 +1,17 @@
 import { defineQuery, requestJson, requestRaw } from '@shared/lib/request'
-import { terminalAgentManifest } from '../manifest'
+import { TERMINAL_AGENT_WIDGET_META } from '../meta'
 import type { DialogRefItem, DialogStatePayload, ModelListPayload, Provider, SettingsPayload } from './terminal-agent.types'
-
-export const WIDGET_META = {
-  id: terminalAgentManifest.id,
-  version: terminalAgentManifest.version,
-} as const
 
 export async function loadTerminalAgentSettings() {
   return requestJson<SettingsPayload>('/api/widget/com.yulia.terminal-agent/settings', {
-    widget: WIDGET_META,
+    widget: TERMINAL_AGENT_WIDGET_META,
   }, 'Failed to load settings.')
 }
 
 export async function loadTerminalAgentDialogState(provider: Provider) {
   return requestJson<DialogStatePayload>(
     `/api/widget/com.yulia.terminal-agent/dialog-state?provider=${encodeURIComponent(provider)}`,
-    { widget: WIDGET_META },
+    { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialog state.'
   )
 }
@@ -28,7 +23,7 @@ export async function saveTerminalAgentSettings(settings: SettingsPayload) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
-      widget: WIDGET_META,
+      widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to save settings.'
   )
@@ -37,7 +32,7 @@ export async function saveTerminalAgentSettings(settings: SettingsPayload) {
 export async function loadTerminalAgentModels(provider: Provider) {
   return requestJson<ModelListPayload>(
     `/api/widget/com.yulia.terminal-agent/models?provider=${encodeURIComponent(provider)}`,
-    { widget: WIDGET_META },
+    { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load models.'
   )
 }
@@ -45,7 +40,7 @@ export async function loadTerminalAgentModels(provider: Provider) {
 export async function loadTerminalAgentDialogRefs(provider: Provider) {
   return requestJson<{ items?: DialogRefItem[] }>(
     `/api/widget/com.yulia.terminal-agent/dialogs?provider=${encodeURIComponent(provider)}`,
-    { widget: WIDGET_META },
+    { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialogs.'
   )
 }
@@ -57,7 +52,7 @@ export async function createTerminalAgentDialog(provider: Provider) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider }),
-      widget: WIDGET_META,
+      widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to reset dialog.'
   )
@@ -70,7 +65,7 @@ export async function selectTerminalAgentDialog(provider: Provider, providerSess
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider, providerSessionRef }),
-      widget: WIDGET_META,
+      widget: TERMINAL_AGENT_WIDGET_META,
     },
     'Failed to select dialog.'
   )
@@ -83,7 +78,7 @@ export function openTerminalAgentMessageStream(provider: Provider, message: stri
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider, message }),
-      widget: WIDGET_META,
+      widget: TERMINAL_AGENT_WIDGET_META,
     },
   )
 }

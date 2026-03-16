@@ -1,7 +1,7 @@
 import type { WidgetManifest } from './types';
+import { WIDGET_SIZE_SET } from './widget-sizes';
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
-const SIZE_SET = new Set(['small', 'medium', 'large']);
 const ENV_NAME_RE = /^[a-z0-9][a-z0-9_-]*$/;
 
 function isValidIcon(manifest: WidgetManifest) {
@@ -27,7 +27,7 @@ function validateSupportedSizes(manifest: WidgetManifest, reasons: string[]) {
   }
 
   for (const size of manifest.supportedSizes) {
-    if (!SIZE_SET.has(size)) {
+    if (!WIDGET_SIZE_SET.has(size)) {
       reasons.push(`Unsupported size in supportedSizes: ${size}`);
     }
   }
@@ -56,7 +56,7 @@ export function validateWidgetManifest(manifest: WidgetManifest): string[] {
     { invalid: !manifest.headerName?.ru?.trim(), message: 'headerName.ru is required.' },
     { invalid: !manifest.headerName?.en?.trim(), message: 'headerName.en is required.' },
     { invalid: typeof manifest.ready !== 'boolean', message: 'ready must be boolean.' },
-    { invalid: !SIZE_SET.has(manifest.defaultSize), message: 'defaultSize must be one of: small, medium, large.' },
+    { invalid: !WIDGET_SIZE_SET.has(manifest.defaultSize), message: 'defaultSize must be one of: small, medium, large.' },
     { invalid: !Array.isArray(manifest.capabilities), message: 'capabilities must be an array.' },
     { invalid: !Array.isArray(manifest.channels), message: 'channels must be an array.' },
   ];

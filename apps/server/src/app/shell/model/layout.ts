@@ -1,7 +1,6 @@
-import type { LayoutItem, WidgetModuleInfo, WidgetSize } from '@/entities/widget/model/types';
+import { WIDGET_SIZE_SET } from '@/entities/widget/model';
+import type { LayoutItem, WidgetModuleInfo } from '@/entities/widget/model/types';
 import type { PreviewLayoutEntry } from './types';
-
-const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
 
 export function normalizeLayout(layout: LayoutItem[], modules: WidgetModuleInfo[]) {
   const moduleMap = new Map(modules.map((module) => [module.id, module]));
@@ -11,7 +10,7 @@ export function normalizeLayout(layout: LayoutItem[], modules: WidgetModuleInfo[
     .filter((item) => {
       if (!moduleMap.has(item.widgetId)) return false;
       if (seen.has(item.widgetId)) return false;
-      if (!VALID_SIZES.has(item.size)) return false;
+      if (!WIDGET_SIZE_SET.has(item.size)) return false;
       seen.add(item.widgetId);
       return true;
     })

@@ -1,11 +1,11 @@
 // biome-ignore lint/nursery/noExcessiveLinesPerFile: Shell policy and layout orchestration are temporarily colocated.
+import { WIDGET_SIZE_SET } from '@/entities/widget/model';
 import type {
   HostPlatform,
   LayoutItem,
   LayoutSettings,
   WidgetDescriptor,
   WidgetModuleInfo,
-  WidgetSize
 } from '../../entities/widget/model/types';
 import { readRuntimeEnv } from '../env';
 import { passportRuntime } from '@passport/server/runtime';
@@ -25,7 +25,6 @@ import {
 } from '../db/core-repository';
 import { listDiscoveredWidgets } from '../registry/registry';
 
-const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);
 const AUTO_NOT_READY_REASON_PREFIX = 'auto:not-ready:';
 const PASSPORT_REQUIRED_WIDGET_IDS = new Set([
   PASSPORT_WIDGET_ID_TRANSCRIBE,
@@ -62,7 +61,7 @@ function normalizeLayoutItems(items: LayoutItem[]) {
     .filter((item) => {
       if (!item.widgetId?.trim()) return false;
       if (seen.has(item.widgetId)) return false;
-      if (!VALID_SIZES.has(item.size)) return false;
+      if (!WIDGET_SIZE_SET.has(item.size)) return false;
       seen.add(item.widgetId);
       return true;
     })

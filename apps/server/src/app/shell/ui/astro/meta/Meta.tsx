@@ -4,10 +4,9 @@ import type { DisplayLocale } from '@/entities/widget/model/types';
 import { resolveDisplayLocale } from '@shared/lib/locale';
 import { nowMillis } from '@shared/lib/time';
 import { useShellStore } from '@app/shell/model/store';
+import { CLOCK_TICK_INTERVAL_MS } from '@app/shell/model/constants';
 import type { ShellStore } from '@app/shell/model/types';
 import styles from './Meta.module.scss';
-
-const CLOCK_TICK_INTERVAL_MS = 1_000;
 
 type MetaProps = {
   initialNowIso: string;

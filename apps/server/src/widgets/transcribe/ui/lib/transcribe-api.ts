@@ -1,6 +1,6 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
-import { transcribeManifest } from '../../manifest'
 import { defineQuery, requestBody, requestJson } from '@shared/lib/request'
+import { TRANSCRIBE_WIDGET_META } from '../../meta'
 import type {
   FsListResponse,
   TranscriptReadResponse,
@@ -17,22 +17,17 @@ function readAliases(data: unknown) {
   return Array.isArray(aliases) ? aliases as SpeakerAliasEntry[] : []
 }
 
-const WIDGET_META = {
-  id: transcribeManifest.id,
-  version: transcribeManifest.version,
-} as const
-
 export async function fetchTranscribeProvider() {
   return requestJson<WidgetProviderResponse>(
     '/api/passport/widget/provider?widget_id=com.yulia.transcribe',
-    { widget: WIDGET_META },
+    { widget: TRANSCRIBE_WIDGET_META },
     'Failed to resolve widget provider state.'
   )
 }
 
 export async function fetchTranscribeSettings() {
   return requestJson<TranscribeSettingsPayload>('/api/widget/com.yulia.transcribe/settings', {
-    widget: WIDGET_META,
+    widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load settings.')
 }
 
@@ -41,7 +36,7 @@ export async function saveTranscribeSettings(payload: { geminiModel: string; api
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Failed to save settings.')
 }
 
@@ -50,7 +45,7 @@ export async function fetchTranscribeFolder(path: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path }),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Failed to read path.')
   return {
     path: typed.path,
@@ -61,7 +56,7 @@ export async function fetchTranscribeFolder(path: string) {
 
 export async function fetchSpeakerAliases() {
   const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>('/api/widget/com.yulia.transcribe/speaker-aliases', {
-    widget: WIDGET_META,
+    widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load speaker aliases.')
 
   return readAliases(data)
@@ -72,7 +67,7 @@ export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ aliases }),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Failed to save speaker aliases.')
 
   return readAliases(data)
@@ -87,7 +82,7 @@ export async function readTranscript(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Failed to open .txt file.')
 }
 
@@ -101,7 +96,7 @@ export async function saveTranscript(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Failed to save transcript.')
 }
 
@@ -113,7 +108,7 @@ export async function openTranscribeStream(payload: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    widget: WIDGET_META
+    widget: TRANSCRIBE_WIDGET_META
   }, 'Transcription failed.')
 }
 
