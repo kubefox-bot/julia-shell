@@ -6,7 +6,7 @@
 
 - Shared JWT model for **agent + browser** (`access_jwt`).
 - Agent enrollment/refresh/revoke API under `/api/passport/agent/*`.
-- Cookie bootstrap (`julia_access_token`) for shell/widget/channel APIs.
+- Cookie bootstrap (`acess_token`) for shell/widget/channel APIs.
 - Online-status UI + Zustand slice (`domains/passport/client` + `domains/passport/ui`).
 - Server runtime/session persistence in `passport.db`.
 
@@ -22,7 +22,7 @@ flowchart TD
   F --> G["Agent stores session.json (agent_id, refresh_token, access_jwt)"]
   G --> H["Agent connects gRPC with access_jwt"]
   H --> I["Browser calls /api/passport/agent/status"]
-  I --> J["Server sets julia_access_token cookie"]
+  I --> J["Server sets acess_token cookie"]
   J --> K["/api/shell/*, /api/widget/*, /api/channel/* use JWT sub as agent_id"]
 ```
 
@@ -41,7 +41,7 @@ flowchart TD
 
 ## Cookie Policy
 
-- Cookie name: `julia_access_token`
+- Cookie name: `acess_token`
 - `HttpOnly`
 - `SameSite=Lax`
 - `Path=/`
@@ -52,4 +52,3 @@ flowchart TD
 - `passport.db`: agent registry, sessions, tokens, events, enrollment tokens.
 - `core.db`: shell settings/layout/module state keyed by `agent_id`.
 - `transcribe.db`: jobs/outbox/settings/recent folders/aliases keyed by `agent_id`.
-

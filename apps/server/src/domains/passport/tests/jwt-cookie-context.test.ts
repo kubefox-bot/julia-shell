@@ -26,7 +26,7 @@ describe('passport jwt/cookie/context helpers', () => {
   it('extracts cookie token before bearer token', () => {
     const request = new Request('http://localhost/test', {
       headers: {
-        cookie: 'other=value; julia_access_token=cookie-token',
+        cookie: 'other=value; acess_token=cookie-token',
         Authorization: 'Bearer header-token'
       }
     });
@@ -42,7 +42,7 @@ describe('passport jwt/cookie/context helpers', () => {
     const token = issueAccessJwt('secret', 'agent-a').token;
     const request = new Request('http://localhost/test', {
       headers: {
-        cookie: `julia_access_token=${token}`
+        cookie: `acess_token=${token}`
       }
     });
 
@@ -55,7 +55,7 @@ describe('passport jwt/cookie/context helpers', () => {
     resolvePassportJwtSecretMock.mockResolvedValue('secret');
     const request = new Request('http://localhost/test', {
       headers: {
-        cookie: 'julia_access_token=broken-token'
+        cookie: 'acess_token=broken-token'
       }
     });
 
@@ -79,7 +79,7 @@ describe('passport jwt/cookie/context helpers', () => {
 
     const request = new Request('https://example.com/test', {
       headers: {
-        cookie: 'julia_access_token=broken-token'
+        cookie: 'acess_token=broken-token'
       }
     });
     const resolved = await resolvePassportRequestContext(request, {

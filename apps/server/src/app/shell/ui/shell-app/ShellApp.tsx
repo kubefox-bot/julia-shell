@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { CLOCK_TICK_INTERVAL_MS, SHELL_BOOT_DELAY_MS } from '@app/shell/model/constants'
-import { useResolvedShellTheme, useShellI18n, useShellLoadingState } from '@app/shell/model/selectors'
+import { useResolvedShellTheme, useShellLoadingState } from '@app/shell/model/selectors'
 import { useShellStore } from '@app/shell/model/store'
 import { buildShellStatePatch } from '@app/shell/model/store-helpers'
 import type { ShellSettingsResponse } from '@app/shell/model/types'
 import { ShellBootSkeleton, ShellHeaderActions, ShellSettingsOverlay, WidgetGrid } from '@app/shell/ui/components'
+import { logger } from '@shared/lib/logger'
 import styles from './ShellApp.module.scss'
 
 type ShellAppProps = {
@@ -26,7 +27,6 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   }
 
   const { loading, error } = useShellLoadingState()
-  const { t } = useShellI18n()
   const theme = useResolvedShellTheme()
   const hydrateShell = useShellStore((state) => state.hydrateShell)
   const loadShell = useShellStore((state) => state.loadShell)
@@ -99,6 +99,14 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   }, [theme])
 
   useEffect(() => {
+    if (!error) {
+      return
+    }
+
+    logger.error('[shell] load error', error)
+  }, [error])
+
+  useEffect(() => {
     if (!initialShellSettings || !isBootDelayComplete) {
       return
     }
@@ -111,11 +119,6 @@ export function ShellApp({ initialShellSettings, initialNowIso }: ShellAppProps)
   return (
     <div id="shell-root" className={styles.shellRoot} data-theme={theme}>
       <ShellHeaderActions initialLocale={initialShellSettings?.layoutSettings.locale ?? 'ru'} />
-      {!showBootSkeleton && error ? (
-        <p className={styles.error}>
-          {t('error')}: {error}
-        </p>
-      ) : null}
       {!showBootSkeleton ? <ShellSettingsOverlay /> : null}
       {showBootSkeleton ? (
         <ShellBootSkeleton

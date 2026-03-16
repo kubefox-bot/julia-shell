@@ -7,6 +7,8 @@ import { useShellLayoutViewModel } from '@app/shell/model/selectors';
 import { useShellStore } from '@app/shell/model/store';
 import type { ShellStore } from '@app/shell/model/types';
 import { ShellAgentStatusOverlay } from '@app/shell/ui/components/shell-agent-status-overlay';
+import type { PassportAuthStatus } from '@passport/client';
+import { getLampClassKey, resolvePassportTrafficLightState } from '@passport/ui/status-badge';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
 import { resolveDisplayLocale } from '@shared/lib/locale';
 
@@ -32,18 +34,10 @@ function resolveLocaleToggleTitle(locale: DisplayLocale) {
 }
 
 function resolveAgentLampClass(
-  status: string,
+  lampClassKey: ReturnType<typeof getLampClassKey>,
   styles: Record<string, string>
 ) {
-  if (status === 'connected' || status === 'connected_dev') {
-    return styles.agentLampGreen;
-  }
-
-  if (status === 'unauthorized') {
-    return styles.agentLampYellow;
-  }
-
-  return styles.agentLampRed;
+  return styles[lampClassKey] ?? styles.agentLampRed;
 }
 
 export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
@@ -59,6 +53,7 @@ export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
   const toggleLocale = useShellStore((state) => state.toggleLocale);
   const theme = useShellStore((state) => state.layoutSettings.theme);
   const passportStatus = useShellStore((state) => state.passportStatus);
+  const passportAgents = useShellStore((state) => state.passportAgents);
   const [isAgentOverlayOpen, setIsAgentOverlayOpen] = useState(false);
 
   useEffect(() => {
@@ -77,8 +72,12 @@ export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
 
   const themeToggleTitle = resolveThemeToggleTitle(theme, activeLocale);
   const localeToggleTitle = resolveLocaleToggleTitle(activeLocale);
-  const agentStatus = passportStatus?.status ?? 'disconnected';
-  const agentLampClass = resolveAgentLampClass(agentStatus, styles);
+  const agentStatus: PassportAuthStatus = passportStatus?.status ?? 'disconnected';
+  const trafficLightState = resolvePassportTrafficLightState({
+    status: agentStatus,
+    onlineAgentsCount: passportAgents.length
+  });
+  const agentLampClass = resolveAgentLampClass(getLampClassKey(trafficLightState), styles);
 
   return (
     <>

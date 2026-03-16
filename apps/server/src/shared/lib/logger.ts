@@ -10,4 +10,7 @@ export const logger = {
 
     console.log(...args)
   },
+  error(...args: unknown[]) {
+    console.error(...args)
+  },
 }

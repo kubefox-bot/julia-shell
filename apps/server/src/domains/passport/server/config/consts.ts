@@ -1,7 +1,7 @@
 import { DAYS_PER_WEEK, HOURS_PER_DAY, MINUTES_PER_HOUR, SECONDS_PER_MINUTE } from '@shared/lib/time';
 import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets';
 
-export const PASSPORT_ACCESS_COOKIE_NAME = 'julia_access_token';
+export const PASSPORT_ACCESS_COOKIE_NAME = 'acess_token';
 export const PASSPORT_ANONYMOUS_AGENT_ID = 'public-anonymous';
 export const PASSPORT_WIDGET_ID_TRANSCRIBE = TRANSCRIBE_WIDGET_ID;
 export const PASSPORT_WIDGET_ID_TERMINAL_AGENT = TERMINAL_AGENT_WIDGET_ID;

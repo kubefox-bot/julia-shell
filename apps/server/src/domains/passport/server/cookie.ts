@@ -60,7 +60,7 @@ export function extractAccessTokenFromRequest(request: Request) {
 }
 
 /**
- * Builds `julia_access_token` cookie for browser auth bootstrap.
+ * Builds `acess_token` cookie for browser auth bootstrap.
  */
 export function buildPassportAccessCookie(input: {
   token: string;

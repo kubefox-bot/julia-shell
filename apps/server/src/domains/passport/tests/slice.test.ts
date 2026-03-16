@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolvePassportTrafficLightState } from '../ui/status-badge/resolve-traffic-light-state';
 
 const fetchPassportStatusMock = vi.hoisted(() => vi.fn());
 const fetchPassportOnlineAgentsMock = vi.hoisted(() => vi.fn());
@@ -179,6 +180,53 @@ describe('passport zustand slice', () => {
 
     expect(store.getState().agentId).toBe('agent-b');
     expect(store.getState().passportAgents[0]?.isCurrent).toBe(true);
+    expect(
+      resolvePassportTrafficLightState({
+        status: store.getState().authStatus,
+        onlineAgentsCount: store.getState().passportAgents.length
+      })
+    ).toBe('green');
     expect(loadShell).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not switch to loading on background sync when status already exists', async () => {
+    const loadShell = vi.fn(async () => undefined);
+    const store = createTestStore(loadShell);
+
+    store.setState({
+      passportStatus: {
+        status: 'connected',
+        label: 'Connected',
+        updatedAt: '2026-03-09T10:00:00.000Z',
+        reason: null,
+        hostname: 'dev-host',
+        agentId: 'agent-a',
+      },
+      passportLoading: false,
+    });
+
+    let releaseStatus: () => void = () => undefined;
+    fetchPassportStatusMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseStatus = () =>
+            resolve({
+              status: 'connected',
+              label: 'Connected',
+              updatedAt: '2026-03-09T10:00:01.000Z',
+              reason: null,
+              hostname: 'dev-host',
+              agentId: 'agent-a',
+            });
+        })
+    );
+    fetchPassportOnlineAgentsMock.mockResolvedValue({ agents: [] });
+
+    const syncPromise = store.getState().syncFromStatus();
+    expect(store.getState().passportLoading).toBe(false);
+
+    releaseStatus();
+    await syncPromise;
+    expect(store.getState().passportLoading).toBe(false);
   });
 });
