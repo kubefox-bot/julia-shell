@@ -1,6 +1,6 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
 import { defineQuery, requestBody, requestJson } from '@shared/lib/request'
-import { TRANSCRIBE_WIDGET_ID } from '@/widgets'
+import { buildWidgetApiRoute, buildWidgetProviderRoute, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 import { TRANSCRIBE_WIDGET_META } from '../../meta'
 import type {
   FsListResponse,
@@ -8,8 +8,6 @@ import type {
   TranscriptSaveResponse,
   WidgetProviderResponse
 } from './types'
-
-const TRANSCRIBE_WIDGET_ROUTE_PREFIX = `/api/widget/${TRANSCRIBE_WIDGET_ID}`
 
 function readAliases(data: unknown) {
   if (typeof data !== 'object' || data === null || !('aliases' in data)) {
@@ -22,20 +20,20 @@ function readAliases(data: unknown) {
 
 export async function fetchTranscribeProvider() {
   return requestJson<WidgetProviderResponse>(
-    `/api/passport/widget/provider?widget_id=${encodeURIComponent(TRANSCRIBE_WIDGET_ID)}`,
+    buildWidgetProviderRoute(TRANSCRIBE_WIDGET_ID),
     { widget: TRANSCRIBE_WIDGET_META },
     'Failed to resolve widget provider state.'
   )
 }
 
 export async function fetchTranscribeSettings() {
-  return requestJson<TranscribeSettingsPayload>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/settings`, {
+  return requestJson<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
     widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load settings.')
 }
 
 export async function saveTranscribeSettings(payload: { geminiModel: string; apiKey?: string }) {
-  return requestJson<TranscribeSettingsPayload>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/settings`, {
+  return requestJson<TranscribeSettingsPayload>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'settings'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -44,7 +42,7 @@ export async function saveTranscribeSettings(payload: { geminiModel: string; api
 }
 
 export async function fetchTranscribeFolder(path: string) {
-  const typed = await requestJson<FsListResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/fs-list`, {
+  const typed = await requestJson<FsListResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'fs-list'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path }),
@@ -58,7 +56,7 @@ export async function fetchTranscribeFolder(path: string) {
 }
 
 export async function fetchSpeakerAliases() {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/speaker-aliases`, {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
     widget: TRANSCRIBE_WIDGET_META,
   }, 'Failed to load speaker aliases.')
 
@@ -66,7 +64,7 @@ export async function fetchSpeakerAliases() {
 }
 
 export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
-  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/speaker-aliases`, {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'speaker-aliases'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ aliases }),
@@ -81,7 +79,7 @@ export async function readTranscript(payload: {
   folderPath: string | null
   txtPath: string
 }) {
-  return requestJson<TranscriptReadResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcript-read`, {
+  return requestJson<TranscriptReadResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-read'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -95,7 +93,7 @@ export async function saveTranscript(payload: {
   txtPath: string | null
   transcript: string
 }) {
-  return requestJson<TranscriptSaveResponse>(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcript-save`, {
+  return requestJson<TranscriptSaveResponse>(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcript-save'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -107,7 +105,7 @@ export async function openTranscribeStream(payload: {
   folderPath: string
   filePaths: string[]
 }) {
-  return requestBody(`${TRANSCRIBE_WIDGET_ROUTE_PREFIX}/transcribe-stream`, {
+  return requestBody(buildWidgetApiRoute(TRANSCRIBE_WIDGET_ID, 'transcribe-stream'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

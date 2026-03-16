@@ -3,11 +3,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resetDbCache } from '../src/core/db/shared';
+import { PASSPORT_ANONYMOUS_AGENT_ID } from '../src/domains/passport/server/config/consts';
 import { listShellModules } from '../src/core/services/shell-service';
-
-const ANONYMOUS_AGENT_ID = 'public-anonymous';
-const TRANSCRIBE_WIDGET_ID = 'com.yulia.transcribe';
-const TERMINAL_AGENT_WIDGET_ID = 'com.yulia.terminal-agent';
+import { TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '../src/widgets';
 
 let tempDir = '';
 
@@ -24,7 +22,7 @@ describe('shell service passport access policy', () => {
   });
 
   it('marks transcribe as not ready when passport access is missing', async () => {
-    const modules = await listShellModules(ANONYMOUS_AGENT_ID, {
+    const modules = await listShellModules(PASSPORT_ANONYMOUS_AGENT_ID, {
       hasPassportAccess: false
     });
     const transcribe = modules.find((item) => item.id === TRANSCRIBE_WIDGET_ID);

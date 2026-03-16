@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { readRuntimeEnv } from '@core/env'
+import { SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from '@shared/lib/time'
 import type { HostPlatform } from '../../../entities/widget/model/types'
 import {
   DEFAULT_GEMINI_MODEL,
@@ -11,9 +12,6 @@ import {
 import type { BrowserEntry } from './types'
 import { findBinary } from './utils/findBinary'
 import { resolveSelection } from './utils/resolveSelection'
-
-const SECONDS_PER_HOUR = 3600
-const SECONDS_PER_MINUTE = 60
 
 export function toSseEvent(event: string, payload: Record<string, unknown>) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`

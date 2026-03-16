@@ -1,19 +1,17 @@
 import { defineQuery, requestJson, requestRaw } from '@shared/lib/request'
-import { TERMINAL_AGENT_WIDGET_ID } from '@/widgets'
+import { buildWidgetApiRoute, TERMINAL_AGENT_WIDGET_ID } from '@/widgets'
 import { TERMINAL_AGENT_WIDGET_META } from '../meta'
 import type { DialogRefItem, DialogStatePayload, ModelListPayload, Provider, SettingsPayload } from './terminal-agent.types'
 
-const TERMINAL_AGENT_WIDGET_ROUTE_PREFIX = `/api/widget/${TERMINAL_AGENT_WIDGET_ID}`
-
 export async function loadTerminalAgentSettings() {
-  return requestJson<SettingsPayload>(`${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/settings`, {
+  return requestJson<SettingsPayload>(buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings'), {
     widget: TERMINAL_AGENT_WIDGET_META,
   }, 'Failed to load settings.')
 }
 
 export async function loadTerminalAgentDialogState(provider: Provider) {
   return requestJson<DialogStatePayload>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/dialog-state?provider=${encodeURIComponent(provider)}`,
+    `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog-state')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialog state.'
   )
@@ -21,7 +19,7 @@ export async function loadTerminalAgentDialogState(provider: Provider) {
 
 export async function saveTerminalAgentSettings(settings: SettingsPayload) {
   return requestJson<SettingsPayload>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/settings`,
+    buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'settings'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -34,7 +32,7 @@ export async function saveTerminalAgentSettings(settings: SettingsPayload) {
 
 export async function loadTerminalAgentModels(provider: Provider) {
   return requestJson<ModelListPayload>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/models?provider=${encodeURIComponent(provider)}`,
+    `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'models')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load models.'
   )
@@ -42,7 +40,7 @@ export async function loadTerminalAgentModels(provider: Provider) {
 
 export async function loadTerminalAgentDialogRefs(provider: Provider) {
   return requestJson<{ items?: DialogRefItem[] }>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/dialogs?provider=${encodeURIComponent(provider)}`,
+    `${buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialogs')}?provider=${encodeURIComponent(provider)}`,
     { widget: TERMINAL_AGENT_WIDGET_META },
     'Failed to load dialogs.'
   )
@@ -50,7 +48,7 @@ export async function loadTerminalAgentDialogRefs(provider: Provider) {
 
 export async function createTerminalAgentDialog(provider: Provider) {
   return requestJson<DialogStatePayload>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/dialog/new`,
+    buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog/new'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,7 +61,7 @@ export async function createTerminalAgentDialog(provider: Provider) {
 
 export async function selectTerminalAgentDialog(provider: Provider, providerSessionRef: string) {
   return requestJson<DialogStatePayload>(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/dialog/select`,
+    buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'dialog/select'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,7 +74,7 @@ export async function selectTerminalAgentDialog(provider: Provider, providerSess
 
 export function openTerminalAgentMessageStream(provider: Provider, message: string) {
   return requestRaw(
-    `${TERMINAL_AGENT_WIDGET_ROUTE_PREFIX}/message-stream`,
+    buildWidgetApiRoute(TERMINAL_AGENT_WIDGET_ID, 'message-stream'),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
