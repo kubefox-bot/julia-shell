@@ -10,13 +10,13 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { getLocalizedHeader } from '@shared/lib/locale';
-import { useShellRegistry } from '../../lib/registry';
-import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../model/selectors';
-import { useShellStore } from '../../model/store';
-import styles from '../ShellApp.module.scss';
-import skeletonStyles from './skeleton/Skeleton.module.scss';
-import { ShellDragPreview } from './ShellDragPreview';
-import { ShellWidgetCard } from './ShellWidgetCard';
+import { useShellRegistry } from '../../../lib/registry';
+import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '../../../model/selectors';
+import { useShellStore } from '../../../model/store';
+import styles from '../../ShellApp.module.scss';
+import skeletonStyles from '../skeleton/Skeleton.module.scss';
+import { ShellDragPreview } from '../ShellDragPreview';
+import { ShellWidgetCard } from '../ShellWidgetCard';
 
 const SIZE_SPAN = {
   small: 3,
