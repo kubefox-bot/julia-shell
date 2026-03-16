@@ -1,15 +1,17 @@
 import type { APIRoute } from 'astro';
 import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
+import {
+  HTTP_STATUS_ACCEPTED,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_OK,
+  HTTP_STATUS_UNAUTHORIZED
+} from '@shared/lib/http-status';
 import { moduleBus, type EventPayload } from '@shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
 import { nowIso } from '@shared/lib/time';
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
-const HTTP_STATUS_ACCEPTED = 202;
-const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_OK = 200;
-const HTTP_STATUS_UNAUTHORIZED = 401;
 
 function formatSseEvent(event: string, payload: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;

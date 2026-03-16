@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  HTTP_STATUS_CONFLICT,
+  HTTP_STATUS_OK
+} from '@shared/lib/http-status'
 
-const HTTP_STATUS_OK = 200
-const HTTP_STATUS_CONFLICT = 409
 const ACCESS_TOKEN_TTL_SECONDS = 3600
 
 const issuePassportBrowserAccessMock = vi.hoisted(() => vi.fn())

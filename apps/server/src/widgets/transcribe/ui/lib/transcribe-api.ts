@@ -1,23 +1,12 @@
 import type { SpeakerAliasEntry, TranscribeSettingsPayload } from '../model/types'
 import { transcribeManifest } from '../../manifest'
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
+import { defineQuery, requestBody, requestJson } from '@shared/lib/request'
 import type {
   FsListResponse,
-  JsonErrorShape,
   TranscriptReadResponse,
   TranscriptSaveResponse,
   WidgetProviderResponse
 } from './types'
-
-function readErrorMessage(data: unknown, fallback: string) {
-  if (typeof data === 'object' && data !== null) {
-    const shape = data as JsonErrorShape
-    if (typeof shape.error === 'string' && shape.error.trim()) {
-      return shape.error
-    }
-  }
-  return fallback
-}
 
 function readAliases(data: unknown) {
   if (typeof data !== 'object' || data === null || !('aliases' in data)) {
@@ -28,67 +17,41 @@ function readAliases(data: unknown) {
   return Array.isArray(aliases) ? aliases as SpeakerAliasEntry[] : []
 }
 
-async function readJson<T>(response: Response) {
-  return await response.json() as T
-}
-
 const WIDGET_META = {
   id: transcribeManifest.id,
   version: transcribeManifest.version,
 } as const
 
 export async function fetchTranscribeProvider() {
-  const response = await fetchWithRequestHeaders(
+  return requestJson<WidgetProviderResponse>(
     '/api/passport/widget/provider?widget_id=com.yulia.transcribe',
-    undefined,
-    { widget: WIDGET_META }
+    { widget: WIDGET_META },
+    'Failed to resolve widget provider state.'
   )
-  const data = await readJson<WidgetProviderResponse | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to resolve widget provider state.'))
-  }
-
-  return data as WidgetProviderResponse
 }
 
 export async function fetchTranscribeSettings() {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/settings', undefined, {
+  return requestJson<TranscribeSettingsPayload>('/api/widget/com.yulia.transcribe/settings', {
     widget: WIDGET_META,
-  })
-  const data = await readJson<TranscribeSettingsPayload | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to load settings.'))
-  }
-
-  return data as TranscribeSettingsPayload
+  }, 'Failed to load settings.')
 }
 
 export async function saveTranscribeSettings(payload: { geminiModel: string; apiKey?: string }) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/settings', {
+  return requestJson<TranscribeSettingsPayload>('/api/widget/com.yulia.transcribe/settings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }, { widget: WIDGET_META })
-  const data = await readJson<TranscribeSettingsPayload | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to save settings.'))
-  }
-
-  return data as TranscribeSettingsPayload
+    body: JSON.stringify(payload),
+    widget: WIDGET_META
+  }, 'Failed to save settings.')
 }
 
 export async function fetchTranscribeFolder(path: string) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/fs-list', {
+  const typed = await requestJson<FsListResponse>('/api/widget/com.yulia.transcribe/fs-list', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path })
-  }, { widget: WIDGET_META })
-  const data = await readJson<FsListResponse | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to read path.'))
-  }
-
-  const typed = data as FsListResponse
+    body: JSON.stringify({ path }),
+    widget: WIDGET_META
+  }, 'Failed to read path.')
   return {
     path: typed.path,
     entries: typed.entries,
@@ -97,27 +60,20 @@ export async function fetchTranscribeFolder(path: string) {
 }
 
 export async function fetchSpeakerAliases() {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/speaker-aliases', undefined, {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>('/api/widget/com.yulia.transcribe/speaker-aliases', {
     widget: WIDGET_META,
-  })
-  const data = await readJson<{ aliases?: SpeakerAliasEntry[] } | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to load speaker aliases.'))
-  }
+  }, 'Failed to load speaker aliases.')
 
   return readAliases(data)
 }
 
 export async function saveSpeakerAliases(aliases: SpeakerAliasEntry[]) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/speaker-aliases', {
+  const data = await requestJson<{ aliases?: SpeakerAliasEntry[] }>('/api/widget/com.yulia.transcribe/speaker-aliases', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ aliases })
-  }, { widget: WIDGET_META })
-  const data = await readJson<{ aliases?: SpeakerAliasEntry[] } | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to save speaker aliases.'))
-  }
+    body: JSON.stringify({ aliases }),
+    widget: WIDGET_META
+  }, 'Failed to save speaker aliases.')
 
   return readAliases(data)
 }
@@ -127,17 +83,12 @@ export async function readTranscript(payload: {
   folderPath: string | null
   txtPath: string
 }) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/transcript-read', {
+  return requestJson<TranscriptReadResponse>('/api/widget/com.yulia.transcribe/transcript-read', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }, { widget: WIDGET_META })
-  const data = await readJson<TranscriptReadResponse | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to open .txt file.'))
-  }
-
-  return data as TranscriptReadResponse
+    body: JSON.stringify(payload),
+    widget: WIDGET_META
+  }, 'Failed to open .txt file.')
 }
 
 export async function saveTranscript(payload: {
@@ -146,33 +97,32 @@ export async function saveTranscript(payload: {
   txtPath: string | null
   transcript: string
 }) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/transcript-save', {
+  return requestJson<TranscriptSaveResponse>('/api/widget/com.yulia.transcribe/transcript-save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }, { widget: WIDGET_META })
-  const data = await readJson<TranscriptSaveResponse | JsonErrorShape>(response)
-  if (!response.ok) {
-    throw new Error(readErrorMessage(data, 'Failed to save transcript.'))
-  }
-
-  return data as TranscriptSaveResponse
+    body: JSON.stringify(payload),
+    widget: WIDGET_META
+  }, 'Failed to save transcript.')
 }
 
 export async function openTranscribeStream(payload: {
   folderPath: string
   filePaths: string[]
 }) {
-  const response = await fetchWithRequestHeaders('/api/widget/com.yulia.transcribe/transcribe-stream', {
+  return requestBody('/api/widget/com.yulia.transcribe/transcribe-stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }, { widget: WIDGET_META })
-
-  if (!response.ok || !response.body) {
-    const data = await response.json().catch(() => null)
-    throw new Error(readErrorMessage(data, 'Transcription failed.'))
-  }
-
-  return response.body
+    body: JSON.stringify(payload),
+    widget: WIDGET_META
+  }, 'Transcription failed.')
 }
+
+export const transcribeQueryKeys = {
+  provider: () => ['transcribe', 'provider'] as const,
+  settings: () => ['transcribe', 'settings'] as const,
+  speakerAliases: () => ['transcribe', 'speaker-aliases'] as const
+}
+
+export const transcribeProviderQuery = defineQuery(transcribeQueryKeys.provider(), fetchTranscribeProvider)
+export const transcribeSettingsQuery = defineQuery(transcribeQueryKeys.settings(), fetchTranscribeSettings)
+export const transcribeSpeakerAliasesQuery = defineQuery(transcribeQueryKeys.speakerAliases(), fetchSpeakerAliases)

@@ -1,7 +1,11 @@
 import { DateTime } from 'luxon'
 import { err, ok, type Result } from 'neverthrow'
 import { z } from 'zod'
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
+import { requestRaw } from '@shared/lib/request'
+import {
+  HTTP_STATUS_INTERNAL_SERVER_ERROR as HTTP_STATUS_SERVER_ERROR,
+  HTTP_STATUS_TOO_MANY_REQUESTS
+} from '@shared/lib/http-status'
 import {
   listLlmModels,
   replaceLlmModels,
@@ -11,8 +15,6 @@ import {
 const DEFAULT_TTL_MS = Number('86400000')
 const CONSUMER_TERMINAL_AGENT = 'terminal-agent'
 const PROVIDER_ERROR_PREVIEW_LENGTH = 240
-const HTTP_STATUS_TOO_MANY_REQUESTS = 429
-const HTTP_STATUS_SERVER_ERROR = 500
 const RETRY_DELAY_MS = 200
 
 const openAiModelsSchema = z.object({
@@ -47,7 +49,7 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
 
   while (attempt <= retries) {
     try {
-      const response = await fetchWithRequestHeaders(url, init)
+      const response = await requestRaw(url, init)
       if (!response.ok) {
         const body = await response.text().catch(() => '')
         lastError = {

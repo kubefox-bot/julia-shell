@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
+import { requestJson } from '@shared/lib/request';
 import { weatherManifest } from '../manifest';
 import styles from './WeatherWidget.module.scss';
 
@@ -63,16 +63,10 @@ async function loadForecast(refresh = false) {
     ? '/api/widget/com.yulia.weather/refresh'
     : '/api/widget/com.yulia.weather/forecast';
 
-  const response = await fetchWithRequestHeaders(endpoint, {
-    method: refresh ? 'POST' : 'GET'
-  }, { widget: WIDGET_META });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.error || 'Не удалось загрузить прогноз.');
-  }
-
-  return data as WeatherPayload;
+  return requestJson<WeatherPayload>(endpoint, {
+    method: refresh ? 'POST' : 'GET',
+    widget: WIDGET_META
+  }, 'Не удалось загрузить прогноз.');
 }
 
 export function WeatherWidget(_props: WidgetRenderProps) {

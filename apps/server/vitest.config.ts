@@ -1,16 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'node:url';
+import { resolveServerAliases } from './config/vite.shared.mjs';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
-      '@core': fileURLToPath(new URL('./src/core', import.meta.url)),
-      '@passport': fileURLToPath(new URL('./src/domains/passport', import.meta.url)),
-      '@lls': fileURLToPath(new URL('./src/domains/llm', import.meta.url)),
-      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url))
-    }
+    alias: resolveServerAliases(import.meta.url)
   },
   test: {
     environment: 'node',

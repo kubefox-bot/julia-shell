@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
+import { requestRaw } from '@shared/lib/request';
 import { weatherManifest } from '../manifest';
 
 const FORECAST_DAY_COUNT = Number('3');
@@ -100,11 +100,12 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
   weatherUrl.searchParams.set('forecast_days', '3');
   weatherUrl.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min');
 
-  const response = await fetchWithRequestHeaders(weatherUrl, {
+  const response = await requestRaw(weatherUrl, {
     headers: {
       'User-Agent': 'Yulia-Assistant/2.0'
-    }
-  }, { widget: WIDGET_META });
+    },
+    widget: WIDGET_META
+  });
 
   if (!response.ok) {
     throw new Error(`Weather API returned ${response.status}`);

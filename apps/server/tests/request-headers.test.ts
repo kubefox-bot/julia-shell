@@ -3,6 +3,10 @@ import { fetchShellSettings } from '../src/app/shell/lib/api'
 import { buildRequestHeaders } from '../src/shared/lib/request-headers'
 import { fetchTranscribeSettings } from '../src/widgets/transcribe/ui/lib/transcribe-api'
 
+function toRequest(input: RequestInfo | URL) {
+  return input instanceof Request ? input : new Request(String(input))
+}
+
 describe('request headers', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -44,11 +48,12 @@ describe('request headers', () => {
 
     await fetchTranscribeSettings()
 
-    const [, init] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined]
-    const headers = new Headers(init?.headers)
-    expect(headers.get('x-request-id')).toBeTruthy()
-    expect(headers.get('x-widget-id')).toBe('com.yulia.transcribe')
-    expect(headers.get('x-widget-version')).toBe('1.0.0')
+    const [url] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined]
+    const request = toRequest(url)
+    expect(request.url).toContain('/api/widget/com.yulia.transcribe/settings')
+    expect(request.headers.get('x-request-id')).toBeTruthy()
+    expect(request.headers.get('x-widget-id')).toBe('com.yulia.transcribe')
+    expect(request.headers.get('x-widget-version')).toBe('1.0.0')
   })
 
   it('adds x-request-id without widget headers for shell API requests', async () => {
@@ -66,10 +71,11 @@ describe('request headers', () => {
 
     await fetchShellSettings()
 
-    const [, init] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined]
-    const headers = new Headers(init?.headers)
-    expect(headers.get('x-request-id')).toBeTruthy()
-    expect(headers.has('x-widget-id')).toBe(false)
-    expect(headers.has('x-widget-version')).toBe(false)
+    const [url] = fetchMock.mock.calls[0] as [RequestInfo | URL, RequestInit | undefined]
+    const request = toRequest(url)
+    expect(request.url).toContain('/api/shell/settings')
+    expect(request.headers.get('x-request-id')).toBeTruthy()
+    expect(request.headers.has('x-widget-id')).toBe(false)
+    expect(request.headers.has('x-widget-version')).toBe(false)
   })
 })

@@ -44,11 +44,3 @@ export function withRequestHeaders(init?: RequestInit, options?: { widget?: Widg
     headers: buildRequestHeaders(init?.headers, options),
   }
 }
-
-export function fetchWithRequestHeaders(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-  options?: { widget?: WidgetRequestMeta }
-) {
-  return fetch(input, withRequestHeaders(init, options))
-}

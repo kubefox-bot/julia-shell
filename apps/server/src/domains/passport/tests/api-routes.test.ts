@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_OK,
+  HTTP_STATUS_UNAUTHORIZED
+} from '@shared/lib/http-status';
 
-const HTTP_STATUS_OK = 200;
-const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_UNAUTHORIZED = 401;
 const ACCESS_TOKEN_TTL_SECONDS = 3600;
 
 const enrollPassportAgentMock = vi.hoisted(() => vi.fn());

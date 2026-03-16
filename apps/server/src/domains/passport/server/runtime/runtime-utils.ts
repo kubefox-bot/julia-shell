@@ -26,9 +26,14 @@ export function resolveProtoPath() {
 
 export function extractHeartbeatHostname(value: unknown) {
   if (typeof value !== 'object' || value === null) {
-    return ''
+    return null
   }
 
   const hostname = (value as { hostname?: unknown }).hostname
-  return typeof hostname === 'string' ? hostname.trim() : ''
+  if (typeof hostname !== 'string') {
+    return null
+  }
+
+  const normalizedHostname = hostname.trim()
+  return normalizedHostname || null
 }

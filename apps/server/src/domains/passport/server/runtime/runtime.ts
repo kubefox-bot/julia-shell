@@ -70,7 +70,7 @@ function resolveWidgetEventId(widgetEvent: Record<string, unknown>) {
     return widgetEvent.widget_id.trim()
   }
 
-  return ''
+  return null
 }
 
 function resolveTypedWidgetEvent(widgetEvent: Record<string, unknown>, widgetId: string): RuntimeWidgetEvent | null {
