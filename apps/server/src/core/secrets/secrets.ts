@@ -8,7 +8,7 @@ const STARTUP_SECRET_KEYS: Array<{ keyName: string; secretPath?: string }> = [
   { keyName: 'GEMINI_API_KEY', secretPath: '/transcribe' },
 ]
 
-const REQUIRED_SECRET_KEYS = ['ADMIN_TOKEN', 'AGENT_JWT_SECRET'] as const
+const REQUIRED_SECRET_KEYS = ['AGENT_JWT_SECRET'] as const
 
 let preloadPromise: Promise<void> | null = null
 
