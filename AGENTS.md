@@ -324,10 +324,21 @@ Linting / typing:
   - keep retry/refetch policy outside UI components.
 - if a value is unknown and the operation should remain non-blocking, use `null` instead of empty strings or placeholder sentinels.
 - reusable HTTP/status/protocol constants should live in shared dictionaries, not be re-declared across route files and tests.
+- widget IDs/routes should be read from shared widget constants/helpers (`apps/server/src/widgets/constants.ts`) instead of hardcoded literals.
+- for deterministic resolution logic (platform/status/widget behavior), prefer `Map`/`Record` resolvers over if/else chains.
 - avoid long/cascading ternary expressions; prefer `Record` maps, named resolver helpers, or explicit branches.
 - one file should have one main responsibility/exported unit; split large features by meaning, not by arbitrary line counts.
 - keep feature folders decomposed by subdomain/component; each runtime TS/TSX folder should expose `index.ts` as its entrypoint where that folder is a public module boundary.
 - keep `@app/*`, `@core/*`, `@shared/*`, and `@passport/*` aliases as the default cross-feature import style inside `apps/server/src`.
+
+## Quality Gate (Current)
+- baseline before merge/release:
+  - `yarn workspace @julia/server lint`
+  - `yarn workspace @julia/server typecheck`
+  - `yarn workspace @julia/server test`
+- monorepo contract checks:
+  - `yarn check:protocol`
+  - `yarn check:agent`
 
 Container scaffold (not production-complete):
 - `Containerfile`
