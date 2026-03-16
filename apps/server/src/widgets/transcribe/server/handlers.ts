@@ -29,14 +29,15 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
     return fromThrowablePromise(
       readJsonBody<{ path?: string }>(request)
         .then((body) => listPathEntries(body.path ?? ''))
-    ).match(
-      (payload) => {
-        touchRecentFolder(agentId, WIDGET_ID, payload.path)
-        return jsonResponse({
-          ...payload,
-          recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
+        .then((payload) => {
+          touchRecentFolder(agentId, WIDGET_ID, payload.path)
+          return {
+            ...payload,
+            recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
+          }
         })
-      },
+    ).match(
+      (payload) => jsonResponse(payload),
       (error) => jsonResponse({
         error: error instanceof Error ? error.message : 'Failed to list path.'
       }, HTTP_STATUS_INTERNAL_SERVER_ERROR)
