@@ -107,7 +107,7 @@ describe('passport api routes connect', () => {
     const payload = await response.json()
     expect(response.status).toBe(HTTP_STATUS_OK)
     expect(payload.agentId).toBe('agent-b')
-    expect(response.headers.get('set-cookie')).toContain('julia_access_token=browser-jwt')
+    expect(response.headers.get('set-cookie')).toContain('acess_token=browser-jwt')
   })
 
   it('rejects connect for offline or unknown agent', async () => {

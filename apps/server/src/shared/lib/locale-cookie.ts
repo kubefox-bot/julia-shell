@@ -1,6 +1,6 @@
 import type { ShellLocale } from '../../entities/widget/model/types';
 
-export const JULIA_LOCALE_COOKIE_NAME = 'julia_locale';
+export const JULIA_LOCALE_COOKIE_NAME = 'lang';
 const DAYS_PER_YEAR = 365;
 const JULIA_LOCALE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * DAYS_PER_YEAR;
 

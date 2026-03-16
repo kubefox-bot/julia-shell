@@ -71,7 +71,8 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
   passportLoading: true,
   passportBusy: false,
   syncFromStatus: async () => {
-    set({ passportLoading: true, error: null });
+    const shouldShowLoading = get().passportStatus === null;
+    set({ passportLoading: shouldShowLoading, error: null });
 
     try {
       const previousSnapshot = get().passportStatus;
