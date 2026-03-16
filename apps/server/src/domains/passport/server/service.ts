@@ -67,3 +67,14 @@ export async function refreshPassportSession(input: { agentId: string; refreshTo
 export function revokePassportSession(input: { agentId: string; refreshToken: string }) {
   return revokeRefreshToken(input.agentId, input.refreshToken);
 }
+
+export async function issuePassportBrowserAccess(agentId: string) {
+  const secret = await resolvePassportJwtSecret();
+  const access = issueAccessJwt(secret, agentId);
+
+  return {
+    agentId,
+    accessJwt: access.token,
+    expiresIn: access.expiresIn
+  };
+}

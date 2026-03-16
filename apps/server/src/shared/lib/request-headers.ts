@@ -1,6 +1,10 @@
+import { nowMillis } from './time'
+
 const REQUEST_ID_HEADER = 'x-request-id'
 const WIDGET_ID_HEADER = 'x-widget-id'
 const WIDGET_VERSION_HEADER = 'x-widget-version'
+const HEX_RADIX = 16
+const RANDOM_PREFIX_LENGTH = 2
 
 export type WidgetRequestMeta = {
   id: string
@@ -12,8 +16,8 @@ function createRequestId() {
     return globalThis.crypto.randomUUID()
   }
 
-  const timestamp = Date.now().toString(16)
-  const randomPart = Math.random().toString(16).slice(2)
+  const timestamp = nowMillis().toString(HEX_RADIX)
+  const randomPart = Math.random().toString(HEX_RADIX).slice(RANDOM_PREFIX_LENGTH)
   return `${timestamp}-${randomPart}`
 }
 

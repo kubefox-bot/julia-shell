@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useShellI18n } from '../../../app/shell/model/selectors'
 import { useShellStore } from '../../../app/shell/model/store'
 import { Button } from '@shared/ui/Button'
-import type { PassportAuthStatus } from '../client/types'
+import type { PassportAuthStatus, PassportOnlineAgent } from '../client/types'
 import styles from './PassportStatusBadge.module.scss'
 import { resolveAgentReleasesBaseUrl } from './status-badge/env'
 import { getAgentDownloadUrl } from './status-badge/get-agent-download-url'
@@ -14,19 +14,37 @@ import type { AgentPlatform } from './status-badge/types'
 
 const AGENT_RELEASES_BASE_URL = resolveAgentReleasesBaseUrl()
 
+function getAgentPrimaryLabel(agent: PassportOnlineAgent) {
+  return agent.displayName?.trim() || agent.hostname?.trim() || agent.agentId
+}
+
+function getAgentMetaLabel(agent: PassportOnlineAgent) {
+  const displayName = agent.displayName?.trim() || ''
+  const hostname = agent.hostname?.trim() || ''
+
+  if (displayName && hostname && displayName !== hostname) {
+    return hostname
+  }
+
+  if (displayName && displayName !== agent.agentId) {
+    return agent.agentId
+  }
+
+  return hostname || agent.agentId
+}
+
 export function PassportStatusBadge() {
   const { t } = useShellI18n()
   const passportStatus = useShellStore((state) => state.passportStatus)
+  const passportAgents = useShellStore((state) => state.passportAgents)
   const isLoading = useShellStore((state) => state.passportLoading)
   const isActionPending = useShellStore((state) => state.passportBusy)
-  const syncFromStatus = useShellStore((state) => state.syncFromStatus)
+  const connectAgent = useShellStore((state) => state.connectAgent)
   const retryStatus = useShellStore((state) => state.retryStatus)
   const [platform, setPlatform] = useState<AgentPlatform>('windows')
 
   const currentStatus: PassportAuthStatus = passportStatus?.status ?? 'disconnected'
-  const isConnected = currentStatus === 'connected' || currentStatus === 'connected_dev'
   const isDisconnected = currentStatus === 'disconnected'
-  const actionLabel = isConnected ? t('agentStatusRefresh') : t('agentStatusConnect')
   const hostname = passportStatus?.hostname?.trim() || ''
   const downloadUrl = getAgentDownloadUrl(AGENT_RELEASES_BASE_URL, platform)
   const installLabels = useMemo(
@@ -55,10 +73,10 @@ export function PassportStatusBadge() {
           type="button"
           variant="ghost"
           className={styles.agentStatusAction}
-          onClick={() => void (isConnected ? syncFromStatus() : retryStatus())}
+          onClick={() => void retryStatus()}
           disabled={isLoading || isActionPending}
         >
-          {actionLabel}
+          {t('agentStatusRefresh')}
         </Button>
       </div>
       {hostname ? (
@@ -66,7 +84,37 @@ export function PassportStatusBadge() {
           <span className={styles.agentHostname}>{hostname}</span>
         </div>
       ) : null}
-      {isDisconnected ? (
+      {passportAgents.length > 0 ? (
+        <div className={styles.agentListBlock}>
+          <div className={styles.agentListTitle}>{t('agentStatusAvailableAgents')}</div>
+          <div className={styles.agentList}>
+            {passportAgents.map((agent) => (
+              <div key={agent.agentId} className={styles.agentListRow}>
+                <div className={styles.agentListText}>
+                  <div className={styles.agentListPrimary}>
+                    <span className={`${styles.agentLamp} ${styles.agentLampGreen}`} aria-hidden="true" />
+                    <span className={styles.agentListName}>{getAgentPrimaryLabel(agent)}</span>
+                    {agent.isCurrent ? (
+                      <span className={styles.agentCurrentBadge}>{t('agentStatusCurrentAgent')}</span>
+                    ) : null}
+                  </div>
+                  <div className={styles.agentListMeta}>{getAgentMetaLabel(agent)}</div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={styles.agentConnectAction}
+                  onClick={() => void connectAgent(agent.agentId)}
+                  disabled={agent.isCurrent || isLoading || isActionPending}
+                >
+                  {agent.isCurrent ? t('agentStatusConnected') : t('agentStatusConnect')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {isDisconnected && passportAgents.length === 0 ? (
         <PassportInstallBlock
           platform={platform}
           setPlatform={setPlatform}

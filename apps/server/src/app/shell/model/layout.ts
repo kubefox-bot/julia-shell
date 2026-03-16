@@ -1,4 +1,4 @@
-import type { LayoutItem, WidgetModuleInfo, WidgetSize } from '../../../entities/widget/model/types';
+import type { LayoutItem, WidgetModuleInfo, WidgetSize } from '@/entities/widget/model/types';
 import type { PreviewLayoutEntry } from './types';
 
 const VALID_SIZES = new Set<WidgetSize>(['small', 'medium', 'large']);

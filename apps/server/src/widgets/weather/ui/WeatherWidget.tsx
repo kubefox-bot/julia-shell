@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { DateTime } from 'luxon';
 import type { WidgetRenderProps } from '../../../entities/widget/model/types';
 import { Button } from '@shared/ui/Button';
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
-import { weatherManifest } from '../manifest'
+import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
+import { weatherManifest } from '../manifest';
 import styles from './WeatherWidget.module.scss';
 
 type ForecastDay = {
@@ -20,6 +21,14 @@ type WeatherPayload = {
   fetchedAt: string;
   fromCache: boolean;
 };
+
+const WIDGET_META = {
+  id: weatherManifest.id,
+  version: weatherManifest.version
+} as const;
+
+const FORECAST_DATE_FORMATTER = DateTime.DATE_MED_WITH_WEEKDAY;
+const META_DATE_FORMATTER = 'dd.MM, HH:mm';
 
 function describeWeatherCode(code: number) {
   const labels: Record<number, string> = {
@@ -56,12 +65,7 @@ async function loadForecast(refresh = false) {
 
   const response = await fetchWithRequestHeaders(endpoint, {
     method: refresh ? 'POST' : 'GET'
-  }, {
-    widget: {
-      id: weatherManifest.id,
-      version: weatherManifest.version,
-    },
-  })
+  }, { widget: WIDGET_META });
 
   const data = await response.json();
   if (!response.ok) {
@@ -95,6 +99,11 @@ export function WeatherWidget(_props: WidgetRenderProps) {
     void runLoad(false);
   }, [runLoad]);
 
+  const formatForecastDate = (value: string) =>
+    DateTime.fromISO(value).setLocale('ru').toLocaleString(FORECAST_DATE_FORMATTER);
+  const formatFetchedAt = (value: string) =>
+    DateTime.fromISO(value).setLocale('ru').toFormat(META_DATE_FORMATTER);
+
   return (
     <div className={[styles.weatherRoot, themeClass].join(' ')}>
       <div className={styles.header}>
@@ -115,7 +124,7 @@ export function WeatherWidget(_props: WidgetRenderProps) {
       <ul className={styles.list}>
         {(data?.days ?? []).map((day) => (
           <li key={day.date}>
-            <span>{new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(day.date))}</span>
+            <span>{formatForecastDate(day.date)}</span>
             <span>{describeWeatherCode(day.weatherCode)}</span>
             <strong>{Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°</strong>
           </li>
@@ -124,7 +133,7 @@ export function WeatherWidget(_props: WidgetRenderProps) {
 
       {data ? (
         <p className={styles.meta}>
-          Обновлено: {new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }).format(new Date(data.fetchedAt))}
+          Обновлено: {formatFetchedAt(data.fetchedAt)}
           {data.fromCache ? ' (cache)' : ''}
         </p>
       ) : null}

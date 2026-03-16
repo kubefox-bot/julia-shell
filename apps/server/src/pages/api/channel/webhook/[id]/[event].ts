@@ -4,23 +4,23 @@ import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus } from '@shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
 
-const STATUS_ACCEPTED = 202;
-const STATUS_BAD_REQUEST = 400;
-const STATUS_UNAUTHORIZED = 401;
+const HTTP_STATUS_ACCEPTED = 202;
+const HTTP_STATUS_BAD_REQUEST = 400;
+const HTTP_STATUS_UNAUTHORIZED = 401;
 
 export const POST: APIRoute = async ({ request, params }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized channel access.' }, STATUS_UNAUTHORIZED);
+    return jsonResponse({ error: 'Unauthorized channel access.' }, HTTP_STATUS_UNAUTHORIZED);
   }
 
   const widgetId = params.id;
   const eventName = params.event;
 
   if (!widgetId || !eventName) {
-    return jsonResponse({ error: 'Missing webhook path params.' }, STATUS_BAD_REQUEST);
+    return jsonResponse({ error: 'Missing webhook path params.' }, HTTP_STATUS_BAD_REQUEST);
   }
 
   const payload = await readJsonBody(request);
@@ -33,5 +33,5 @@ export const POST: APIRoute = async ({ request, params }) => {
     topic,
     widgetId,
     event: eventName
-  }, STATUS_ACCEPTED), resolvedAuth.context.setCookieHeader);
+  }, HTTP_STATUS_ACCEPTED), resolvedAuth.context.setCookieHeader);
 };

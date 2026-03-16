@@ -14,9 +14,9 @@ import { useShellRegistry } from '@app/shell/lib/registry';
 import { useResolvedShellTheme, useShellDndViewModel, useShellEditMode, useShellLayoutViewModel, useShellLocale } from '@app/shell/model/selectors';
 import { useShellStore } from '@app/shell/model/store';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
-import skeletonStyles from '../skeleton/Skeleton.module.scss';
-import { ShellDragPreview } from '../shell-drag-preview';
-import { ShellWidgetCard } from '../shell-widget-card';
+import { ShellDragPreview } from '@app/shell/ui/components/shell-drag-preview';
+import { ShellWidgetCard } from '@app/shell/ui/components/shell-widget-card';
+import skeletonStyles from './skeleton/Skeleton.module.scss';
 
 const SIZE_SPAN = {
   small: 3,

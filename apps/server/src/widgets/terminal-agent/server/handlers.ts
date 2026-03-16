@@ -17,6 +17,8 @@ import {
 } from './settings'
 import { toArgs, toProvider } from './utils'
 
+const HTTP_STATUS_BAD_REQUEST = 400
+
 const modelsQuerySchema = z.object({
   provider: z.enum(['codex', 'gemini']).default('codex'),
   refresh: z.enum(['0', '1']).optional(),
@@ -54,7 +56,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
     const provider = toProvider(body.provider)
     const payload = resetTerminalAgentDialog(agentId, provider)
 
-    const onlineAgent = passportRuntime.getOnlineAgentSession()
+    const onlineAgent = passportRuntime.getOnlineAgentSession(agentId)
     if (onlineAgent) {
       passportRuntime.dispatchTerminalAgentResetDialog({
         agentId: onlineAgent.agentId,
@@ -82,7 +84,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       refresh: url.searchParams.get('refresh') ?? undefined,
     })
     if (!parsedQuery.success) {
-      return jsonResponse({ error: 'Invalid query params.' }, 400)
+      return jsonResponse({ error: 'Invalid query params.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     const provider = parsedQuery.data.provider
@@ -108,7 +110,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
       : ''
 
     if (!providerSessionRef) {
-      return jsonResponse({ error: 'providerSessionRef is required.' }, 400)
+      return jsonResponse({ error: 'providerSessionRef is required.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     const payload = selectTerminalAgentDialog(agentId, provider, providerSessionRef)
@@ -120,7 +122,7 @@ export const terminalAgentHandlers: WidgetServerModule['handlers'] = {
     const provider = toProvider(body.provider)
 
     if (!message) {
-      return jsonResponse({ error: 'message is required.' }, 400)
+      return jsonResponse({ error: 'message is required.' }, HTTP_STATUS_BAD_REQUEST)
     }
 
     return handleTerminalAgentMessageStream({

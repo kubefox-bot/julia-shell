@@ -1,5 +1,5 @@
 import type { DateTime } from 'luxon';
-import type { DisplayLocale } from '../../../entities/widget/model/types';
+import type { DisplayLocale } from '@/entities/widget/model/types';
 
 const DAILY_QUOTES = {
   ru: [
@@ -49,6 +49,8 @@ const SHELL_COPY = {
     agentStatusDisconnected: 'Не подключен',
     agentStatusRefresh: 'Обновить',
     agentStatusConnect: 'Подключить',
+    agentStatusAvailableAgents: 'Доступные агенты',
+    agentStatusCurrentAgent: 'Текущий браузер',
     agentInstallTitle: 'Установить агент',
     agentInstallOsWindows: 'Windows',
     agentInstallOsMacos: 'macOS',
@@ -107,6 +109,8 @@ const SHELL_COPY = {
     agentStatusDisconnected: 'Disconnected',
     agentStatusRefresh: 'Refresh',
     agentStatusConnect: 'Connect',
+    agentStatusAvailableAgents: 'Available agents',
+    agentStatusCurrentAgent: 'Current browser',
     agentInstallTitle: 'Install agent',
     agentInstallOsWindows: 'Windows',
     agentInstallOsMacos: 'macOS',

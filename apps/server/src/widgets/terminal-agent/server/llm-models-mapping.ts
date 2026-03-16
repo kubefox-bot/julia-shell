@@ -3,6 +3,9 @@ import type { TerminalAgentProvider } from '../../../domains/llm/server/reposito
 import { WIDGET_ID } from './constants'
 import type { TerminalAgentLlmModelsPayload } from './types'
 
+const HTTP_STATUS_BAD_GATEWAY = 502
+const HTTP_STATUS_SERVICE_UNAVAILABLE = 503
+
 type LlmCatalogValue = {
   provider: TerminalAgentProvider
   models: string[]
@@ -27,7 +30,7 @@ export function toTerminalAgentLlmModelsPayload(input: LlmCatalogValue): Termina
 
 export function toTerminalAgentLlmModelsHttpError(error: LlmCatalogError) {
   return {
-    status: error.retryable ? 503 : 502,
+    status: error.retryable ? HTTP_STATUS_SERVICE_UNAVAILABLE : HTTP_STATUS_BAD_GATEWAY,
     payload: {
       error: error.message,
       code: error.code,

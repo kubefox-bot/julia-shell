@@ -1,13 +1,18 @@
+import { DateTime } from 'luxon';
 import { getWeatherCache, upsertWeatherCache } from './repository';
 import type { WidgetServerModule } from '../../../entities/widget/model/types';
 import { jsonResponse } from '@shared/lib/http';
 import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
 import { weatherManifest } from '../manifest';
 
-const BATUMI_LATITUDE = 41.65;
-const BATUMI_LONGITUDE = 41.64;
+const FORECAST_DAY_COUNT = Number('3');
+const BATUMI_LATITUDE = Number.parseFloat('41.65');
+const BATUMI_LONGITUDE = Number.parseFloat('41.64');
+const HTTP_STATUS_INTERNAL_SERVER_ERROR = Number('500');
 const LOCATION_KEY = 'batumi';
-const CACHE_TTL_MS = 30 * 60 * 1000;
+const CACHE_TTL_MS = Number('1800000');
+const INDOOR_WEATHER_CODES = new Set(['80', '81', '82', '61', '63', '65']);
+const OUTDOOR_WEATHER_CODES = new Set(['0', '1']);
 const WIDGET_META = {
   id: weatherManifest.id,
   version: weatherManifest.version
@@ -59,11 +64,11 @@ function describeWeatherCode(code: number) {
 }
 
 function getWeatherMood(code: number) {
-  if ([80, 81, 82, 61, 63, 65].includes(code)) {
+  if (INDOOR_WEATHER_CODES.has(String(code))) {
     return '☔ Придется дома сидеть';
   }
 
-  if ([0, 1].includes(code)) {
+  if (OUTDOOR_WEATHER_CODES.has(String(code))) {
     return '☀️ Можно погулять';
   }
 
@@ -120,7 +125,7 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
     throw new Error('Weather payload is incomplete.');
   }
 
-  return daily.time.slice(0, 3).map((date, index) => ({
+  return daily.time.slice(0, FORECAST_DAY_COUNT).map((date, index) => ({
     date,
     tempMax: daily.temperature_2m_max?.[index] ?? 0,
     tempMin: daily.temperature_2m_min?.[index] ?? 0,
@@ -130,10 +135,10 @@ async function fetchRemoteForecast(): Promise<ForecastDay[]> {
 
 async function getWeather(forceRefresh: boolean) {
   const cached = getWeatherCache(LOCATION_KEY);
-  const now = Date.now();
+  const now = DateTime.now().toMillis();
 
   if (!forceRefresh && cached) {
-    const fetchedAtMs = Date.parse(cached.fetchedAt);
+    const fetchedAtMs = DateTime.fromISO(cached.fetchedAt).toMillis();
     if (Number.isFinite(fetchedAtMs) && now - fetchedAtMs < CACHE_TTL_MS) {
       const parsed = JSON.parse(cached.payload) as ForecastDay[];
       return buildPayload(parsed, cached.fetchedAt, true);
@@ -142,7 +147,10 @@ async function getWeather(forceRefresh: boolean) {
 
   try {
     const days = await fetchRemoteForecast();
-    const fetchedAt = new Date().toISOString();
+    const fetchedAt = DateTime.now().toISO();
+    if (!fetchedAt) {
+      throw new Error('Failed to build weather timestamp.');
+    }
     upsertWeatherCache(LOCATION_KEY, JSON.stringify(days), fetchedAt);
     return buildPayload(days, fetchedAt, false);
   } catch (error) {
@@ -164,7 +172,7 @@ export const weatherServerModule: WidgetServerModule = {
       } catch (error) {
         return jsonResponse({
           error: error instanceof Error ? error.message : 'Failed to load forecast.'
-        }, 500);
+        }, HTTP_STATUS_INTERNAL_SERVER_ERROR);
       }
     },
     'POST refresh': async () => {
@@ -174,7 +182,7 @@ export const weatherServerModule: WidgetServerModule = {
       } catch (error) {
         return jsonResponse({
           error: error instanceof Error ? error.message : 'Failed to refresh forecast.'
-        }, 500);
+        }, HTTP_STATUS_INTERNAL_SERVER_ERROR);
       }
     }
   }

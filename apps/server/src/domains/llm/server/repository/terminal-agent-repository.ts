@@ -34,6 +34,7 @@ export type TerminalAgentDialogState = {
   widgetId: string
   provider: TerminalAgentProvider
   providerSessionRef: string
+  dialogTitle: string
   status: string
   lastError: string | null
   updatedAt: string | null
@@ -44,6 +45,7 @@ export type TerminalAgentDialogRef = {
   widgetId: string
   provider: TerminalAgentProvider
   providerSessionRef: string
+  dialogTitle: string
   createdAt: string
   updatedAt: string
   lastStatus: string
@@ -136,6 +138,7 @@ export function upsertTerminalAgentDialogState(input: {
   widgetId: string
   provider: TerminalAgentProvider
   providerSessionRef?: string
+  dialogTitle?: string
   status: string
   lastError?: string | null
 }) {
@@ -145,6 +148,7 @@ export function upsertTerminalAgentDialogState(input: {
     consumer: input.widgetId,
     provider: input.provider,
     providerSessionRef: input.providerSessionRef ?? current.providerSessionRef,
+    dialogTitle: input.dialogTitle ?? current.dialogTitle,
     status: input.status,
     lastError: typeof input.lastError === 'undefined' ? current.lastError : input.lastError,
   }))
@@ -169,6 +173,7 @@ export function upsertTerminalAgentDialogRef(input: {
   widgetId: string
   provider: TerminalAgentProvider
   providerSessionRef: string
+  dialogTitle?: string
   lastStatus?: string
 }) {
   unwrapOrThrow(upsertLlmRuntimeDialogRef({
@@ -176,6 +181,7 @@ export function upsertTerminalAgentDialogRef(input: {
     consumer: input.widgetId,
     provider: input.provider,
     providerSessionRef: input.providerSessionRef,
+    dialogTitle: input.dialogTitle,
     lastStatus: input.lastStatus ?? 'done',
   }))
 

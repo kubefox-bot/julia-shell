@@ -5,7 +5,8 @@ import type { DisplayLocale } from '@/entities/widget/model/types';
 import { getShellText } from '@app/shell/lib/i18n';
 import { useShellLayoutViewModel } from '@app/shell/model/selectors';
 import { useShellStore } from '@app/shell/model/store';
-import { ShellAgentStatusOverlay } from '../shell-agent-status-overlay';
+import type { ShellStore } from '@app/shell/model/types';
+import { ShellAgentStatusOverlay } from '@app/shell/ui/components/shell-agent-status-overlay';
 import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
 import { resolveDisplayLocale } from '@shared/lib/locale';
 
@@ -17,26 +18,32 @@ function resolveThemeToggleTitle(theme: 'auto' | 'day' | 'night', locale: Displa
   if (theme === 'auto') {
     return getShellText(locale, 'switchToDay');
   }
+
   if (theme === 'day') {
     return getShellText(locale, 'switchToNight');
   }
+
   return getShellText(locale, 'switchToAutoTheme');
 }
 
 function resolveLocaleToggleTitle(locale: DisplayLocale) {
-  return locale === 'ru'
-    ? getShellText(locale, 'switchToEnglish')
-    : getShellText(locale, 'switchToRussian');
+  const targetKey = locale === 'ru' ? 'switchToEnglish' : 'switchToRussian';
+  return getShellText(locale, targetKey);
 }
 
-function resolveAgentLampClass(agentStatus: string, styleModule: Record<string, string>) {
-  if (agentStatus === 'connected' || agentStatus === 'connected_dev') {
-    return styleModule.agentLampGreen;
+function resolveAgentLampClass(
+  status: string,
+  styles: Record<string, string>
+) {
+  if (status === 'connected' || status === 'connected_dev') {
+    return styles.agentLampGreen;
   }
-  if (agentStatus === 'unauthorized') {
-    return styleModule.agentLampYellow;
+
+  if (status === 'unauthorized') {
+    return styles.agentLampYellow;
   }
-  return styleModule.agentLampRed;
+
+  return styles.agentLampRed;
 }
 
 export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
@@ -55,7 +62,7 @@ export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
   const [isAgentOverlayOpen, setIsAgentOverlayOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = useShellStore.subscribe((nextState, prevState) => {
+    const unsubscribe = useShellStore.subscribe((nextState: ShellStore, prevState: ShellStore) => {
       const nextLocale = resolveDisplayLocale(nextState.layoutSettings.locale);
       const prevLocale = resolveDisplayLocale(prevState.layoutSettings.locale);
       if (nextLocale !== prevLocale) {
@@ -94,7 +101,7 @@ export function ShellHeaderActions({ initialLocale }: ShellHeaderActionsProps) {
                   {activeLocale === 'ru' ? '🇷🇺' : '🇺🇸'}
                 </IconButton>
                 <IconButton type="button" onClick={() => void toggleTheme()} title={themeToggleTitle}>
-                  {theme === 'auto' ? '🕒' : theme === 'day' ? '🌙' : '☀️'}
+                  {{ auto: '🕒', day: '🌙', night: '☀️' }[theme]}
                 </IconButton>
                 {!isEditMode ? (
                   <IconButton type="button" onClick={startEdit} title={getShellText(activeLocale, 'editGrid')}>

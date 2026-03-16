@@ -3,12 +3,13 @@ import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { moduleBus, type EventPayload } from '@shared/lib/module-bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
+import { nowIso } from '@shared/lib/time';
 
-const STATUS_OK = 200;
-const STATUS_ACCEPTED = 202;
-const STATUS_BAD_REQUEST = 400;
-const STATUS_UNAUTHORIZED = 401;
 const HEARTBEAT_INTERVAL_MS = 15_000;
+const HTTP_STATUS_ACCEPTED = 202;
+const HTTP_STATUS_BAD_REQUEST = 400;
+const HTTP_STATUS_OK = 200;
+const HTTP_STATUS_UNAUTHORIZED = 401;
 
 function formatSseEvent(event: string, payload: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
@@ -16,10 +17,10 @@ function formatSseEvent(event: string, payload: unknown) {
 
 export const GET: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized channel access.' }, STATUS_UNAUTHORIZED);
+    return jsonResponse({ error: 'Unauthorized channel access.' }, HTTP_STATUS_UNAUTHORIZED);
   }
 
   const url = new URL(request.url);
@@ -38,7 +39,7 @@ export const GET: APIRoute = async ({ request }) => {
 
       const heartbeat = setInterval(() => {
         send('ping', {
-          timestamp: new Date().toISOString(),
+          timestamp: nowIso(),
           topic
         });
       }, HEARTBEAT_INTERVAL_MS);
@@ -62,7 +63,7 @@ export const GET: APIRoute = async ({ request }) => {
   });
 
   const response = new Response(stream, {
-    status: STATUS_OK,
+    status: HTTP_STATUS_OK,
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
@@ -76,10 +77,10 @@ export const GET: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {
-    allowBootstrapFromOnlineAgent: true
+    allowBootstrapFromOnlineAgent: false
   });
   if (!resolvedAuth.context) {
-    return jsonResponse({ error: 'Unauthorized channel access.' }, STATUS_UNAUTHORIZED);
+    return jsonResponse({ error: 'Unauthorized channel access.' }, HTTP_STATUS_UNAUTHORIZED);
   }
 
   const body = await readJsonBody<{
@@ -92,13 +93,10 @@ export const POST: APIRoute = async ({ request }) => {
   const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'api/channel/ws';
 
   if (!topic) {
-    return jsonResponse({ error: 'topic is required.' }, STATUS_BAD_REQUEST);
+    return jsonResponse({ error: 'topic is required.' }, HTTP_STATUS_BAD_REQUEST);
   }
 
   moduleBus.publish(topic, source, body.payload ?? null);
 
-  return withSetCookie(
-    jsonResponse({ accepted: true, topic }, STATUS_ACCEPTED),
-    resolvedAuth.context.setCookieHeader
-  );
+  return withSetCookie(jsonResponse({ accepted: true, topic }, HTTP_STATUS_ACCEPTED), resolvedAuth.context.setCookieHeader);
 };

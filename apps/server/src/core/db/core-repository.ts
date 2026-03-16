@@ -1,10 +1,17 @@
 import { asc, eq } from 'drizzle-orm';
-import type { LayoutItem, LayoutSettings } from '../../entities/widget/model/types';
-import { nowIso } from '../../shared/lib/time';
+import type { LayoutItem, LayoutSettings, ShellLocale, ShellTheme } from '../../entities/widget/model/types';
+import { nowIso } from '@shared/lib/time';
 import { openCoreDatabase } from './core-drizzle';
 import { moduleStateTable, shellLayoutSettingsTable, widgetLayoutTable } from './core-schema';
-import { sanitizeLocale, sanitizeTheme } from './shell-settings';
 import { openDb } from './shared';
+
+function sanitizeLocale(value: string | null | undefined): ShellLocale {
+  return value === 'ru' || value === 'en' ? value : 'ru';
+}
+
+function sanitizeTheme(value: string | null | undefined): ShellTheme {
+  return value === 'auto' || value === 'day' || value === 'night' ? value : 'auto';
+}
 
 function hasColumn(db: ReturnType<typeof openDb>, tableName: string, columnName: string) {
   const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;

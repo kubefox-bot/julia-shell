@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { readRuntimeEnv } from '@core/env'
+import { nowMillis } from '@shared/lib/time'
 
 /**
  * Resolves heartbeat timeout for live passport sessions.
@@ -21,7 +22,7 @@ export function isStalePassportHeartbeat(input: {
     return true
   }
 
-  const nowMs = input.nowMs ?? Date.now()
+  const nowMs = input.nowMs ?? nowMillis()
   return nowMs - heartbeat.toMillis() > input.timeoutMs
 }
 

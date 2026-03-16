@@ -7,13 +7,17 @@ const ACCESS_TOKEN_TTL_SECONDS = 3600;
 
 const enrollPassportAgentMock = vi.hoisted(() => vi.fn());
 const refreshPassportSessionMock = vi.hoisted(() => vi.fn());
+const issuePassportBrowserAccessMock = vi.hoisted(() => vi.fn());
 const resolvePassportRequestContextMock = vi.hoisted(() => vi.fn());
 const getAgentStatusSnapshotMock = vi.hoisted(() => vi.fn());
 const retryStatusSnapshotMock = vi.hoisted(() => vi.fn());
+const getOnlineAgentSessionMock = vi.hoisted(() => vi.fn());
+const getOnlineAgentSnapshotsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../server/service', () => ({
   enrollPassportAgent: enrollPassportAgentMock,
   refreshPassportSession: refreshPassportSessionMock,
+  issuePassportBrowserAccess: issuePassportBrowserAccessMock,
   revokePassportSession: vi.fn()
 }));
 
@@ -24,7 +28,9 @@ vi.mock('../server/context', () => ({
 vi.mock('../server/runtime/runtime', () => ({
   passportRuntime: {
     getAgentStatusSnapshot: getAgentStatusSnapshotMock,
-    retryStatusSnapshot: retryStatusSnapshotMock
+    retryStatusSnapshot: retryStatusSnapshotMock,
+    getOnlineAgentSession: getOnlineAgentSessionMock,
+    getOnlineAgentSnapshots: getOnlineAgentSnapshotsMock
   }
 }));
 
@@ -37,9 +43,12 @@ describe('passport api routes', () => {
   beforeEach(() => {
     enrollPassportAgentMock.mockReset();
     refreshPassportSessionMock.mockReset();
+    issuePassportBrowserAccessMock.mockReset();
     resolvePassportRequestContextMock.mockReset();
     getAgentStatusSnapshotMock.mockReset();
     retryStatusSnapshotMock.mockReset();
+    getOnlineAgentSessionMock.mockReset();
+    getOnlineAgentSnapshotsMock.mockReset();
   });
 
   it('validates enroll payload fields', async () => {
@@ -161,4 +170,22 @@ describe('passport api routes', () => {
     expect(response.status).toBe(HTTP_STATUS_OK);
     expect(response.headers.get('set-cookie')).toBeNull();
   });
+
+  it('returns unauthorized status when browser token is invalid', async () => {
+    resolvePassportRequestContextMock.mockResolvedValue({
+      context: null,
+      reason: 'invalid'
+    });
+
+    const response = await statusGet({
+      request: new Request('http://localhost/api/passport/agent/status')
+    } as never);
+
+    const payload = await response.json();
+    expect(response.status).toBe(HTTP_STATUS_OK);
+    expect(payload.status).toBe('unauthorized');
+    expect(payload.reason).toBe('Invalid browser access token.');
+  });
+
+
 });

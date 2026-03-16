@@ -20,12 +20,14 @@ export type TerminalAgentDialogStatePayload = {
   widgetId: string
   provider: TerminalAgentProvider
   providerSessionRef: string
+  dialogTitle: string
   status: string
   lastError: string | null
 }
 
 export type TerminalAgentDialogRefItemPayload = {
   providerSessionRef: string
+  dialogTitle: string
   createdAt: string
   updatedAt: string
   lastStatus: string

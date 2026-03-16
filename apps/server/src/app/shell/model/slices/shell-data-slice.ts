@@ -3,8 +3,9 @@ import { fetchShellSettings, toggleModule as toggleModuleRequest } from '../../l
 import { SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS } from '../constants'
 import { buildShellStatePatch } from '../store-helpers'
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types'
-import type { ShellLocale } from '../../../../entities/widget/model/types'
+import type { ShellLocale } from '@/entities/widget/model/types'
 import { readLocaleCookieFromDocument } from '@shared/lib/locale-cookie'
+import { nowIso as getNowIso } from '@shared/lib/time'
 
 export type ShellDataSlice = Pick<
   ShellStoreState,
@@ -26,8 +27,7 @@ export type ShellDataSlice = Pick<
   >
 
 function resolveInitialShellLocale(): ShellLocale {
-  return  readLocaleCookieFromDocument() ?? "ru";
-
+  return readLocaleCookieFromDocument() ?? 'ru'
 }
 
 export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSlice> = (
@@ -38,7 +38,7 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
   error: null,
   isSaving: false,
   browserLocale: null,
-  nowIso: new Date().toISOString(),
+  nowIso: getNowIso(),
   platform: 'windows',
   layout: [],
   draftLayout: [],
@@ -57,7 +57,7 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
     set({ browserLocale: locale })
   },
   tickNow: (nowIso) => {
-    set({ nowIso: nowIso ?? new Date().toISOString() })
+    set({ nowIso: nowIso ?? getNowIso() })
   },
   clearError: () => {
     set({ error: null })

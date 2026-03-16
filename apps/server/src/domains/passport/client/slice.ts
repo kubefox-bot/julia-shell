@@ -1,5 +1,10 @@
 import type { StateCreator } from 'zustand';
-import { fetchPassportStatus, retryPassportStatus } from './api';
+import {
+  connectPassportAgent,
+  fetchPassportOnlineAgents,
+  fetchPassportStatus,
+  retryPassportStatus
+} from './api';
 import { dispatchPassportStatusChanged } from './bus';
 import {
   PASSPORT_DEFAULT_AUTH_STATUS,
@@ -15,10 +20,13 @@ import type { ShellStore } from '../../../app/shell/model/types';
 import { nowIso } from '@shared/lib/time';
 
 function shouldReloadShellOnStatusTransition(
-  previous: PassportStatusResponse['status'] | null | undefined,
-  next: PassportStatusResponse['status'] | null | undefined
+  previous: PassportStatusResponse | null,
+  next: PassportStatusResponse
 ) {
-  return previous !== next;
+  return (
+    previous?.status !== next.status ||
+    (previous?.agentId ?? null) !== (next.agentId ?? null)
+  );
 }
 
 function hasPassportStatusChanged(
@@ -46,7 +54,7 @@ function mapStatusToState(nextStatus: PassportStatusResponse) {
     passportStatus: nextStatus,
     agentId: nextStatus.agentId?.trim() || null,
     authStatus: nextStatus.status,
-    hasAccessToken: nextStatus.status !== PASSPORT_DEFAULT_AUTH_STATUS,
+    hasAccessToken: Boolean(nextStatus.agentId?.trim()),
     lastSyncAt: nowIso(),
     error: null
   };
@@ -54,6 +62,7 @@ function mapStatusToState(nextStatus: PassportStatusResponse) {
 
 export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice> = (set, get) => ({
   passportStatus: null,
+  passportAgents: [],
   agentId: null,
   authStatus: PASSPORT_DEFAULT_AUTH_STATUS,
   hasAccessToken: false,
@@ -65,12 +74,15 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
     set({ passportLoading: true, error: null });
 
     try {
-      const previousStatus = get().passportStatus?.status;
       const previousSnapshot = get().passportStatus;
-      const nextStatus = await fetchPassportStatus();
+      const [nextStatus, nextAgents] = await Promise.all([
+        fetchPassportStatus(),
+        fetchPassportOnlineAgents()
+      ]);
 
       set({
         ...mapStatusToState(nextStatus),
+        passportAgents: nextAgents.agents,
         passportLoading: false,
         passportBusy: false
       });
@@ -83,7 +95,7 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
         });
       }
 
-      if (shouldReloadShellOnStatusTransition(previousStatus, nextStatus.status)) {
+      if (shouldReloadShellOnStatusTransition(previousSnapshot, nextStatus)) {
         await get().loadShell();
       }
     } catch (error) {
@@ -97,9 +109,22 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
   ensureCookie: async () => {
     await get().syncFromStatus();
   },
+  syncOnlineAgents: async () => {
+    try {
+      const nextAgents = await fetchPassportOnlineAgents();
+      set({
+        passportAgents: nextAgents.agents
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : PASSPORT_SYNC_FAILED_MESSAGE
+      });
+    }
+  },
   clearSessionState: () => {
     set({
       passportStatus: null,
+      passportAgents: [],
       agentId: null,
       authStatus: PASSPORT_DEFAULT_AUTH_STATUS,
       hasAccessToken: false,
@@ -113,12 +138,15 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
     set({ passportBusy: true, passportLoading: true, error: null });
 
     try {
-      const previousStatus = get().passportStatus?.status;
       const previousSnapshot = get().passportStatus;
-      const nextStatus = await retryPassportStatus();
+      const [nextStatus, nextAgents] = await Promise.all([
+        retryPassportStatus(),
+        fetchPassportOnlineAgents()
+      ]);
 
       set({
         ...mapStatusToState(nextStatus),
+        passportAgents: nextAgents.agents,
         passportBusy: false,
         passportLoading: false
       });
@@ -131,9 +159,38 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
         });
       }
 
-      if (shouldReloadShellOnStatusTransition(previousStatus, nextStatus.status)) {
+      if (shouldReloadShellOnStatusTransition(previousSnapshot, nextStatus)) {
         await get().loadShell();
       }
+    } catch (error) {
+      set({
+        passportBusy: false,
+        passportLoading: false,
+        error: error instanceof Error ? error.message : PASSPORT_RETRY_FAILED_MESSAGE
+      });
+    }
+  },
+  connectAgent: async (agentId: string) => {
+    set({ passportBusy: true, passportLoading: true, error: null });
+
+    try {
+      const nextStatus = await connectPassportAgent(agentId);
+      const nextAgents = await fetchPassportOnlineAgents();
+
+      set({
+        ...mapStatusToState(nextStatus),
+        passportAgents: nextAgents.agents,
+        passportBusy: false,
+        passportLoading: false
+      });
+
+      dispatchPassportStatusChanged({
+        status: nextStatus.status,
+        updatedAt: nextStatus.updatedAt,
+        reason: nextStatus.reason ?? null
+      });
+
+      await get().loadShell();
     } catch (error) {
       set({
         passportBusy: false,

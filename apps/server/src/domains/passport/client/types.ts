@@ -12,11 +12,25 @@ export type PassportStatusResponse = {
   agentId?: string | null;
 };
 
+export type PassportOnlineAgent = {
+  agentId: string;
+  displayName?: string | null;
+  hostname?: string | null;
+  connectedAt: string;
+  lastHeartbeatAt: string;
+  isCurrent: boolean;
+};
+
+export type PassportOnlineAgentsResponse = {
+  agents: PassportOnlineAgent[];
+};
+
 /**
  * Zustand state for the passport domain.
  */
 export type PassportSliceState = {
   passportStatus: PassportStatusResponse | null;
+  passportAgents: PassportOnlineAgent[];
   agentId: string | null;
   authStatus: PassportAuthStatus;
   hasAccessToken: boolean;
@@ -31,7 +45,9 @@ export type PassportSliceState = {
  */
 export type PassportSliceActions = {
   syncFromStatus: () => Promise<void>;
+  syncOnlineAgents: () => Promise<void>;
   ensureCookie: () => Promise<void>;
   clearSessionState: () => void;
   retryStatus: () => Promise<void>;
+  connectAgent: (agentId: string) => Promise<void>;
 };

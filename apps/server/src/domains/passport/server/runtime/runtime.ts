@@ -4,11 +4,12 @@ import protoLoader from '@grpc/proto-loader'
 import { readRuntimeEnv } from '@core/env'
 import { invalidateWidgetRegistryCache } from '@core/registry/registry'
 import { moduleBus } from '@shared/lib/module-bus'
-import { nowIso } from '@shared/lib/time'
+import { nowIso, nowMillis, toIsoFromMillis } from '@shared/lib/time'
 import { resolvePassportJwtSecret } from '../config/jwt-secret'
 import { resolvePassportHeartbeatTimeoutMs } from '../config/health'
 import { verifyAccessJwt } from '../jwt'
 import { appendAgentEvent, getAgentDisplayName, upsertAgentSession } from '../repository'
+import type { OnlineAgentSnapshot } from '../types'
 import type { AgentConnection, RuntimeEnvelope, UnauthorizedState } from './runtime-types'
 import { extractHeartbeatHostname, isAgentDevMode, resolveProtoPath } from './runtime-utils'
 import { resolvePassportStatusSnapshot } from './status'
@@ -24,6 +25,67 @@ type RuntimeWidgetEvent = {
   widgetId: string
   eventType: string
   payload: unknown
+}
+
+const LEGACY_TRANSCRIBE_EVENTS = [
+  { key: 'progress', eventType: 'progress' },
+  { key: 'token', eventType: 'token' },
+  { key: 'done', eventType: 'done' },
+  { key: 'error', eventType: 'error' }
+] as const
+
+const WIDGET_EVENT_FIELDS = [
+  { key: 'transcribeProgress', eventType: 'progress' },
+  { key: 'transcribeToken', eventType: 'token' },
+  { key: 'transcribeDone', eventType: 'done' },
+  { key: 'transcribeError', eventType: 'error' },
+  { key: 'terminalAgentStatus', eventType: 'status' },
+  { key: 'terminalAgentAssistantChunk', eventType: 'assistant_chunk' },
+  { key: 'terminalAgentAssistantDone', eventType: 'assistant_done' },
+  { key: 'terminalAgentResumeFailed', eventType: 'resume_failed' },
+  { key: 'terminalAgentError', eventType: 'error' }
+] as const
+
+function resolveLegacyTranscribeEvent(envelope: RuntimeEnvelope): RuntimeWidgetEvent | null {
+  for (const field of LEGACY_TRANSCRIBE_EVENTS) {
+    const payload = envelope[field.key]
+    if (payload) {
+      return {
+        widgetId: TRANSCRIBE_WIDGET_ID,
+        eventType: field.eventType,
+        payload
+      }
+    }
+  }
+
+  return null
+}
+
+function resolveWidgetEventId(widgetEvent: Record<string, unknown>) {
+  if (typeof widgetEvent.widgetId === 'string') {
+    return widgetEvent.widgetId.trim()
+  }
+
+  if (typeof widgetEvent.widget_id === 'string') {
+    return widgetEvent.widget_id.trim()
+  }
+
+  return ''
+}
+
+function resolveTypedWidgetEvent(widgetEvent: Record<string, unknown>, widgetId: string): RuntimeWidgetEvent | null {
+  for (const field of WIDGET_EVENT_FIELDS) {
+    const payload = widgetEvent[field.key]
+    if (payload) {
+      return {
+        widgetId,
+        eventType: field.eventType,
+        payload
+      }
+    }
+  }
+
+  return null
 }
 
 export class PassportRuntime {
@@ -123,7 +185,7 @@ export class PassportRuntime {
       protocolVersion: PROTOCOL_VERSION,
       sessionId: '',
       jobId: '',
-      timestampUnixMs: Date.now(),
+      timestampUnixMs: nowMillis(),
       error: {
         code: 'UNAUTHORIZED',
         message: UNAUTHORIZED_MESSAGE,
@@ -158,6 +220,7 @@ export class PassportRuntime {
         agentId: input.agentId,
         sessionId: input.sessionId,
         call: input.call,
+        connectedAt: nowIso(),
         lastSeenAtMs: input.nowMs,
         hostname: null,
         accessJwt: input.accessJwt,
@@ -173,7 +236,7 @@ export class PassportRuntime {
         protocolVersion: PROTOCOL_VERSION,
         sessionId: input.sessionId,
         jobId: '',
-        timestampUnixMs: Date.now(),
+        timestampUnixMs: nowMillis(),
         healthPing: {
           nonce: `connected-${input.sessionId}`,
         },
@@ -242,36 +305,9 @@ export class PassportRuntime {
   }
 
   private resolveWidgetEvent(envelope: RuntimeEnvelope): RuntimeWidgetEvent | null {
-    if (envelope.progress) {
-      return {
-        widgetId: TRANSCRIBE_WIDGET_ID,
-        eventType: 'progress',
-        payload: envelope.progress,
-      }
-    }
-
-    if (envelope.token) {
-      return {
-        widgetId: TRANSCRIBE_WIDGET_ID,
-        eventType: 'token',
-        payload: envelope.token,
-      }
-    }
-
-    if (envelope.done) {
-      return {
-        widgetId: TRANSCRIBE_WIDGET_ID,
-        eventType: 'done',
-        payload: envelope.done,
-      }
-    }
-
-    if (envelope.error) {
-      return {
-        widgetId: TRANSCRIBE_WIDGET_ID,
-        eventType: 'error',
-        payload: envelope.error,
-      }
+    const legacyEvent = resolveLegacyTranscribeEvent(envelope)
+    if (legacyEvent) {
+      return legacyEvent
     }
 
     const widgetEvent = typeof envelope.widgetEvent === 'object' && envelope.widgetEvent !== null
@@ -282,89 +318,11 @@ export class PassportRuntime {
       return null
     }
 
-    const widgetId = typeof widgetEvent.widgetId === 'string'
-      ? widgetEvent.widgetId.trim()
-      : typeof widgetEvent.widget_id === 'string'
-        ? widgetEvent.widget_id.trim()
-        : ''
-
+    const widgetId = resolveWidgetEventId(widgetEvent)
     if (!widgetId) {
       return null
     }
-
-    if (widgetEvent.transcribeProgress) {
-      return {
-        widgetId,
-        eventType: 'progress',
-        payload: widgetEvent.transcribeProgress,
-      }
-    }
-
-    if (widgetEvent.transcribeToken) {
-      return {
-        widgetId,
-        eventType: 'token',
-        payload: widgetEvent.transcribeToken,
-      }
-    }
-
-    if (widgetEvent.transcribeDone) {
-      return {
-        widgetId,
-        eventType: 'done',
-        payload: widgetEvent.transcribeDone,
-      }
-    }
-
-    if (widgetEvent.transcribeError) {
-      return {
-        widgetId,
-        eventType: 'error',
-        payload: widgetEvent.transcribeError,
-      }
-    }
-
-    if (widgetEvent.terminalAgentStatus) {
-      return {
-        widgetId,
-        eventType: 'status',
-        payload: widgetEvent.terminalAgentStatus,
-      }
-    }
-
-    if (widgetEvent.terminalAgentAssistantChunk) {
-      return {
-        widgetId,
-        eventType: 'assistant_chunk',
-        payload: widgetEvent.terminalAgentAssistantChunk,
-      }
-    }
-
-    if (widgetEvent.terminalAgentAssistantDone) {
-      return {
-        widgetId,
-        eventType: 'assistant_done',
-        payload: widgetEvent.terminalAgentAssistantDone,
-      }
-    }
-
-    if (widgetEvent.terminalAgentResumeFailed) {
-      return {
-        widgetId,
-        eventType: 'resume_failed',
-        payload: widgetEvent.terminalAgentResumeFailed,
-      }
-    }
-
-    if (widgetEvent.terminalAgentError) {
-      return {
-        widgetId,
-        eventType: 'error',
-        payload: widgetEvent.terminalAgentError,
-      }
-    }
-
-    return null
+    return resolveTypedWidgetEvent(widgetEvent, widgetId)
   }
 
   private handleWidgetPayloads(input: {
@@ -400,7 +358,7 @@ export class PassportRuntime {
   }
 
   private reconcileStaleSessions() {
-    const nowMs = Date.now()
+    const nowMs = nowMillis()
     const timeoutMs = resolvePassportHeartbeatTimeoutMs()
     let shouldInvalidateRegistry = false
 
@@ -442,7 +400,7 @@ export class PassportRuntime {
 
     const { claims, accessJwt } = authorized
     const { sessionId, jobId } = this.resolveSessionMeta(envelope)
-    const nowMs = Date.now()
+    const nowMs = nowMillis()
 
     this.lastUnauthorized = null
 
@@ -497,9 +455,11 @@ export class PassportRuntime {
     })
   }
 
-  getOnlineAgentSession() {
+  getOnlineAgentSession(agentId?: string | null) {
     this.reconcileStaleSessions()
-    const fromMemory = [...this.connections.values()][0]
+    const fromMemory = agentId
+      ? this.connections.get(agentId) ?? null
+      : [...this.connections.values()][0] ?? null
     if (!fromMemory) {
       return null
     }
@@ -507,34 +467,63 @@ export class PassportRuntime {
     return {
       agentId: fromMemory.agentId,
       sessionId: fromMemory.sessionId,
+      connectedAt: fromMemory.connectedAt,
+      lastHeartbeatAt: toIsoFromMillis(fromMemory.lastSeenAtMs),
       hostname: fromMemory.hostname,
       accessJwt: fromMemory.accessJwt,
     }
+  }
+
+  getOnlineAgentSnapshots(currentAgentId?: string | null): OnlineAgentSnapshot[] {
+    this.reconcileStaleSessions()
+
+    return [...this.connections.values()]
+      .map((connection) => ({
+        agentId: connection.agentId,
+        sessionId: connection.sessionId,
+        displayName: getAgentDisplayName(connection.agentId),
+        hostname: connection.hostname,
+        connectedAt: connection.connectedAt,
+        lastHeartbeatAt: toIsoFromMillis(connection.lastSeenAtMs),
+        isCurrent: connection.agentId === (currentAgentId?.trim() || null),
+      }))
+      .sort((left, right) => {
+        if (left.isCurrent !== right.isCurrent) {
+          return left.isCurrent ? -1 : 1
+        }
+
+        const leftLabel = (left.displayName || left.hostname || left.agentId).toLowerCase()
+        const rightLabel = (right.displayName || right.hostname || right.agentId).toLowerCase()
+        return leftLabel.localeCompare(rightLabel, 'ru')
+      })
   }
 
   getUnauthorizedState() {
     return this.lastUnauthorized
   }
 
-  getAgentStatusSnapshot() {
-    const onlineSession = this.getOnlineAgentSession()
+  getAgentStatusSnapshot(agentId?: string | null) {
+    const selectedAgentId = agentId?.trim() || null
+    const onlineSession = this.getOnlineAgentSession(selectedAgentId)
     return resolvePassportStatusSnapshot(
       {
-        isDevMode: isAgentDevMode(),
+        isDevMode: isAgentDevMode() && Boolean(selectedAgentId),
         hasOnlineSession: Boolean(onlineSession),
-        unauthorizedState: this.lastUnauthorized,
+        unauthorizedState: selectedAgentId ? null : this.lastUnauthorized,
       },
       {
-        agentId: onlineSession?.agentId ?? null,
+        agentId: selectedAgentId ?? onlineSession?.agentId ?? null,
         hostname: onlineSession
           ? onlineSession.hostname || getAgentDisplayName(onlineSession.agentId)
-          : null,
+          : selectedAgentId
+            ? getAgentDisplayName(selectedAgentId)
+            : null,
       }
     )
   }
 
-  retryStatusSnapshot() {
-    return this.getAgentStatusSnapshot()
+  retryStatusSnapshot(agentId?: string | null) {
+    return this.getAgentStatusSnapshot(agentId)
   }
 
   dispatchWidgetCommand(input: {
@@ -614,7 +603,7 @@ export class PassportRuntime {
       protocolVersion: PROTOCOL_VERSION,
       sessionId: input.sessionId,
       jobId: input.jobId,
-      timestampUnixMs: Date.now(),
+      timestampUnixMs: nowMillis(),
     }
 
     if (input.command.kind === 'transcribe_start') {

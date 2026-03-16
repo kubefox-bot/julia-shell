@@ -28,6 +28,7 @@ function ensureSchema() {
       consumer TEXT NOT NULL,
       provider TEXT NOT NULL,
       provider_session_ref TEXT NOT NULL DEFAULT '',
+      dialog_title TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'idle',
       last_error TEXT,
       updated_at TEXT NOT NULL,
@@ -39,12 +40,25 @@ function ensureSchema() {
       consumer TEXT NOT NULL,
       provider TEXT NOT NULL,
       provider_session_ref TEXT NOT NULL,
+      dialog_title TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       last_status TEXT NOT NULL DEFAULT 'done',
       PRIMARY KEY (agent_id, consumer, provider, provider_session_ref)
     );
   `)
+
+  try {
+    sqlite.exec(`ALTER TABLE llm_consumer_dialog_state ADD COLUMN dialog_title TEXT NOT NULL DEFAULT '';`)
+  } catch {
+    // already migrated
+  }
+
+  try {
+    sqlite.exec(`ALTER TABLE llm_consumer_dialog_refs ADD COLUMN dialog_title TEXT NOT NULL DEFAULT '';`)
+  } catch {
+    // already migrated
+  }
 }
 
 export function openLlmRuntimeDatabase() {

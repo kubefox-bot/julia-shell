@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod'
 import type { PassportHttpErrorKey } from '@passport/server/http'
 import {
+  connectAgentRequestSchema,
   createEnrollmentTokenRequestSchema,
   enrollRequestSchema,
   refreshRequestSchema,
@@ -16,6 +17,10 @@ export const PASSPORT_VALIDATION_CATALOG = {
   createEnrollmentToken: {
     schema: createEnrollmentTokenRequestSchema,
     errorKey: 'invalidCreateEnrollmentTokenPayload',
+  },
+  connectAgent: {
+    schema: connectAgentRequestSchema,
+    errorKey: 'missingConnectAgentId',
   },
   enroll: {
     schema: enrollRequestSchema,

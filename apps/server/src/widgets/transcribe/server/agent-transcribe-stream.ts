@@ -1,23 +1,21 @@
-import path from 'node:path';
 import {
   appendTranscribeOutboxEvent,
-  completeTranscribeJob,
   createTranscribeJob,
   failTranscribeJob,
   touchRecentFolder,
-  updateTranscribeJobProgress,
 } from './repository';
 import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
 import { moduleBus } from '@shared/lib/module-bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
+import { handleAgentBusEvent, type AgentEventPayload } from './agent-transcribe-events';
 import { isTranscribeDevBypassMode } from './agent-mode';
 import { resolveSelection, toSseEvent } from './utils';
 
-type AgentEventPayload = {
-  type?: string;
-  payload?: Record<string, unknown>;
-};
+const HTTP_STATUS_BAD_REQUEST = Number('400');
+const HTTP_STATUS_OK = Number('200');
+const HTTP_STATUS_SERVICE_UNAVAILABLE = Number('503');
+const JOB_CREATED_PROGRESS_PERCENT = Number('2');
 
 function deriveFolderPath(input: { folderPath: string; canonicalSourceFile: string }) {
   const explicit = input.folderPath.trim();
@@ -44,9 +42,9 @@ export async function handleAgentTranscribeStream(
   const filePaths = Array.isArray(body.filePaths) ? body.filePaths : [];
   const useServerSelection = isTranscribeDevBypassMode();
 
-  const onlineAgent = passportRuntime.getOnlineAgentSession();
+  const onlineAgent = passportRuntime.getOnlineAgentSession(agentId);
   if (!onlineAgent) {
-    return jsonResponse({ error: 'agent_offline' }, 503);
+    return jsonResponse({ error: 'agent_offline' }, HTTP_STATUS_SERVICE_UNAVAILABLE);
   }
 
   let selectedFiles: string[] = [];
@@ -64,7 +62,10 @@ export async function handleAgentTranscribeStream(
       .filter(Boolean);
 
     if (selectedFiles.length === 0) {
-      return jsonResponse({ error: 'filePath or filePaths is required for agent-side selection.' }, 400);
+      return jsonResponse(
+        { error: 'filePath or filePaths is required for agent-side selection.' },
+        HTTP_STATUS_BAD_REQUEST
+      );
     }
 
     canonicalSourceFile = selectedFiles[0];
@@ -129,78 +130,20 @@ export async function handleAgentTranscribeStream(
       };
 
       send('progress', {
-        percent: 2,
+        percent: JOB_CREATED_PROGRESS_PERCENT,
         stage: 'progressJobCreated',
         jobId,
       });
 
       const off = moduleBus.subscribe(topic, (event) => {
-        const payload = (event.payload ?? {}) as AgentEventPayload;
-        const eventType = payload.type ?? '';
-
-        if (eventType === 'progress') {
-          const percent = Number(payload.payload?.percent ?? 0);
-          const stage = String(payload.payload?.stage ?? 'progress');
-          updateTranscribeJobProgress(jobId, percent);
-          send('progress', { percent, stage, jobId });
-          return;
-        }
-
-        if (eventType === 'token') {
-          const text = String(payload.payload?.text ?? '');
-          if (text) {
-            send('token', { text, jobId, model: 'agent' });
-          }
-          return;
-        }
-
-        if (eventType === 'done') {
-          const transcript = String(payload.payload?.transcript ?? '');
-          const savePath = String(
-            payload.payload?.savePath ??
-              path.join(resolvedFolderPath, `${path.parse(canonicalSourceFile).name}.txt`),
-          );
-          completeTranscribeJob(jobId, savePath);
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'transcription_completed',
-            state: 'completed',
-            payload: {
-              sourceFile: canonicalSourceFile,
-              savePath,
-              model: 'agent',
-            },
-          });
-          send('done', {
-            status: 'ready',
-            sourceFile: canonicalSourceFile,
-            savePath,
-            transcript,
-            model: 'agent',
-            jobId,
-          });
-          off();
-          close();
-          return;
-        }
-
-        if (eventType === 'error') {
-          const message = String(payload.payload?.message ?? 'Agent transcription failed.');
-          failTranscribeJob(jobId, message);
-          appendTranscribeOutboxEvent({
-            agentId,
-            widgetId: WIDGET_ID,
-            jobId,
-            eventType: 'job_failed',
-            state: 'failed',
-            payload: { message },
-          });
-          send('error', { message, jobId });
-          off();
-          close();
-        }
+        handleAgentBusEvent({
+          eventPayload: (event.payload ?? {}) as AgentEventPayload,
+          handlers: { send, close, off },
+          agentId,
+          jobId,
+          canonicalSourceFile,
+          resolvedFolderPath,
+        });
       });
 
       const dispatched = passportRuntime.dispatchTranscribeStart({
@@ -226,7 +169,7 @@ export async function handleAgentTranscribeStream(
   });
 
   return new Response(stream, {
-    status: 200,
+    status: HTTP_STATUS_OK,
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',

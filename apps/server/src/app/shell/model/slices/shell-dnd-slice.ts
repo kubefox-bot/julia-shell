@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { LayoutItem } from '../../../../entities/widget/model/types';
+import type { LayoutItem } from '@/entities/widget/model/types';
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types';
 import { getVisibleLayout, getVisibleWidgetIds, reorderVisibleLayout } from '../layout';
 

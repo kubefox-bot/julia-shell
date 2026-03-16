@@ -1,26 +1,29 @@
 import type { InfisicalSDK } from '@infisical/sdk'
-import { logger } from '../../shared/lib/logger'
+import { logger } from '@shared/lib/logger'
+import type { InfisicalConfig, SecretEntry } from './types'
 import { authenticateInfisicalClient } from './infisical-client'
 import { resolveSecretEntry } from './resolve-secret-entry'
-import type { InfisicalConfig, SecretEntry } from './types'
 import { getInfisicalConfig } from './utils/getInfisicalConfig'
 import { initSecrets } from './utils/initSecrets'
 import { normalizeSecretPath } from './utils/normalizeSecretPath'
+
+function buildCacheKey(keyName: string, normalizedPath: string | null) {
+  return `${keyName}::${normalizedPath ?? ''}`
+}
 
 export class InfisicalSecrets {
   private clientPromise: Promise<InfisicalSDK | null> | null = null
   private readonly valueCache = new Map<string, SecretEntry | null>()
 
-  private buildCacheKey(keyName: string, normalizedPath: string | null) {
-    return `${keyName}::${normalizedPath ?? ''}`
-  }
-
-  private init() {
+  init() {
     initSecrets()
   }
 
   private async getClient(config: InfisicalConfig) {
-    this.clientPromise ??= authenticateInfisicalClient(config)
+    if (!this.clientPromise) {
+      this.clientPromise = authenticateInfisicalClient(config)
+    }
+
     try {
       const client = await this.clientPromise
       logger.dev('[secrets] infisical auth:ok')
@@ -34,20 +37,36 @@ export class InfisicalSecrets {
     }
   }
 
-  private async resolve(keyName: string, normalizedPath: string | null): Promise<SecretEntry | null> {
-    this.init()
-    const config = getInfisicalConfig()
-    return resolveSecretEntry({ config, getClient: (value) => this.getClient(value), keyName, normalizedPath })
-  }
-
   async get(keyName: string, secretPath?: string | null): Promise<SecretEntry | null> {
+    this.init()
     const normalizedPath = normalizeSecretPath(secretPath)
-    const cacheKey = this.buildCacheKey(keyName, normalizedPath)
+    const cacheKey = buildCacheKey(keyName, normalizedPath)
+    const config = getInfisicalConfig()
+
     if (this.valueCache.has(cacheKey)) {
       return this.valueCache.get(cacheKey) ?? null
     }
 
-    const resolved = await this.resolve(keyName, normalizedPath)
+    logger.dev('[secrets] config', {
+      hasConfig: Boolean(config),
+      authMode: config?.accessToken
+        ? 'access-token'
+        : config?.clientId && config?.clientSecret
+          ? 'universal-auth'
+          : 'none',
+      projectId: config?.projectId ?? null,
+      environment: config?.environment ?? null,
+      siteUrl: config?.siteUrl ?? 'https://app.infisical.com',
+      keyName,
+      secretPath: normalizedPath,
+    })
+
+    const resolved = await resolveSecretEntry({
+      config,
+      getClient: (nextConfig) => this.getClient(nextConfig),
+      keyName,
+      normalizedPath,
+    })
     this.valueCache.set(cacheKey, resolved)
     return resolved
   }

@@ -1,5 +1,8 @@
-import type { PassportStatusResponse } from './types';
-import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
+import type {
+  PassportOnlineAgentsResponse,
+  PassportStatusResponse
+} from './types';
+import { fetchWithRequestHeaders } from '@shared/lib/request-headers';
 
 async function safeJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => ({}));
@@ -15,14 +18,33 @@ async function safeJson<T>(response: Response): Promise<T> {
  * Reads current passport status and performs cookie bootstrap on server side.
  */
 export async function fetchPassportStatus() {
-  const response = await fetchWithRequestHeaders('/api/passport/agent/status')
+  const response = await fetchWithRequestHeaders('/api/passport/agent/status');
   return safeJson<PassportStatusResponse>(response);
+}
+
+export async function fetchPassportOnlineAgents() {
+  const response = await fetchWithRequestHeaders('/api/passport/agent/status/list');
+  return safeJson<PassportOnlineAgentsResponse>(response);
 }
 
 export async function retryPassportStatus() {
   const response = await fetchWithRequestHeaders('/api/passport/agent/status/retry', {
     method: 'POST'
-  })
+  });
+
+  return safeJson<PassportStatusResponse>(response);
+}
+
+export async function connectPassportAgent(agentId: string) {
+  const response = await fetchWithRequestHeaders('/api/passport/agent/status/connect', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      agent_id: agentId
+    })
+  });
 
   return safeJson<PassportStatusResponse>(response);
 }

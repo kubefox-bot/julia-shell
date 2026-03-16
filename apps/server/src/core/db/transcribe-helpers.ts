@@ -1,9 +1,14 @@
+import { DateTime } from 'luxon'
+import { nowIso } from '@shared/lib/time'
+
 let recentFolderTouchSequence = 0
 
 export function nextRecentFolderTimestamp() {
-  const value = new Date(Date.now() + recentFolderTouchSequence).toISOString()
+  const value = DateTime.utc()
+    .plus({ milliseconds: recentFolderTouchSequence })
+    .toISO()
   recentFolderTouchSequence += 1
-  return value
+  return value ?? nowIso()
 }
 
 export function normalizeSpeakerKey(rawSpeaker: string) {

@@ -1,4 +1,4 @@
-import type { LayoutItem } from '../../../entities/widget/model/types';
+import type { LayoutItem } from '@/entities/widget/model/types';
 import type { ShellSettingsResponse } from '../model/types';
 import { fetchWithRequestHeaders } from '@shared/lib/request-headers'
 
