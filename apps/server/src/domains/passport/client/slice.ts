@@ -193,26 +193,37 @@ export const createPassportSlice: StateCreator<ShellStore, [], [], PassportSlice
   connectAgent: async (agentId: string) => {
     set({ passportBusy: true, passportLoading: true, error: null });
 
-    const nextResult = await Result.safe(
-      Promise.all([connectPassportAgent(agentId), fetchPassportOnlineAgents()])
-    );
+    const connectResult = await Result.safe(connectPassportAgent(agentId));
 
-    await match(nextResult, {
-      Ok: async ([nextStatus, nextAgents]) => {
-        set({
-          ...mapStatusToState(nextStatus),
-          passportAgents: nextAgents.agents,
-          passportBusy: false,
-          passportLoading: false
+    await match(connectResult, {
+      Ok: async (nextStatus) => {
+        const nextAgentsResult = await Result.safe(fetchPassportOnlineAgents());
+
+        await match(nextAgentsResult, {
+          Ok: async (nextAgents) => {
+            set({
+              ...mapStatusToState(nextStatus),
+              passportAgents: nextAgents.agents,
+              passportBusy: false,
+              passportLoading: false
+            });
+
+            dispatchPassportStatusChanged({
+              status: nextStatus.status,
+              updatedAt: nextStatus.updatedAt,
+              reason: nextStatus.reason ?? null
+            });
+
+            await get().loadShell();
+          },
+          Err: async (error) => {
+            set({
+              passportBusy: false,
+              passportLoading: false,
+              error: toErrorMessage(error, PASSPORT_RETRY_FAILED_MESSAGE)
+            });
+          }
         });
-
-        dispatchPassportStatusChanged({
-          status: nextStatus.status,
-          updatedAt: nextStatus.updatedAt,
-          reason: nextStatus.reason ?? null
-        });
-
-        await get().loadShell();
       },
       Err: async (error) => {
         set({
