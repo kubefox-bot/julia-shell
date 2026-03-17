@@ -1,4 +1,5 @@
 import { invalidateWidgetRegistryCache } from '@core/registry/registry'
+import { Result, match } from 'oxide.ts'
 import { nowIso, nowMillis, toIsoFromMillis } from '@shared/lib/time'
 import { getAgentDisplayName, upsertAgentSession } from '../repository'
 import { resolvePassportHeartbeatTimeoutMs } from '../config/health'
@@ -119,11 +120,12 @@ export function reconcileStaleSessions(connections: Map<string, AgentConnection>
       status: 'disconnected',
       disconnectReason: 'heartbeat_timeout',
     })
-    try {
-      connection.call.end()
-    } catch {
+    const endResult = Result.safe(() => connection.call.end())
+    match(endResult, {
+      Ok: () => undefined,
       // ignored: stream may already be closed by transport
-    }
+      Err: () => undefined,
+    })
     connections.delete(agentId)
     shouldInvalidateRegistry = true
   }
@@ -175,4 +177,3 @@ export function getOnlineAgentSnapshotsFromConnections(
       return leftLabel.localeCompare(rightLabel, 'ru')
     })
 }
-

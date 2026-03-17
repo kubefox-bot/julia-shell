@@ -25,5 +25,5 @@ Chat widget for `Codex` and `Gemini CLI` over Julia runtime-agent transport.
 - `handlers.ts`: transport + validation
 - `llm-models-mapping.ts`: HTTP mapping for `GET models`
 - `domains/llm/server/service.ts`: provider fetch/retry/fallback
-- `domains/llm/server/repository/catalog-repository.ts`: drizzle + neverthrow persistence
+- `domains/llm/server/repository/catalog-repository.ts`: drizzle + oxide.ts persistence
 - `domains/llm/server/repository/runtime-repository.ts`: consumer-based settings/dialog state

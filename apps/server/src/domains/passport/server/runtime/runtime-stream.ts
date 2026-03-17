@@ -1,5 +1,5 @@
 import type grpc from '@grpc/grpc-js'
-import { moduleBus } from '@shared/lib/module-bus'
+import { moduleBus } from '@shared/lib/bus'
 import { nowMillis } from '@shared/lib/time'
 import { appendAgentEvent } from '../repository'
 import { resolveAuthorizedEnvelope, writeUnauthorized } from './runtime-auth'

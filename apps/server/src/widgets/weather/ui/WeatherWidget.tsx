@@ -6,7 +6,7 @@ import { unwrapResultAsync } from '@shared/lib/result';
 import { requestJsonResult } from '@shared/lib/request';
 import { buildWidgetApiRoute, WEATHER_WIDGET_ID } from '@/widgets';
 import { WEATHER_WIDGET_META } from '../meta';
-import styles from './WeatherWidget.module.scss';
+import styles from './WeatherWidget.module.css';
 
 type ForecastDay = {
   date: string;

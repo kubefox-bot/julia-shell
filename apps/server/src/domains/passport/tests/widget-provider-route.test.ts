@@ -13,7 +13,7 @@ vi.mock('../server/runtime/runtime', () => ({
 }))
 
 import { GET as widgetProviderGet } from '../../../pages/api/passport/widget/provider'
-import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK } from '../../../shared/lib/http-status'
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK } from '../../../shared/lib/http/status'
 import { buildWidgetProviderRoute, TERMINAL_AGENT_WIDGET_ID, TRANSCRIBE_WIDGET_ID } from '@/widgets'
 
 describe('passport widget provider route', () => {

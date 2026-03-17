@@ -1,4 +1,4 @@
-import { nowIso } from './time';
+import { nowIso } from '../time';
 
 type EventPayload = {
   topic: string;

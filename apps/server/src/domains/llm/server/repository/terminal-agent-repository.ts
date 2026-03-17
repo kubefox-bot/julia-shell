@@ -8,7 +8,7 @@ import {
   upsertLlmRuntimeDialogState,
   upsertLlmRuntimeSettings,
 } from './runtime-repository'
-import type { Result } from 'neverthrow'
+import type { Result } from '@shared/lib/result'
 
 export type TerminalAgentProvider = LlmRuntimeProvider
 
@@ -62,9 +62,9 @@ const DEFAULTS = {
 
 function unwrapOrThrow<T, E extends { message: string }>(value: Result<T, E>): T {
   if (value.isErr()) {
-    throw new Error(value.error.message)
+    throw new Error(value.unwrapErr().message)
   }
-  return value.value
+  return value.unwrap()
 }
 
 export function getTerminalAgentSettings(agentId: string, widgetId: string): TerminalAgentSettings {

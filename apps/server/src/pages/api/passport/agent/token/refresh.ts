@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { err, ok } from 'neverthrow'
+import { Option, match } from 'oxide.ts'
 import { passportErrorResponse } from '@passport/server/http'
 import { refreshPassportSession } from '@passport/server/service'
 import {
@@ -11,25 +11,25 @@ import { jsonResponse, readJsonBody } from '@shared/lib/http'
 export const POST: APIRoute = async ({ request }) => {
   const body = await readJsonBody<unknown>(request)
   const parsedResult = parseRequestBody(PASSPORT_VALIDATION_CATALOG.refresh.schema, body)
-  if (parsedResult.isErr()) {
-    return passportErrorResponse(PASSPORT_VALIDATION_CATALOG.refresh.errorKey)
-  }
-  const parsed = parsedResult.value
 
-  const refreshed = await refreshPassportSession({
-    agentId: parsed.agent_id,
-    refreshToken: parsed.refresh_token,
+  return match(parsedResult, {
+    Ok: async (parsed) => {
+      const refreshed = await refreshPassportSession({
+        agentId: parsed.agent_id,
+        refreshToken: parsed.refresh_token,
+      })
+
+      return match(Option.from(refreshed), {
+        Some: (session) =>
+          jsonResponse({
+            agent_id: session.agentId,
+            access_jwt: session.accessJwt,
+            refresh_token: session.refreshToken,
+            expires_in: session.expiresIn,
+          }),
+        None: () => passportErrorResponse('refreshTokenInvalid')
+      })
+    },
+    Err: async () => passportErrorResponse(PASSPORT_VALIDATION_CATALOG.refresh.errorKey)
   })
-  const refreshedResult = refreshed ? ok(refreshed) : err('refreshTokenInvalid' as const)
-
-  return refreshedResult.match(
-    (refreshed) =>
-      jsonResponse({
-        agent_id: refreshed.agentId,
-        access_jwt: refreshed.accessJwt,
-        refresh_token: refreshed.refreshToken,
-        expires_in: refreshed.expiresIn,
-      }),
-    (errorKey) => passportErrorResponse(errorKey)
-  )
 }

@@ -6,8 +6,8 @@ import {
 } from './repository';
 import { passportRuntime } from '@passport/server/runtime';
 import { jsonResponse } from '@shared/lib/http';
-import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http-status';
-import { moduleBus } from '@shared/lib/module-bus';
+import { HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_OK, HTTP_STATUS_SERVICE_UNAVAILABLE } from '@shared/lib/http/status';
+import { moduleBus } from '@shared/lib/bus';
 import { DEFAULT_GEMINI_MODEL, WIDGET_ID } from './constants';
 import { TRANSCRIBE_PROGRESS_JOB_CREATED_PERCENT } from '../progress';
 import { handleAgentBusEvent, type AgentEventPayload } from './agent-transcribe-events';

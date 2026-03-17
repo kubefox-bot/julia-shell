@@ -1,0 +1,82 @@
+.headerAside {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.headerMetaZone {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+
+.headerMetaItem {
+  width: 100%;
+
+  > * {
+    width: 100%;
+  }
+}
+
+.headerActionsPanel {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.45rem 0.56rem;
+  border-radius: 16px;
+  background: rgb(248 250 252 / 0.88);
+  border: 1px solid rgb(148 163 184 / 0.24);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 8%);
+
+  :global(#shell-root[data-theme='night']) & {
+    background: rgb(15 23 42 / 0.82);
+    border-color: rgb(71 85 105 / 0.4);
+    box-shadow: 0 2px 8px rgb(2 6 23 / 28%);
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.agentLamp {
+  display: inline-block;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.82);
+}
+
+.agentActionLamp {
+  width: 0.68rem;
+  height: 0.68rem;
+}
+
+.agentLampGreen {
+  background: #22c55e;
+}
+
+.agentLampYellow {
+  background: #eab308;
+}
+
+.agentLampRed {
+  background: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .headerAside {
+    justify-content: flex-end;
+  }
+
+  .headerMetaZone {
+    width: 100%;
+  }
+}

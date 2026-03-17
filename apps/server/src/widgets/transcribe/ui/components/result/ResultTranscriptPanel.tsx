@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import styles from '../../TranscribeWidget.module.scss'
+import styles from '../../TranscribeWidget.module.css'
 
 type ResultTranscriptPanelProps = {
   text: string

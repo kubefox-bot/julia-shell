@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useState, type ReactNode } from 'react'
-import styles from './ModalSurface.module.scss'
+import styles from './ModalSurface.module.css'
 
 type ModalSurfaceProps = {
   open: boolean

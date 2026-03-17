@@ -1,4 +1,4 @@
-import { err, ok, type Result } from 'neverthrow'
+import { Err, Ok, type Result } from '@shared/lib/result'
 import type { ZodType } from 'zod'
 
 export type PassportRequestValidationIssue = {
@@ -20,7 +20,7 @@ export function parseRequestBody<T>(
 ): Result<T, PassportRequestValidationError> {
   const parsed = schema.safeParse(input)
   if (!parsed.success) {
-    return err({
+    return Err({
       message: 'Validation failed.',
       issues: parsed.error.issues.map((issue) => ({
         path: issue.path,
@@ -29,5 +29,5 @@ export function parseRequestBody<T>(
     })
   }
 
-  return ok<T>(parsed.data)
+  return Ok<T>(parsed.data)
 }

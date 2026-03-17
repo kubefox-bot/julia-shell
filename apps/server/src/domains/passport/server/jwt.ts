@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Result, match } from 'oxide.ts';
 import { DateTime } from 'luxon';
 import { PASSPORT_ACCESS_TTL_SECONDS } from './config/consts';
 
@@ -88,20 +89,22 @@ export function verifyAccessJwt(secret: string, token: string): AccessTokenClaim
     return null;
   }
 
-  try {
-    const parsed = JSON.parse(base64UrlDecode(payload)) as AccessTokenClaims;
-    const now = Math.floor(DateTime.utc().toSeconds());
+  const parsedResult = Result.safe(() => JSON.parse(base64UrlDecode(payload)) as AccessTokenClaims);
 
-    if (parsed.aud !== 'agent-control') {
-      return null;
-    }
+  return match(parsedResult, {
+    Ok: (parsed) => {
+      const now = Math.floor(DateTime.utc().toSeconds());
 
-    if (parsed.nbf > now || parsed.exp <= now) {
-      return null;
-    }
+      if (parsed.aud !== 'agent-control') {
+        return null;
+      }
 
-    return parsed;
-  } catch {
-    return null;
-  }
+      if (parsed.nbf > now || parsed.exp <= now) {
+        return null;
+      }
+
+      return parsed;
+    },
+    Err: () => null
+  });
 }

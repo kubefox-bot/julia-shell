@@ -3,7 +3,7 @@ import { updateLayoutSettings } from '@core/services/shell-service';
 import { PASSPORT_ANONYMOUS_AGENT_ID } from '@passport/server/config/consts';
 import { resolvePassportRequestContext } from '@passport/server/context';
 import { withSetCookie } from '@passport/server/cookie';
-import { buildLocaleCookieHeader } from '@shared/lib/locale-cookie';
+import { buildLocaleCookieHeader } from '@shared/lib/locale/cookie';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
 
 export const POST: APIRoute = async ({ request }) => {

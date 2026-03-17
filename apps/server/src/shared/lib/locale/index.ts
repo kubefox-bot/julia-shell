@@ -1,4 +1,4 @@
-import type { DisplayLocale, ShellLocale, WidgetHeaderName } from '../../entities/widget/model/types';
+import type { DisplayLocale, ShellLocale, WidgetHeaderName } from '../../../entities/widget/model/types';
 
 export function coerceBrowserLocale(locale: string | null | undefined): DisplayLocale {
   if (typeof locale !== 'string') {

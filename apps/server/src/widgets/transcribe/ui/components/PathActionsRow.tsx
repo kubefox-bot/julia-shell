@@ -1,6 +1,6 @@
 import { IconCircle } from '@shared/ui/IconCircle'
 import { getTranscribeText } from '../../i18n'
-import styles from '../TranscribeWidget.module.scss'
+import styles from '../TranscribeWidget.module.css'
 import type { DisplayLocale } from '../../../../entities/widget/model/types'
 import { PathCombobox } from './PathCombobox'
 import { CloseGlyph, SettingsGlyph, UpGlyph } from './TranscribeIcons'

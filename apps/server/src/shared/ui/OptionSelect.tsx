@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ResolvedShellTheme } from '../../entities/widget/model/types'
 import { OptionMenu } from './OptionMenu'
-import styles from './OptionSelect.module.scss'
+import styles from './OptionSelect.module.css'
 
 export type OptionSelectItem = {
   value: string

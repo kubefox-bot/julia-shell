@@ -45,6 +45,7 @@ export function resolveServerBuildConfig(env = process.env) {
 
   return {
     minify,
+    cssMinify: 'lightningcss',
     sourcemap: false,
     reportCompressedSize: false,
     target: 'es2022',

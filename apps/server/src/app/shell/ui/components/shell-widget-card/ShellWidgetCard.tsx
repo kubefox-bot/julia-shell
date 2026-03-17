@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { WidgetSize } from '@/entities/widget/model/types';
-import styles from '@app/shell/ui/shell-app/ShellApp.module.scss';
+import styles from './ShellWidgetCard.module.css';
 
 const SIZE_LABELS: Record<WidgetSize, string> = {
   small: 'S',

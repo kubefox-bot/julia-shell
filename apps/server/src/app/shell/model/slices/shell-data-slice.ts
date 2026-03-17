@@ -1,11 +1,13 @@
 import type { StateCreator } from 'zustand'
+import { Result, match } from 'oxide.ts'
 import { fetchShellSettings, toggleModule as toggleModuleRequest } from '../../lib/api'
 import { SHELL_STATUS_POLL_INTERVAL_DEFAULT_MS } from '../constants'
 import { buildShellStatePatch } from '../store-helpers'
 import type { ShellStore, ShellStoreActions, ShellStoreState } from '../types'
 import type { ShellLocale } from '@/entities/widget/model/types'
-import { readLocaleCookieFromDocument } from '@shared/lib/locale-cookie'
+import { readLocaleCookieFromDocument } from '@shared/lib/locale/cookie'
 import { nowIso as getNowIso } from '@shared/lib/time'
+import { toErrorMessage } from '@shared/utils'
 
 export type ShellDataSlice = Pick<
   ShellStoreState,
@@ -65,26 +67,32 @@ export const createShellDataSlice: StateCreator<ShellStore, [], [], ShellDataSli
   loadShell: async () => {
     set({ loading: true, error: null })
 
-    try {
-      const response = await fetchShellSettings()
-      set((state) => buildShellStatePatch(state, response))
-    } catch (error) {
-      set({
-        loading: false,
-        error: error instanceof Error ? error.message : 'Ошибка загрузки shell.',
-      })
-    }
+    const responseResult = await Result.safe(fetchShellSettings())
+
+    match(responseResult, {
+      Ok: (response) => {
+        set((state) => buildShellStatePatch(state, response))
+      },
+      Err: (error) => {
+        set({
+          loading: false,
+          error: toErrorMessage(error, 'Ошибка загрузки shell.'),
+        })
+      },
+    })
   },
   toggleModule: async (widgetId, enabled) => {
     set({ error: null })
 
-    try {
-      await toggleModuleRequest(widgetId, enabled)
-      await get().loadShell()
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : 'Не удалось изменить состояние модуля.',
-      })
-    }
+    const toggleResult = await Result.safe(toggleModuleRequest(widgetId, enabled))
+
+    await match(toggleResult, {
+      Ok: async () => get().loadShell(),
+      Err: async (error) => {
+        set({
+          error: toErrorMessage(error, 'Не удалось изменить состояние модуля.'),
+        })
+      },
+    })
   },
 })

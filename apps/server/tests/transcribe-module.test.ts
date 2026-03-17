@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { WidgetRouteContext } from '../src/entities/widget/model/types'
 import { passportRuntime } from '../src/domains/passport/server/runtime/runtime'
-import { HTTP_STATUS_SERVICE_UNAVAILABLE } from '../src/shared/lib/http-status'
+import { HTTP_STATUS_SERVICE_UNAVAILABLE } from '../src/shared/lib/http/status'
 import { transcribeHandlers } from '../src/widgets/transcribe/server/handlers'
 import { TRANSCRIBE_WIDGET_ID, buildWidgetApiRoute } from '../src/widgets'
 

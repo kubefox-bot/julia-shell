@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { err, ok } from 'neverthrow'
+import { Err, match, Ok, type Result } from '@shared/lib/result'
 import { passportErrorResponse } from '@passport/server/http'
 import { enrollPassportAgent } from '@passport/server/service'
 import {
@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (parsedResult.isErr()) {
     return passportErrorResponse(PASSPORT_VALIDATION_CATALOG.enroll.errorKey)
   }
-  const parsed = parsedResult.value
+  const parsed = parsedResult.unwrap()
 
   const enrolled = await enrollPassportAgent({
     agentId: parsed.agent_id,
@@ -23,16 +23,19 @@ export const POST: APIRoute = async ({ request }) => {
     agentVersion: parsed.agent_version?.trim() || 'unknown',
     capabilities: parsed.capabilities,
   })
-  const enrolledResult = enrolled ? ok(enrolled) : err('enrollmentTokenInvalid' as const)
+  const enrolledResult: Result<
+    NonNullable<typeof enrolled>,
+    'enrollmentTokenInvalid'
+  > = enrolled ? Ok(enrolled) : Err('enrollmentTokenInvalid')
 
-  return enrolledResult.match(
-    (enrolled) =>
+  return match(enrolledResult, {
+    Ok: (enrolled) =>
       jsonResponse({
         agent_id: enrolled.agentId,
         access_jwt: enrolled.accessJwt,
         refresh_token: enrolled.refreshToken,
         expires_in: enrolled.expiresIn,
       }),
-    (errorKey) => passportErrorResponse(errorKey)
-  )
+    Err: (errorKey) => passportErrorResponse(errorKey)
+  })
 }

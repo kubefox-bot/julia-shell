@@ -1,0 +1,27 @@
+.shellRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  position: relative;
+  --widget-card-height-desktop: 435px;
+
+  &[data-theme='night'] {
+    --bg-color: #08111f;
+    --card-bg: #101b2d;
+    --accent-rose: #31243c;
+    --accent-lavender: #1f2147;
+    --text-color: #e2e8f0;
+    --muted-text: #94a3b8;
+    --card-shadow: 0 18px 40px rgb(2 6 23 / 45%);
+    --border-subtle: #243244;
+    --surface-soft: #111827;
+    --success-bg: #052e1b;
+    --success-fg: #86efac;
+    --danger-bg: #3f1212;
+    --danger-fg: #fecaca;
+    --button-primary-fg: #fbcfe8;
+    --button-secondary-fg: #ddd6fe;
+    --button-ghost-bg: #111827;
+    --icon-button-hover-bg: #172033;
+  }
+}

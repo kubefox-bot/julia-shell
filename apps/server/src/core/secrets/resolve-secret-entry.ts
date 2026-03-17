@@ -1,4 +1,5 @@
 import type { InfisicalSDK } from '@infisical/sdk'
+import { Option, Result, match } from 'oxide.ts'
 import { logger } from '../../shared/lib/logger'
 import type { InfisicalConfig, SecretEntry } from './types'
 
@@ -13,37 +14,54 @@ async function resolveFromInfisical(input: ResolveSecretInput): Promise<SecretEn
   if (!input.config || !input.normalizedPath) {
     return null
   }
+  const config = input.config
+  const normalizedPath = input.normalizedPath
 
-  const client = await input.getClient(input.config)
-  if (!client) {
-    return null
-  }
+  const client = await input.getClient(config)
+  return match(Option.from(client), {
+    Some: async (resolvedClient) => {
+      const secretResult = await Result.safe(resolvedClient.secrets().getSecret({
+        environment: config.environment,
+        projectId: config.projectId,
+        secretName: input.keyName,
+        secretPath: normalizedPath,
+        viewSecretValue: true,
+      }))
 
-  try {
-    const secret = await client.secrets().getSecret({
-      environment: input.config.environment,
-      projectId: input.config.projectId,
-      secretName: input.keyName,
-      secretPath: input.normalizedPath,
-      viewSecretValue: true,
-    })
-    const value = secret.secretValue?.trim()
-    return value
-      ? { value, source: 'infisical', path: input.normalizedPath, reference: secret.secretKey }
-      : null
-  } catch (error) {
-    logger.dev('[secrets] infisical get:error', {
-      keyName: input.keyName,
-      secretPath: input.normalizedPath,
-      message: error instanceof Error ? error.message : 'Unknown getSecret error',
-    })
-    return null
-  }
+      return match(secretResult, {
+        Ok: (secret) => match(Option(secret.secretValue?.trim()), {
+          Some: (value) => ({
+            value,
+            source: 'infisical',
+            path: normalizedPath,
+            reference: secret.secretKey ?? input.keyName,
+          } satisfies SecretEntry),
+          None: () => null
+        }),
+        Err: (error) => {
+          logger.dev('[secrets] infisical get:error', {
+            keyName: input.keyName,
+            secretPath: normalizedPath,
+            message: error.message,
+          })
+          return null
+        }
+      })
+    },
+    None: async () => null
+  })
 }
 
 function resolveFromEnv(keyName: string): SecretEntry | null {
-  const envValue = process.env[keyName]?.trim()
-  return envValue ? { value: envValue, source: 'env', path: null, reference: keyName } : null
+  return match(Option(process.env[keyName]?.trim()), {
+    Some: (envValue) => ({
+      value: envValue,
+      source: 'env',
+      path: null,
+      reference: keyName
+    } satisfies SecretEntry),
+    None: () => null
+  })
 }
 
 export async function resolveSecretEntry(input: ResolveSecretInput): Promise<SecretEntry | null> {

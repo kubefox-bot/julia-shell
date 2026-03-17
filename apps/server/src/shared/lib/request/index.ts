@@ -1,6 +1,6 @@
 import ky, { type Input, type Options } from 'ky'
-import { fromThrowablePromise } from './result'
-import { buildRequestHeaders, type WidgetRequestMeta } from './request-headers'
+import { Err, Ok, Result, match, type Result as OxideResult } from 'oxide.ts'
+import { buildRequestHeaders, type WidgetRequestMeta } from './headers'
 
 const DEFAULT_RETRY_LIMIT = 0
 const DEFAULT_REQUEST_BASE_URL = 'http://localhost'
@@ -41,14 +41,13 @@ export function requestRaw(input: Input, options?: RequestOptions) {
 async function resolveErrorMessage(response: Response, fallbackMessage?: string) {
   const responseText = await response.text().catch(() => '')
   if (responseText) {
-    try {
-      const payload = JSON.parse(responseText) as { error?: string; message?: string }
-      const payloadMessage = payload.error ?? payload.message
-      if (typeof payloadMessage === 'string' && payloadMessage.trim()) {
-        return payloadMessage
-      }
-    } catch {
-      // keep plain-text fallback below
+    const parsedResult = Result.safe(() => JSON.parse(responseText) as { error?: string; message?: string })
+    const payloadMessage = match(parsedResult, {
+      Ok: (payload) => payload.error ?? payload.message,
+      Err: () => null
+    })
+    if (typeof payloadMessage === 'string' && payloadMessage.trim()) {
+      return payloadMessage
     }
 
     if (responseText.trim()) {
@@ -60,29 +59,50 @@ async function resolveErrorMessage(response: Response, fallbackMessage?: string)
 }
 
 export async function requestJson<T>(input: Input, options?: RequestOptions, fallbackMessage?: string) {
-  const response = await requestRaw(input, options)
-  if (!response.ok) {
-    throw new Error(await resolveErrorMessage(response, fallbackMessage))
+  const result = await requestJsonResult<T>(input, options, fallbackMessage)
+  const [error, value] = result.intoTuple()
+  if (error) {
+    throw error
   }
 
-  return response.json<T>()
+  return value
 }
 
-export function requestJsonResult<T>(input: Input, options?: RequestOptions, fallbackMessage?: string) {
-  return fromThrowablePromise(requestJson<T>(input, options, fallbackMessage))
+export async function requestJsonResult<T>(
+  input: Input,
+  options?: RequestOptions,
+  fallbackMessage?: string
+): Promise<OxideResult<T, Error>> {
+  const response = await requestRaw(input, options)
+  if (!response.ok) {
+    return Err(new Error(await resolveErrorMessage(response, fallbackMessage)))
+  }
+
+  const parsedResult = await Result.safe(response.json<T>())
+  return parsedResult.mapErr((error) => (error instanceof Error ? error : new Error('Failed to parse response json.')))
 }
 
 export async function requestBody(input: Input, options?: RequestOptions, fallbackMessage?: string) {
-  const response = await requestRaw(input, options)
-  if (!response.ok || !response.body) {
-    throw new Error(await resolveErrorMessage(response, fallbackMessage))
+  const result = await requestBodyResult(input, options, fallbackMessage)
+  const [error, value] = result.intoTuple()
+  if (error) {
+    throw error
   }
 
-  return response.body
+  return value
 }
 
-export function requestBodyResult(input: Input, options?: RequestOptions, fallbackMessage?: string) {
-  return fromThrowablePromise(requestBody(input, options, fallbackMessage))
+export async function requestBodyResult(
+  input: Input,
+  options?: RequestOptions,
+  fallbackMessage?: string
+): Promise<OxideResult<ReadableStream<Uint8Array>, Error>> {
+  const response = await requestRaw(input, options)
+  if (!response.ok || !response.body) {
+    return Err(new Error(await resolveErrorMessage(response, fallbackMessage)))
+  }
+
+  return Ok(response.body)
 }
 
 export function defineQuery<TQueryKey extends readonly unknown[], TData>(

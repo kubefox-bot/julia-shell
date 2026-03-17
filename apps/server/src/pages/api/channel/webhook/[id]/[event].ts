@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 import { withSetCookie } from '@passport/server/cookie';
 import { resolvePassportRequestContext } from '@passport/server/context';
-import { moduleBus } from '@shared/lib/module-bus';
+import { moduleBus } from '@shared/lib/bus';
 import { jsonResponse, readJsonBody } from '@shared/lib/http';
-import { HTTP_STATUS_ACCEPTED, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_UNAUTHORIZED } from '@shared/lib/http-status';
+import { HTTP_STATUS_ACCEPTED, HTTP_STATUS_BAD_REQUEST, HTTP_STATUS_UNAUTHORIZED } from '@shared/lib/http/status';
 
 export const POST: APIRoute = async ({ request, params }) => {
   const resolvedAuth = await resolvePassportRequestContext(request, {

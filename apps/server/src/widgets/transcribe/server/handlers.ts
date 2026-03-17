@@ -10,7 +10,7 @@ import {
   HTTP_STATUS_INTERNAL_SERVER_ERROR,
   HTTP_STATUS_NOT_FOUND,
   HTTP_STATUS_SERVICE_UNAVAILABLE,
-} from '@shared/lib/http-status'
+} from '@shared/lib/http/status'
 import { WIDGET_ID } from './constants'
 import { buildSettingsPayload, updateTranscribeSettings } from './settings'
 import { handleTranscribeStream } from './transcribe-stream'
@@ -26,7 +26,7 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
       }, HTTP_STATUS_SERVICE_UNAVAILABLE)
     }
 
-    return fromThrowablePromise(
+    const fsListResult = await fromThrowablePromise(
       readJsonBody<{ path?: string }>(request)
         .then((body) => listPathEntries(body.path ?? ''))
         .then((payload) => {
@@ -36,12 +36,16 @@ export const transcribeHandlers: WidgetServerModule['handlers'] = {
             recentFolders: listRecentFolders(agentId, WIDGET_ID).map((entry) => entry.folderPath)
           }
         })
-    ).match(
-      (payload) => jsonResponse(payload),
-      (error) => jsonResponse({
+    )
+
+    if (fsListResult.isErr()) {
+      const error = fsListResult.unwrapErr()
+      return jsonResponse({
         error: error instanceof Error ? error.message : 'Failed to list path.'
       }, HTTP_STATUS_INTERNAL_SERVER_ERROR)
-    )
+    }
+
+    return jsonResponse(fsListResult.unwrap())
   },
   'GET settings': async ({ agentId }) => {
     return jsonResponse(await buildSettingsPayload(agentId))

@@ -22,7 +22,7 @@ Server:
 
 UI:
 - `src/widgets/weather/ui/WeatherWidget.tsx`
-- `src/widgets/weather/ui/WeatherWidget.module.scss`
+- `src/widgets/weather/ui/WeatherWidget.module.css`
 
 ## Public Widget Actions (`/api/widget/com.yulia.weather/*`)
 - `GET forecast`

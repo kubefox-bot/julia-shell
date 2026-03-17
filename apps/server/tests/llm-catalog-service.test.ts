@@ -38,9 +38,10 @@ describe('llm-catalog service', () => {
     expect(result.isOk()).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
     if (result.isOk()) {
-      expect(result.value.source).toBe('db');
-      expect(result.value.stale).toBe(false);
-      expect(result.value.models).toEqual(['gpt-4.1', 'gpt-5']);
+      const payload = result.unwrap();
+      expect(payload.source).toBe('db');
+      expect(payload.stale).toBe(false);
+      expect(payload.models).toEqual(['gpt-4.1', 'gpt-5']);
     }
   });
 
@@ -63,9 +64,10 @@ describe('llm-catalog service', () => {
 
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value.source).toBe('remote');
-      expect(result.value.stale).toBe(false);
-      expect(result.value.models).toEqual(['gpt-5', 'o3']);
+      const payload = result.unwrap();
+      expect(payload.source).toBe('remote');
+      expect(payload.stale).toBe(false);
+      expect(payload.models).toEqual(['gpt-5', 'o3']);
     }
 
     const secondRead = await getLlmModelCatalog({
@@ -75,7 +77,7 @@ describe('llm-catalog service', () => {
     });
     expect(secondRead.isOk()).toBe(true);
     if (secondRead.isOk()) {
-      expect(secondRead.value.models).toEqual(['gpt-5', 'o3']);
+      expect(secondRead.unwrap().models).toEqual(['gpt-5', 'o3']);
     }
   });
 
@@ -98,9 +100,10 @@ describe('llm-catalog service', () => {
 
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value.source).toBe('db');
-      expect(result.value.stale).toBe(true);
-      expect(result.value.models).toEqual(['gemini-2.5-flash']);
+      const payload = result.unwrap();
+      expect(payload.source).toBe('db');
+      expect(payload.stale).toBe(true);
+      expect(payload.models).toEqual(['gemini-2.5-flash']);
     }
   });
 
@@ -117,8 +120,9 @@ describe('llm-catalog service', () => {
 
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      expect(result.error.code).toBe('provider_payload_invalid');
-      expect(result.error.retryable).toBe(false);
+      const error = result.unwrapErr();
+      expect(error.code).toBe('provider_payload_invalid');
+      expect(error.retryable).toBe(false);
     }
   });
 });

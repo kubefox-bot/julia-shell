@@ -7,7 +7,7 @@ import {
   HTTP_STATUS_BAD_REQUEST as SHARED_HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_OK as SHARED_HTTP_STATUS_OK,
   HTTP_STATUS_SERVICE_UNAVAILABLE as SHARED_HTTP_STATUS_SERVICE_UNAVAILABLE,
-} from '../src/shared/lib/http-status'
+} from '../src/shared/lib/http/status'
 import type { WidgetRouteContext } from '../src/entities/widget/model/types'
 import { WIDGET_ID } from '../src/widgets/terminal-agent/server/constants'
 

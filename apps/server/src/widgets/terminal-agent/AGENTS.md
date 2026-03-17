@@ -52,9 +52,9 @@ Events:
   - fallback policy (remote -> DB)
 - Repository: `src/domains/llm/server/repository/catalog-repository.ts`
   - typed DB read/write (`drizzle`)
-  - typed `Result` (`neverthrow`) for persistence operations
+  - typed `Result` (`oxide.ts`) for persistence operations
 - Runtime consumer repository: `src/domains/llm/server/repository/runtime-repository.ts`
-  - shared consumer-aware settings/dialog persistence (`drizzle + zod + neverthrow`)
+  - shared consumer-aware settings/dialog persistence (`drizzle + zod + oxide.ts`)
   - terminal-agent uses adapter layer via `src/domains/llm/server/repository/terminal-agent-repository.ts`
 
 ## Storage Mapping

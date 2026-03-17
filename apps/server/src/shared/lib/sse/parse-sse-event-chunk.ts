@@ -1,3 +1,5 @@
+import { Err, Ok, Result, type Result as OxideResult } from 'oxide.ts'
+
 type ParsedSsePayload = Record<string, unknown>
 
 const SSE_EVENT_PREFIX = 'event:'
@@ -8,9 +10,13 @@ export type ParsedSseChunk<TPayload extends ParsedSsePayload = ParsedSsePayload>
   payload: TPayload
 }
 
+export type ParseSseChunkError =
+  | { code: 'empty_data' }
+  | { code: 'invalid_json'; message: string }
+
 export function parseSseEventChunk<TPayload extends ParsedSsePayload = ParsedSsePayload>(
   rawEvent: string
-): ParsedSseChunk<TPayload> | null {
+): OxideResult<ParsedSseChunk<TPayload>, ParseSseChunkError> {
   const lines = rawEvent.split('\n')
   let eventName = 'message'
   const dataLines: string[] = []
@@ -25,14 +31,22 @@ export function parseSseEventChunk<TPayload extends ParsedSsePayload = ParsedSse
   }
 
   if (dataLines.length === 0) {
-    return null
+    return Err({ code: 'empty_data' })
   }
 
-  try {
-    const payload = JSON.parse(dataLines.join('\n')) as TPayload
-    return { eventName, payload }
-  } catch {
-    return null
+  const parseResult = Result.safe(() => JSON.parse(dataLines.join('\n')))
+    .map((payload) => payload as TPayload)
+    .mapErr((error) => ({
+      code: 'invalid_json' as const,
+      message: error.message
+    }))
+
+  if (parseResult.isErr()) {
+    return Err(parseResult.unwrapErr())
   }
+
+  return Ok({
+    eventName,
+    payload: parseResult.unwrap()
+  })
 }
-

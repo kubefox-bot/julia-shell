@@ -1,11 +1,11 @@
 import { DateTime } from 'luxon'
-import { err, ok, type Result } from 'neverthrow'
+import { Err, Ok, match, type Result } from 'oxide.ts'
 import { z } from 'zod'
 import { requestRaw } from '@shared/lib/request'
 import {
   HTTP_STATUS_INTERNAL_SERVER_ERROR as HTTP_STATUS_SERVER_ERROR,
   HTTP_STATUS_TOO_MANY_REQUESTS
-} from '@shared/lib/http-status'
+} from '@shared/lib/http/status'
 import {
   listLlmModels,
   replaceLlmModels,
@@ -58,7 +58,7 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
           retryable: response.status >= HTTP_STATUS_SERVER_ERROR || response.status === HTTP_STATUS_TOO_MANY_REQUESTS,
         }
       } else {
-        return ok(response)
+        return Ok(response)
       }
     } catch (error) {
       lastError = {
@@ -69,14 +69,14 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
     }
 
     if (attempt >= retries || !lastError.retryable) {
-      return err(lastError)
+      return Err(lastError)
     }
 
     await sleep(RETRY_DELAY_MS * (attempt + 1))
     attempt += 1
   }
 
-  return err(lastError)
+  return Err(lastError)
 }
 
 async function fetchLlmModels(provider: LlmProvider, apiKey: string): Promise<Result<string[], LlmCatalogError>> {
@@ -89,20 +89,20 @@ async function fetchLlmModels(provider: LlmProvider, apiKey: string): Promise<Re
       },
     })
     if (responseResult.isErr()) {
-      return err(responseResult.error)
+      return Err(responseResult.unwrapErr())
     }
 
-    const payload = await responseResult.value.json().catch(() => null)
+    const payload = await responseResult.unwrap().json().catch(() => null)
     const parsed = openAiModelsSchema.safeParse(payload)
     if (!parsed.success) {
-      return err({
+      return Err({
         code: 'provider_payload_invalid',
         message: 'OpenAI models payload has invalid shape.',
         retryable: false,
       })
     }
 
-    return ok(parsed.data.data
+    return Ok(parsed.data.data
       .map((entry) => entry.id.trim())
       .filter((id) => id.startsWith('gpt-') || id.startsWith('o')))
   }
@@ -117,20 +117,20 @@ async function fetchLlmModels(provider: LlmProvider, apiKey: string): Promise<Re
     }
   )
   if (responseResult.isErr()) {
-    return err(responseResult.error)
+    return Err(responseResult.unwrapErr())
   }
 
-  const payload = await responseResult.value.json().catch(() => null)
+  const payload = await responseResult.unwrap().json().catch(() => null)
   const parsed = geminiModelsSchema.safeParse(payload)
   if (!parsed.success) {
-    return err({
+    return Err({
       code: 'provider_payload_invalid',
       message: 'Gemini models payload has invalid shape.',
       retryable: false,
     })
   }
 
-  return ok(parsed.data.models
+  return Ok(parsed.data.models
     .map((entry) => entry.name.trim().replace(/^models\//, ''))
     .filter(Boolean))
 }
@@ -148,85 +148,97 @@ export async function getLlmModelCatalog(input: {
   missingApiKey?: boolean
 }, LlmCatalogError>> {
   const cachedRowsResult = listLlmModels(CONSUMER_TERMINAL_AGENT, input.provider)
-  if (cachedRowsResult.isErr()) {
-    return err({
+  return match(cachedRowsResult, {
+    Err: async (error) => Err({
       code: 'db_error',
-      message: cachedRowsResult.error.message,
+      message: error.message,
       retryable: true,
-    })
-  }
+    }),
+    Ok: async (cachedRows) => {
+      const cachedModels = cachedRows.map((row) => row.modelId)
+      const cachedUpdatedAt = cachedRows[0]?.updatedAt ?? null
+      const cachedUpdatedAtMs = cachedUpdatedAt ? DateTime.fromISO(cachedUpdatedAt).toMillis() : Number.NaN
+      const cachedIsFresh = Boolean(cachedUpdatedAt) && Number.isFinite(cachedUpdatedAtMs) && DateTime.now().toMillis() - cachedUpdatedAtMs < DEFAULT_TTL_MS
 
-  const cachedRows = cachedRowsResult.value
-  const cachedModels = cachedRows.map((row) => row.modelId)
-  const cachedUpdatedAt = cachedRows[0]?.updatedAt ?? null
-  const cachedUpdatedAtMs = cachedUpdatedAt ? DateTime.fromISO(cachedUpdatedAt).toMillis() : Number.NaN
-  const cachedIsFresh = Boolean(cachedUpdatedAt) && Number.isFinite(cachedUpdatedAtMs) && DateTime.now().toMillis() - cachedUpdatedAtMs < DEFAULT_TTL_MS
+      if (!input.forceRefresh && cachedModels.length > 0 && cachedIsFresh) {
+        return Ok({
+          provider: input.provider,
+          models: cachedModels,
+          source: 'db',
+          updatedAt: cachedUpdatedAt,
+          stale: false,
+        })
+      }
 
-  if (!input.forceRefresh && cachedModels.length > 0 && cachedIsFresh) {
-    return ok({
-      provider: input.provider,
-      models: cachedModels,
-      source: 'db',
-      updatedAt: cachedUpdatedAt,
-      stale: false,
-    })
-  }
+      const apiKey = input.apiKey?.trim() ?? ''
+      if (!apiKey) {
+        return Ok({
+          provider: input.provider,
+          models: cachedModels,
+          source: 'db',
+          updatedAt: cachedUpdatedAt,
+          stale: true,
+          missingApiKey: true,
+        })
+      }
 
-  const apiKey = input.apiKey?.trim() ?? ''
-  if (!apiKey) {
-    return ok({
-      provider: input.provider,
-      models: cachedModels,
-      source: 'db',
-      updatedAt: cachedUpdatedAt,
-      stale: true,
-      missingApiKey: true,
-    })
-  }
+      const remoteModelsResult = await fetchLlmModels(input.provider, apiKey)
+      const [remoteError, remoteModels] = remoteModelsResult.intoTuple()
+      if (remoteError) {
+        if (cachedModels.length > 0) {
+          return Ok({
+            provider: input.provider,
+            models: cachedModels,
+            source: 'db',
+            updatedAt: cachedUpdatedAt,
+            stale: true,
+          })
+        }
 
-  const remoteModelsResult = await fetchLlmModels(input.provider, apiKey)
-  if (remoteModelsResult.isOk() && remoteModelsResult.value.length > 0) {
-    const persistedResult = replaceLlmModels({
-      consumer: CONSUMER_TERMINAL_AGENT,
-      provider: input.provider,
-      modelIds: remoteModelsResult.value,
-    })
-    if (persistedResult.isErr()) {
-      return err({
-        code: 'db_error',
-        message: persistedResult.error.message,
-        retryable: true,
+        return Err(remoteError)
+      }
+
+      if (remoteModels && remoteModels.length > 0) {
+        const persistedResult = replaceLlmModels({
+          consumer: CONSUMER_TERMINAL_AGENT,
+          provider: input.provider,
+          modelIds: remoteModels,
+        })
+        const [persistedError, persisted] = persistedResult.intoTuple()
+        if (persistedError) {
+          return Err({
+            code: 'db_error',
+            message: persistedError.message,
+            retryable: true,
+          })
+        }
+
+        return Ok({
+          provider: input.provider,
+          models: remoteModels,
+          source: 'remote',
+          updatedAt: persisted.updatedAt,
+          stale: false,
+        })
+      }
+
+      if (cachedModels.length > 0) {
+        return Ok({
+          provider: input.provider,
+          models: cachedModels,
+          source: 'db',
+          updatedAt: cachedUpdatedAt,
+          stale: true,
+        })
+      }
+
+      return Ok({
+        provider: input.provider,
+        models: [],
+        source: 'db',
+        updatedAt: cachedUpdatedAt,
+        stale: true,
       })
     }
-
-    return ok({
-      provider: input.provider,
-      models: remoteModelsResult.value,
-      source: 'remote',
-      updatedAt: persistedResult.value.updatedAt,
-      stale: false,
-    })
-  }
-
-  if (cachedModels.length > 0) {
-    return ok({
-      provider: input.provider,
-      models: cachedModels,
-      source: 'db',
-      updatedAt: cachedUpdatedAt,
-      stale: true,
-    })
-  }
-
-  if (remoteModelsResult.isErr()) {
-    return err(remoteModelsResult.error)
-  }
-
-  return ok({
-    provider: input.provider,
-    models: [],
-    source: 'db',
-    updatedAt: cachedUpdatedAt,
-    stale: true,
   })
 }

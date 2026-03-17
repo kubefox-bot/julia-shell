@@ -17,7 +17,7 @@ vi.mock('../src/core/registry/registry', () => ({
 }));
 
 import { GET as widgetGet } from '../src/pages/api/widget/[id]/[...action]';
-import { HTTP_STATUS_OK, HTTP_STATUS_UNAUTHORIZED } from '../src/shared/lib/http-status';
+import { HTTP_STATUS_OK, HTTP_STATUS_UNAUTHORIZED } from '../src/shared/lib/http/status';
 import {
   buildWidgetApiRoute,
   TERMINAL_AGENT_WIDGET_ID,

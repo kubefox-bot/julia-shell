@@ -1,5 +1,5 @@
 import { getTranscribeText } from '../../../i18n'
-import styles from '../../TranscribeWidget.module.scss'
+import styles from '../../TranscribeWidget.module.css'
 import { CloseGlyph } from '../TranscribeIcons'
 import { ResultTranscriptPanel } from './ResultTranscriptPanel'
 import type { ResultViewProps } from './types'

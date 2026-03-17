@@ -1,0 +1,18 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--desktop-columns), minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    & {
+      grid-template-columns: repeat(var(--mobile-columns), minmax(0, 1fr));
+    }
+  }
+}
+
+.dropShadowSlot {
+  height: 100%;
+  min-height: var(--widget-card-height-desktop);
+  max-height: var(--widget-card-height-desktop);
+}

@@ -1,4 +1,4 @@
-import { err, ok } from 'neverthrow'
+import { Err, Ok } from '../src/shared/lib/result'
 import { describe, expect, it, vi } from 'vitest'
 import { saveTerminalAgentSettings } from '../src/domains/llm/server/repository/terminal-agent-repository'
 import * as llmCatalogService from '../src/domains/llm/server/service'
@@ -12,7 +12,7 @@ setupTerminalAgentTestFs()
 describe('terminal-agent server handlers models', () => {
   it('returns provider-specific model list from llm catalog service', async () => {
     saveTerminalAgentSettings({ agentId: 'agent-a', widgetId: WIDGET_ID, activeProvider: 'codex', codexApiKey: 'codex-secret', geminiApiKey: 'gemini-secret', codexCommand: 'codex', codexArgs: [], codexModel: 'gpt-5-codex', geminiCommand: 'gemini', geminiArgs: ['--output-format', 'stream-json'], geminiModel: 'gemini-2.5-flash', useShellFallback: false, shellOverride: '' })
-    const serviceSpy = vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(ok({ provider: 'codex', models: ['gpt-5-codex', 'o3'], source: 'remote', updatedAt: '2026-03-09T10:00:00.000Z', stale: false }))
+    const serviceSpy = vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(Ok({ provider: 'codex', models: ['gpt-5-codex', 'o3'], source: 'remote', updatedAt: '2026-03-09T10:00:00.000Z', stale: false }))
 
     const response = await terminalAgentHandlers['GET models'](createContext({
       url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'models')}?provider=codex`,
@@ -34,7 +34,7 @@ describe('terminal-agent server handlers models', () => {
     }))
     expect(badRequest.status).toBe(HTTP_STATUS_BAD_REQUEST)
 
-    vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(err({ code: 'provider_http_error', message: 'upstream failed', retryable: true }))
+    vi.spyOn(llmCatalogService, 'getLlmModelCatalog').mockResolvedValue(Err({ code: 'provider_http_error', message: 'upstream failed', retryable: true }))
     const upstreamFailed = await terminalAgentHandlers['GET models'](createContext({
       url: `http://localhost${buildWidgetApiRoute(WIDGET_ID, 'models')}?provider=gemini&refresh=1`,
       action: 'models',

@@ -1,5 +1,5 @@
 import { Button } from '@shared/ui/Button'
-import styles from '../PassportStatusBadge.module.scss'
+import styles from '../PassportStatusBadge.module.css'
 import type { AgentPlatform } from './types'
 
 type PassportInstallBlockProps = {

@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import styles from './IconCircle.module.scss'
+import styles from './IconCircle.module.css'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   theme?: 'day' | 'night'

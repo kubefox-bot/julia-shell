@@ -5,7 +5,7 @@ import { SettingsModal } from './components/SettingsModal'
 import { SetupView } from './components/SetupView'
 import { useTranscribeController } from './hooks/useTranscribeController'
 import { TranscribeStoreProvider } from './model/store'
-import styles from './TranscribeWidget.module.scss'
+import styles from './TranscribeWidget.module.css'
 
 function TranscribeWidgetInner(props: WidgetRenderProps) {
   const controller = useTranscribeController(props)
